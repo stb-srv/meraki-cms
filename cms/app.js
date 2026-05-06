@@ -4,6 +4,7 @@
 
 import { checkAuth, login, logout } from './modules/auth.js';
 import { apiGet } from './modules/api.js';
+import { NAV_CONFIG } from './modules/navigation-config.js';
 import { initTrialOnboarding, showTrialBanner, initUpgradeModal, showTrialExpiredLock } from './modules/trial.js';
 import { showToast } from './modules/utils.js';
 import { renderDashboard } from './modules/dashboard.js';
@@ -237,50 +238,25 @@ function setActiveNavItem(view, tab) {
     }
 }
 
+function getBreadcrumb(view, tab) {
+    for (const group of NAV_CONFIG) {
+        const items = group.items
+            || (group.sections || []).flatMap(s => s.items);
+        const match = items.find(i =>
+            i.view === view && (tab ? i.tab === tab : !i.tab || i.view === view)
+        );
+        if (match) return [group.label, match.label];
+    }
+    return [view];
+}
+
 async function switchView(view, tab = null) {
     currentView = view;
     setActiveNavItem(view, tab);
     dashboardToolbar.style.display = 'none';
 
     // Breadcrumb aktualisieren
-    const breadcrumbMap = {
-        stats:          ['Dashboard'],
-        menu: ['Speisekarte', tab ? {
-            dishes: 'Gerichte',
-            categories: 'Kategorien',
-            allergens: 'Allergene',
-            additives: 'Zusatzstoffe',
-            daily: 'Tagesgerichte',
-        }[tab] || 'Gerichte' : 'Gerichte'],
-        'home-editor':  ['Inhalte', tab ? {
-            holiday: 'Urlaub & Betriebssperre',
-            location: 'Standort & Karte',
-        }[tab] || 'Website Designer' : 'Website Designer'],
-        reservations:   ['Reservierungen', 'Übersicht'],
-        archive:        ['Reservierungen', 'Archiv'],
-        'table-planner': ['Reservierungen', 'Tischplaner'],
-        orders:         ['Bestellungen', 'Live-Monitor'],
-        'order-settings': ['Bestellungen', 'Einstellungen'],
-        opening:        ['Einstellungen', 'Restaurant', 'Öffnungszeiten'],
-        tables:         ['Einstellungen', 'Tische & Digital', 'Tischverwaltung'],
-        qrcodes:        ['Einstellungen', 'Tische & Digital', 'QR-Codes'],
-        backup:         ['Einstellungen', 'System', 'Backup & Restore'],
-        shifts:         ['Einstellungen', 'Schichtplan'],
-        'plugins-manager': ['System', 'Erweiterungen'],
-        settings:       ['Einstellungen', tab ? {
-            license: 'Lizenz & Module',
-            branding: 'Branding & Design',
-            restaurant: 'Grundeinstellungen',
-            smtp: 'E-Mail / SMTP',
-            'image-ai': 'KI-Bildgenerierung',
-            users: 'Nutzerverwaltung',
-            reservations: 'Reservierungseinstellungen',
-            'email-templates': 'E-Mail Templates',
-            'order-emails': 'E-Mail Templates',
-            plan_modules: 'Plan-Module',
-        }[tab] || tab : 'Einstellungen'],
-    };
-    const trail = breadcrumbMap[view];
+    const trail = getBreadcrumb(view, tab);
     const trailEl = document.getElementById('breadcrumb-trail');
     if (trailEl && trail) {
         trailEl.innerHTML = trail.filter(Boolean).map((crumb, i) =>
