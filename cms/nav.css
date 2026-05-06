@@ -11,8 +11,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: background .15s, color .15s;
-    color: rgba(255,255,255,0.75);
-    /* Kein border, kein underline, keine Sonderformatierung */
+    color: #ffffff;                        /* Kategorien: reines Weiß, gut lesbar */
     text-decoration: none;
     background: none;
     border: none;
@@ -24,14 +23,14 @@
 
 .nav-item:hover,
 .nav-group-header:hover {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
 }
 
 .nav-item.active,
 .nav-group-header.active {
-    background: rgba(255,255,255,0.15);
-    color: #fff;
+    background: rgba(200,169,110,0.25);    /* Gold-Akzent statt Orange */
+    color: #C8A96E;                        /* Brand Gold */
 }
 
 /* Icon einheitlich */
@@ -39,9 +38,10 @@
 .nav-group-header > i:first-child {
     width: 18px;
     text-align: center;
-    opacity: .75;
+    opacity: .85;
     flex-shrink: 0;
     font-size: .85rem;
+    color: inherit;
 }
 
 /* Chevron bleibt rechts */
@@ -49,11 +49,12 @@
     margin-left: auto;
     font-size: .6rem;
     transition: transform .25s;
-    opacity: .4;
+    opacity: .5;
     flex-shrink: 0;
 }
 .nav-group.open > .nav-group-header .nav-chevron {
     transform: rotate(90deg);
+    opacity: .8;
 }
 
 /* Sub-Items (leicht eingerückt, etwas kleiner) */
@@ -67,28 +68,29 @@
     font-size: .79rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background .15s;
-    color: rgba(255,255,255,0.6);
+    transition: background .15s, color .15s;
+    color: rgba(255,255,255,0.82);         /* Sub-Items: helles Weiß, deutlich lesbar */
     opacity: 1;
     user-select: none;
 }
 .nav-subitem:hover {
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.1);
+    color: #ffffff;
     opacity: 1;
 }
 .nav-subitem.active {
-    background: rgba(200,169,110,0.2);
-    color: #C8A96E;
+    background: rgba(200,169,110,0.18);    /* Gold-Tint */
+    color: #C8A96E;                        /* Brand Gold – passend zur Marke */
     font-weight: 700;
     opacity: 1;
 }
 .nav-subitem > i {
     width: 14px;
     text-align: center;
-    opacity: .6;
+    opacity: .75;
     font-size: .78rem;
     flex-shrink: 0;
+    color: inherit;
 }
 
 /* Accordion Subnav */
@@ -111,7 +113,7 @@
     margin: 6px 16px;
 }
 
-/* Sektion-Label innerhalb Subnav */
+/* Sektion-Label innerhalb Subnav (z.B. "Restaurant", "System & Technik") */
 .nav-subitem--group-label {
     padding: 10px 16px 2px 20px;
     cursor: default;
@@ -123,8 +125,7 @@
     font-size: .65rem;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    opacity: 1;
-    color: rgba(255,255,255,0.3);
+    color: rgba(200,169,110,0.6);          /* Gold statt Grau – sichtbar & passend */
     font-weight: 700;
 }
 
@@ -162,25 +163,29 @@
     left: 24px;
     top: 50%;
     transform: translateY(-40%);
-    opacity: .35;
+    opacity: .4;
     font-size: .75rem;
     pointer-events: none;
+    color: rgba(255,255,255,0.6);
 }
 .nav-search-input {
     width: 100%;
     box-sizing: border-box;
     padding: 7px 10px 7px 26px;
     border-radius: 8px;
-    border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.06);
-    color: inherit;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.08);
+    color: #ffffff;
     font-size: .8rem;
     outline: none;
     font-family: inherit;
 }
+.nav-search-input::placeholder {
+    color: rgba(255,255,255,0.35);
+}
 .nav-search-input:focus {
-    border-color: rgba(255,255,255,.25);
-    background: rgba(255,255,255,.1);
+    border-color: rgba(200,169,110,.5);    /* Gold-Fokus-Ring */
+    background: rgba(255,255,255,.12);
 }
 
 /* Breadcrumb */
