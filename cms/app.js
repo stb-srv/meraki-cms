@@ -499,18 +499,69 @@ function ensureActiveGroupOpen() {
     });
 }
 
-// ── Sidebar-Suche ──
+// ── Search-Index einmalig aufbauen ──
+function buildSearchIndex() {
+    const index = [];
+    for (const group of NAV_CONFIG) {
+        const items = group.items
+            || (group.sections || []).flatMap(s => s.items);
+        for (const item of items) {
+            index.push({
+                label:       item.label,
+                description: item.description || '',
+                keywords:    item.keywords || [],
+                view:        item.view,
+                tab:         item.tab || null,
+                external:    item.external || null,
+                icon:        item.icon
+            });
+        }
+    }
+    return index;
+}
+const _searchIndex = buildSearchIndex();
 const navSearch = document.getElementById('nav-search');
+const navSearchResults = document.getElementById('nav-search-results');
+
 if (navSearch) {
     navSearch.addEventListener('input', (e) => {
         const q = e.target.value.toLowerCase().trim();
-        document.querySelectorAll('.nav-subitem:not(.nav-subitem--group-label), .nav-item').forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = (!q || text.includes(q)) ? '' : 'none';
-        });
-        // Alle Gruppen bei Suche öffnen
-        if (q) document.querySelectorAll('.nav-group').forEach(g => g.classList.add('open'));
-        else   ensureActiveGroupOpen();
+        if (!q) {
+            navSearchResults.innerHTML = '';
+            navSearchResults.style.display = 'none';
+            document.querySelectorAll('.nav-group, .nav-item').forEach(el => {
+                el.style.display = '';
+            });
+            return;
+        }
+        const matches = _searchIndex.filter(item =>
+            item.label.toLowerCase().includes(q)
+            || item.description.toLowerCase().includes(q)
+            || item.keywords.some(k => k.includes(q))
+        );
+        if (matches.length) {
+            navSearchResults.innerHTML = matches.map(m => `
+                <li class="nav-search-result-item"
+                    onclick="${m.external
+                        ? `window.open('${m.external}','_blank','width=1280,height=800')`
+                        : `window.switchTab('${m.view}'${m.tab ? `,'${m.tab}'` : ''})`
+                    }; document.getElementById('nav-search').value=''; document.getElementById('nav-search-results').style.display='none';">
+                    <i class="fas ${m.icon}"></i>
+                    <div>
+                        <strong>${m.label}</strong>
+                        <span>${m.description}</span>
+                    </div>
+                </li>`).join('');
+            navSearchResults.style.display = 'block';
+        } else {
+            navSearchResults.innerHTML = `<li class="nav-search-no-result">Keine Ergebnisse für „${q}"</li>`;
+            navSearchResults.style.display = 'block';
+        }
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.nav-search-wrap')) {
+            navSearchResults.style.display = 'none';
+        }
     });
 }
 
