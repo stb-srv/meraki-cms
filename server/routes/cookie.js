@@ -22,7 +22,11 @@ const DB     = require('../database.js');
 const DEFAULT_CONFIG = {
     version: '1.0',
     privacy_url: '/datenschutz',
-    banner_text: 'Wir nutzen Cookies, um das Nutzererlebnis zu verbessern und unsere Website optimal zu betreiben.',
+    banner_text: 'Wir setzen Cookies und ähnliche Technologien ein. ' +
+        'Technisch notwendige Cookies gewährleisten die Grundfunktionen der Website. ' +
+        'Mit Ihrer Einwilligung aktivieren wir optionale Cookies für Funktionen, ' +
+        'Analyse und externe Dienste (z.B. Google Maps). ' +
+        'Sie können Ihre Einwilligung jederzeit widerrufen.',
     categories: {
         necessary: {
             id: 'necessary',
@@ -55,15 +59,25 @@ const DEFAULT_CONFIG = {
         marketing: {
             id: 'marketing',
             label: 'Marketing & Externe Medien',
-            description: 'Werden von externen Diensten wie Google Maps oder eingebetteten Videos benötigt.',
+            description: 'Werden von externen Diensten wie Google Maps benötigt. ' +
+                'Bei Aktivierung werden Daten (inkl. IP-Adresse) an Google LLC (USA) übertragen. ' +
+                'Grundlage: Einwilligung gem. DSGVO Art. 6 Abs. 1 lit. a i.V.m. Art. 49 Abs. 1 lit. a (Drittlandtransfer).',
             required: false,
             enabled: false,
-            cookies: []
+            cookies: [
+                {
+                    name: 'NID, 1P_JAR, CONSENT',
+                    purpose: 'Google Maps Kartendarstellung und Standortdienste',
+                    duration: '6 Monate – 2 Jahre',
+                    provider: 'Google LLC, USA (Datenschutz: https://policies.google.com/privacy)'
+                }
+            ]
         }
     }
 };
 
 const MAX_LOG_ENTRIES = 5000;
+const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000; // DSGVO Art. 5 Abs. 1e – Speicherbegrenzung
 
 function getClientIp(req) {
     return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
@@ -131,6 +145,12 @@ router.post('/cookie-consent', async (req, res) => {
 
         const log = await DB.getKV('consent_log', { entries: [] });
         log.entries.unshift(entry);
+        // DSGVO Art. 5 Abs. 1e – Einträge älter als 3 Jahre automatisch löschen
+        const now = Date.now();
+        log.entries = log.entries.filter(e => {
+            const age = now - new Date(e.timestamp).getTime();
+            return age < THREE_YEARS_MS;
+        });
         // FIFO – max. MAX_LOG_ENTRIES behalten
         if (log.entries.length > MAX_LOG_ENTRIES) {
             log.entries = log.entries.slice(0, MAX_LOG_ENTRIES);
