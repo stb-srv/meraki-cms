@@ -142,6 +142,19 @@ async function init() {
     loginContainer.style.display = 'none';
     adminDashboard.style.display = 'flex';
 
+    // ── Sidebar Collapse ──────────────────────────────────
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    const cmsSidebarEl     = document.getElementById('cms-sidebar');
+    if (sidebarToggleBtn && cmsSidebarEl) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            const isCollapsed = cmsSidebarEl.classList.toggle('collapsed');
+            sidebarToggleBtn.setAttribute('aria-label',
+                isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen');
+            sidebarToggleBtn.setAttribute('title',
+                isCollapsed ? 'Ausklappen' : 'Einklappen');
+        });
+    }
+
     applyUserFromToken();
     scheduleTokenExpiryWarning();
     switchView('stats');

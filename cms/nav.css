@@ -4,14 +4,14 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 16px;
+    padding: 8px 12px;
     border-radius: 10px;
-    margin: 2px 8px;
-    font-size: .88rem;
+    margin: 1px 6px;
+    font-size: .82rem;
     font-weight: 600;
     cursor: pointer;
     transition: background .15s, color .15s;
-    color: inherit;
+    color: rgba(255,255,255,0.75);
     /* Kein border, kein underline, keine Sonderformatierung */
     text-decoration: none;
     background: none;
@@ -24,12 +24,13 @@
 
 .nav-item:hover,
 .nav-group-header:hover {
-    background: rgba(255,255,255,.08);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
 }
 
 .nav-item.active,
 .nav-group-header.active {
-    background: var(--primary, #1B3A5C);
+    background: rgba(255,255,255,0.15);
     color: #fff;
 }
 
@@ -60,25 +61,27 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 8px 16px 8px 36px;
+    padding: 6px 12px 6px 30px;
     border-radius: 8px;
-    margin: 1px 8px;
-    font-size: .82rem;
+    margin: 1px 6px;
+    font-size: .79rem;
     font-weight: 500;
     cursor: pointer;
     transition: background .15s;
-    color: inherit;
-    opacity: .8;
+    color: rgba(255,255,255,0.6);
+    opacity: 1;
     user-select: none;
 }
 .nav-subitem:hover {
-    background: rgba(255,255,255,.07);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
     opacity: 1;
 }
 .nav-subitem.active {
-    background: rgba(255,255,255,.12);
-    opacity: 1;
+    background: rgba(200,169,110,0.2);
+    color: #C8A96E;
     font-weight: 700;
+    opacity: 1;
 }
 .nav-subitem > i {
     width: 14px;
@@ -104,7 +107,7 @@
 /* Divider */
 .nav-divider {
     height: 1px;
-    background: rgba(255,255,255,.08);
+    background: rgba(255,255,255,0.1);
     margin: 6px 16px;
 }
 
@@ -120,9 +123,17 @@
     font-size: .65rem;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    opacity: .4;
+    opacity: 1;
+    color: rgba(255,255,255,0.3);
     font-weight: 700;
 }
+
+.sidebar.collapsed .nav-subitem--group-label { display: none; }
+.sidebar.collapsed .nav-subnav { display: none !important; max-height: 0; }
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .nav-group-header span:not(.nav-badge) { display: none; }
+.sidebar.collapsed .nav-item,
+.sidebar.collapsed .nav-group-header { justify-content:center; padding:10px; }
 
 /* Badge (offene Bestellungen) */
 .nav-badge {
