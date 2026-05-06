@@ -97,8 +97,27 @@ const HELP_CONTENT = {
         text: "Geben Sie Ihre Adresse genau so ein, wie sie bei Google Maps steht. F\u00fcr die <b>interaktive Karte</b> nutzen Sie die 'Einbetten'-Funktion von Google Maps (Teilen > Karte einbetten > URL aus src kopieren). Dies erm\u00f6glicht G\u00e4sten die direkte Navigation via Google oder Apple Maps."
     },
     opening: {
-        title: "\u00d6ffnungszeiten & Slots",
-        text: "Diese Zeiten steuern die Anzeige 'Ge\u00f6ffnet/Geschlossen' und den Reservierungs-Kalender. Das <b>Intervall</b> bestimmt, in welchen Schritten G\u00e4ste einen Tisch buchen k\u00f6nnen (z.B. alle 30 Minuten)."
+        title: "Öffnungszeiten & Slots",
+        text: "Diese Zeiten steuern die Anzeige 'Geöffnet/Geschlossen' und den Reservierungs-Kalender. Das <b>Intervall</b> bestimmt, in welchen Schritten Gäste einen Tisch buchen können (z.B. alle 30 Minuten)."
+    },
+    vacation: {
+        title: 'Urlaub & Betriebssperre',
+        text: `Mit dieser Funktion kannst du das Restaurant vorübergehend schließen.
+Wenn aktiv: Auf der Website erscheint ein Popup mit deinem Text, 
+Reservierungen sind gesperrt und Online-Bestellungen werden deaktiviert.
+
+• Popup Titel: Wird als Überschrift im Popup angezeigt (z.B. "Wir sind im Urlaub!")
+• Popup Text: Erklärender Text für deine Gäste (z.B. Rückkehrdatum)
+• Datum von/bis: Optionale Zeitraum-Angabe – wird im Popup angezeigt wenn gesetzt`
+    },
+    holiday: {
+        title: 'Feiertage & Events',
+        text: `Hier kannst du besondere Anlässe, Feiertage oder Events ankündigen.
+Wenn aktiv: Auf der Website erscheint ein Banner/Popup mit deiner Ankündigung.
+
+• Titel: Name des Events oder Feiertags (z.B. "Ostern", "Valentinstag-Menü")
+• Ankündigungs-Text: Beschreibung des Angebots oder der Besonderheit
+• Zeitraum: Start- und Enddatum des Angebots – nach dem Enddatum wird der Banner automatisch nicht mehr angezeigt`
     },
     // pdf_export, menu_backup und menu_restore wurden zu 'menu_tools' zusammengefasst
     menu_tools: {

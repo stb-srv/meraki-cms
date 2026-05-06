@@ -32,7 +32,8 @@ export const NAV_CONFIG = [
         items: [
             { id: 'home-editor',  label: 'Website & Inhalte',       icon: 'fa-layer-group',    view: 'home-editor', tab: null,       description: 'Startseite, Texte und Bilder bearbeiten',         keywords: ['website', 'design', 'homepage', 'inhalte', 'designer', 'hero'] },
             { id: 'location',     label: 'Standort & Google Maps',  icon: 'fa-map-marker-alt', view: 'home-editor', tab: 'location', description: 'Adresse und Google Maps Karteneinstellungen',     keywords: ['standort', 'karte', 'maps', 'adresse', 'google', 'anfahrt'] },
-            { id: 'holiday',      label: 'Urlaub & Betriebssperre', icon: 'fa-umbrella-beach', view: 'home-editor', tab: 'holiday',  description: 'Betriebsurlaub und Sperrzeiten verwalten',        keywords: ['urlaub', 'ferien', 'sperre', 'geschlossen', 'betriebsferien'] }
+            { id: 'vacation',     label: 'Urlaub & Betriebssperre', icon: 'fa-umbrella-beach', view: 'home-editor', tab: 'vacation', description: 'Betriebsurlaub und Sperrzeiten verwalten',        keywords: ['urlaub', 'ferien', 'sperre', 'geschlossen', 'betriebsferien'] },
+            { id: 'holiday',      label: 'Feiertage & Events',      icon: 'fa-calendar-star',  view: 'home-editor', tab: 'holiday',  description: 'Feiertage und besondere Events ankündigen',       keywords: ['feiertage', 'events', 'ankündigung', 'banner', 'ostern'] }
         ]
     },
     {
