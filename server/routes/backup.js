@@ -170,7 +170,7 @@ module.exports = (requireAuth) => {
                 for (const u of data.users) {
                     if (existingNames.has(u.user)) continue; // Nicht überschreiben
                     try {
-                        const tempPass = await bcrypt.hash('ChangeMe123!', 10);
+                        const tempPass = await bcrypt.hash('ChangeMe123!', 12);
                         await DB.addUser({
                             ...u,
                             pass: tempPass,

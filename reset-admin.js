@@ -25,7 +25,7 @@ async function resetPassword() {
             console.log('[INFO] Erstelle Notfall-Admin-Account...');
 
             const plainPass = crypto.randomBytes(4).toString('hex'); // z.B. "a3f9b2c1"
-            const hashed = await bcrypt.hash(plainPass, 10);
+            const hashed = await bcrypt.hash(plainPass, 12);
 
             DB.addUser({
                 user: 'admin',
@@ -47,7 +47,7 @@ async function resetPassword() {
             // Ersten Admin zurücksetzen
             const target = admins[0];
             const plainPass = crypto.randomBytes(4).toString('hex');
-            const hashed = await bcrypt.hash(plainPass, 10);
+            const hashed = await bcrypt.hash(plainPass, 12);
 
             DB.setUserPass(target.user, hashed, true);
 

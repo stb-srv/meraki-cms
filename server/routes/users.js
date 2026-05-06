@@ -23,7 +23,7 @@ module.exports = (requireAuth) => {
             const existing = (users || []).find(x => x.user === u.user);
             if (existing) return res.status(400).json({ success: false, reason: 'Benutzername existiert bereits.' });
             const plainPass = crypto.randomBytes(4).toString('hex');
-            u.pass = await bcrypt.hash(plainPass, 10);
+            u.pass = await bcrypt.hash(plainPass, 12);
             u.require_password_change = 1;
             await DB.addUser(u);
             if (u.email) Mailer.sendUserCredentials(u.email, u.name, u.user, plainPass, DB).catch(e => console.error(e));
@@ -55,7 +55,7 @@ module.exports = (requireAuth) => {
             if (!target) return res.status(404).json({ success: false, reason: 'Benutzer nicht gefunden.' });
             if (!target.email) return res.status(400).json({ success: false, reason: 'Benutzer hat keine E-Mail Adresse hinterlegt.' });
             const plainPass = crypto.randomBytes(4).toString('hex');
-            const hashed = await bcrypt.hash(plainPass, 10);
+            const hashed = await bcrypt.hash(plainPass, 12);
             await DB.setUserPass(target.user, hashed, true);
             Mailer.sendUserCredentials(target.email, target.name, target.user, plainPass, DB).catch(e => console.error(e));
             res.json({ success: true });
