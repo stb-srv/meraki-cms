@@ -11,7 +11,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: background .15s, color .15s;
-    color: #ffffff;                        /* Kategorien: reines Weiß, gut lesbar */
+    color: #ffffff;
     text-decoration: none;
     background: none;
     border: none;
@@ -29,8 +29,8 @@
 
 .nav-item.active,
 .nav-group-header.active {
-    background: rgba(200,169,110,0.25);    /* Gold-Akzent statt Orange */
-    color: #C8A96E;                        /* Brand Gold */
+    background: rgba(200,169,110,0.25);
+    color: #C8A96E;
 }
 
 /* Icon einheitlich */
@@ -57,7 +57,7 @@
     opacity: .8;
 }
 
-/* Sub-Items (leicht eingerückt, etwas kleiner) */
+/* Sub-Items */
 .nav-subitem {
     display: flex;
     align-items: center;
@@ -69,7 +69,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: background .15s, color .15s;
-    color: rgba(255,255,255,0.82);         /* Sub-Items: helles Weiß, deutlich lesbar */
+    color: rgba(255,255,255,0.82);
     opacity: 1;
     user-select: none;
 }
@@ -79,8 +79,8 @@
     opacity: 1;
 }
 .nav-subitem.active {
-    background: rgba(200,169,110,0.18);    /* Gold-Tint */
-    color: #C8A96E;                        /* Brand Gold – passend zur Marke */
+    background: rgba(200,169,110,0.18);
+    color: #C8A96E;
     font-weight: 700;
     opacity: 1;
 }
@@ -102,8 +102,9 @@
     margin: 0;
     list-style: none;
 }
+/* Kein fester max-height mehr – passt sich dynamisch an den Inhalt an */
 .nav-group.open .nav-subnav {
-    max-height: 700px;
+    max-height: 2000px;
 }
 
 /* Divider */
@@ -113,7 +114,7 @@
     margin: 6px 16px;
 }
 
-/* Sektion-Label innerhalb Subnav (z.B. "Restaurant", "System & Technik") */
+/* Sektion-Label */
 .nav-subitem--group-label {
     padding: 10px 16px 2px 20px;
     cursor: default;
@@ -125,7 +126,7 @@
     font-size: .65rem;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: rgba(200,169,110,0.6);          /* Gold statt Grau – sichtbar & passend */
+    color: rgba(200,169,110,0.6);
     font-weight: 700;
 }
 
@@ -136,7 +137,7 @@
 .sidebar.collapsed .nav-item,
 .sidebar.collapsed .nav-group-header { justify-content:center; padding:10px; }
 
-/* Badge (offene Bestellungen) */
+/* Badge */
 .nav-badge {
     display: inline-flex;
     align-items: center;
@@ -184,7 +185,7 @@
     color: rgba(255,255,255,0.35);
 }
 .nav-search-input:focus {
-    border-color: rgba(200,169,110,.5);    /* Gold-Fokus-Ring */
+    border-color: rgba(200,169,110,.5);
     background: rgba(255,255,255,.12);
 }
 
@@ -194,7 +195,7 @@
 .breadcrumb-home:hover { opacity:1; }
 .breadcrumb-crumb--active { opacity:1; font-weight:600; }
 
-/* Version-Badge entfernen */
+/* Version-Badge */
 .version-badge {
     display: none !important;
 }

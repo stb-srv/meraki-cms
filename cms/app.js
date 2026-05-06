@@ -52,7 +52,6 @@ function scheduleTokenExpiryWarning() {
 
 /**
  * Erzeugt ein Inline-SVG Avatar mit den Initialen des Nutzers.
- * Kein externer Request nötig – funktioniert immer.
  */
 function buildInitialsAvatar(name) {
     const parts = name.trim().split(/\s+/);
@@ -85,32 +84,24 @@ function applyUserFromToken() {
 async function init() {
     const savedKey = localStorage.getItem('opa_license_key');
     if (!savedKey) {
-        // Prüfe beim Server ob das Setup bereits abgeschlossen ist
-        // (localStorage ist geräte-lokal, daher nicht ausreichend)
         try {
             const statusRes = await fetch('/api/setup/status');
             const statusData = await statusRes.json();
             if (statusData.setupComplete) {
-                // Setup ist bereits auf einem anderen Gerät abgeschlossen worden.
-                // License-Key vom Server holen und lokal speichern.
                 const serverKey = statusData.licenseKey || 'SETUP_DONE';
                 localStorage.setItem('opa_license_key', serverKey);
-                // Direkt zum Login weiterleiten
                 loginContainer.style.display = 'flex';
                 adminDashboard.style.display = 'none';
                 const pwdContainer = document.getElementById('password-change-container');
                 if (pwdContainer) pwdContainer.style.display = 'none';
                 return;
             }
-        } catch (e) {
-            // Server nicht erreichbar – Wizard trotzdem zeigen
-        }
+        } catch (e) {}
 
         loginContainer.style.display = 'none';
         adminDashboard.style.display = 'none';
         const pwdContainer = document.getElementById('password-change-container');
         if (pwdContainer) pwdContainer.style.display = 'none';
-        // Wizard zeigen statt einfachem Trial-Formular
         await showSetupWizard(document.body, () => window.location.reload());
         return;
     }
@@ -165,7 +156,6 @@ async function init() {
         document.getElementById('disp-res-slogan').textContent  = branding.slogan || 'Restaurant Management';
         if (branding.name) document.title = branding.name + ' CMS';
 
-        // Haupt-Logo im CMS-Header setzen (falls vorhanden)
         const cmsLogoEl = document.getElementById('cms-header-logo');
         if (cmsLogoEl && branding.logo) {
             cmsLogoEl.src = branding.logo;
@@ -186,7 +176,6 @@ async function init() {
     const settings = await apiGet('settings') || {};
     updateSidebarVisibility(settings);
 
-    // Lizenz-Badge & Trial-Status konsolidiert
     try {
         const licInfo = await apiGet('license/info');
         if (licInfo?.type === 'TRIAL' && licInfo.expires_at) {
@@ -220,7 +209,6 @@ async function init() {
     initUpgradeModal();
 
     initRealtime();
-    // showToast für Realtime-Modul verfügbar machen
     window.__opaShowToast = showToast;
     window.updateDashboardBadges = updateOrderBadge;
 }
@@ -233,22 +221,34 @@ export function updateSidebarVisibility(settings) {
     }
 }
 
+/**
+ * Setzt genau EINEN aktiven Nav-Eintrag.
+ * Matching-Logik:
+ *  1. Suche sub-item mit passendem view UND tab (exakt)
+ *  2. Fallback: sub-item mit passendem view und KEINEM tab gesetzt
+ *  3. Fallback: nav-item mit passendem view
+ */
 function setActiveNavItem(view, tab) {
+    // Alle aktiven Klassen entfernen
     document.querySelectorAll('.nav-item, .nav-subitem').forEach(el => el.classList.remove('active'));
 
-    let matched = false;
-    document.querySelectorAll('.nav-subitem').forEach(el => {
-        if (el.dataset.view === view && (!tab || el.dataset.tab === tab)) {
-            el.classList.add('active');
-            matched = true;
-        }
-    });
-
-    if (!matched) {
-        document.querySelectorAll('.nav-item').forEach(el => {
-            if (el.dataset.view === view) el.classList.add('active');
-        });
+    // 1. Exakter Match: view + tab
+    if (tab) {
+        const exact = document.querySelector(`.nav-subitem[data-view="${view}"][data-tab="${tab}"]`);
+        if (exact) { exact.classList.add('active'); return; }
     }
+
+    // 2. Sub-item mit view aber ohne tab (z.B. erster Eintrag einer Gruppe)
+    const noTab = document.querySelector(`.nav-subitem[data-view="${view}"]:not([data-tab])`);
+    if (noTab) { noTab.classList.add('active'); return; }
+
+    // 3. Fallback auf erstes passendes sub-item mit diesem view
+    const first = document.querySelector(`.nav-subitem[data-view="${view}"]`);
+    if (first) { first.classList.add('active'); return; }
+
+    // 4. Direkt-Link (nav-item)
+    const navItem = document.querySelector(`.nav-item[data-view="${view}"]`);
+    if (navItem) navItem.classList.add('active');
 }
 
 function getBreadcrumb(view, tab) {
@@ -268,7 +268,6 @@ async function switchView(view, tab = null) {
     setActiveNavItem(view, tab);
     dashboardToolbar.style.display = 'none';
 
-    // Breadcrumb aktualisieren
     const trail = getBreadcrumb(view, tab);
     const trailEl = document.getElementById('breadcrumb-trail');
     if (trailEl && trail) {
@@ -487,7 +486,6 @@ document.querySelectorAll('.nav-subitem:not(.nav-subitem--group-label)').forEach
         const view = item.dataset.view;
         const tab  = item.dataset.tab || null;
         if (view) switchView(view, tab);
-        // Mobile: Sidebar schließen nach Klick
         document.getElementById('cms-sidebar')?.classList.remove('mobile-open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
     });
@@ -504,7 +502,7 @@ document.querySelectorAll('.nav-item:not(.nav-group-header)').forEach(item => {
     });
 });
 
-// ── Einstellungen-Gruppe beim Start offen halten wenn aktive View drin ist ──
+// ── Aktive Gruppe beim Start aufklappen ──
 function ensureActiveGroupOpen() {
     document.querySelectorAll('.nav-subitem.active, .nav-item.active').forEach(el => {
         const group = el.closest('.nav-group');
@@ -612,11 +610,9 @@ async function updateOrderBadge() {
     } catch(e) {}
 }
 
-// Badge beim Start und alle 30s aktualisieren
 updateOrderBadge();
 setInterval(updateOrderBadge, 30000);
 
-// Auch nach switchView Badge updaten wenn orders-View verlassen
 const _origSwitchView = switchView;
 window.switchTab = (view, tab) => {
     _origSwitchView(view, tab);
