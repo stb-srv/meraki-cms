@@ -282,8 +282,15 @@
             </div>
 
             <div class="cookie-footer">
-                <a onclick="window.switchTab('legal'); window.setLegalView('privacy')" data-i18n="legal.privacy">Datenschutz</a> &bull;
-                <a onclick="window.switchTab('legal'); window.setLegalView('impressum')" data-i18n="legal.imprint">Impressum</a>
+                <a onclick="window.switchTab('legal'); window.setLegalView('privacy')" 
+                   data-i18n="legal.privacy">Datenschutz</a> &bull;
+                <a onclick="window.switchTab('legal'); window.setLegalView('impressum')" 
+                   data-i18n="legal.imprint">Impressum</a> &bull;
+                <a onclick="window.OPAConsent && window.OPAConsent.revokeAll()" 
+                   style="cursor:pointer;" 
+                   title="Einwilligung widerrufen (Art. 7 Abs. 3 DSGVO)">
+                   Einwilligung widerrufen
+                </a>
             </div>
         </div>
     </div>
