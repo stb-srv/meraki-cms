@@ -13,7 +13,11 @@ export function initRealtime() {
         return;
     }
 
-    socket = io({ transports: ['websocket', 'polling'] });
+    const token = sessionStorage.getItem('opa_admin_token');
+    socket = io({
+        transports: ['websocket', 'polling'],
+        auth: { token: token || '' }
+    });
 
     socket.on('connect', () => {
         console.log('🔴 Realtime verbunden:', socket.id);
