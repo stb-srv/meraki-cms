@@ -44,12 +44,13 @@
         } catch(e) { return null; }
     }
 
-    function saveStored(choices, version) {
+    function saveStored(choices, version, consentId) {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 version:   version || (_config && _config.version) || '1.0',
                 timestamp: Date.now(),
-                choices
+                choices,
+                consent_id: consentId || null
             }));
         } catch(e) {}
     }
@@ -99,9 +100,9 @@
     }
 
     // ── Consent-Log an Server senden ─────────────────────────────────────────
-    function logConsent(choices, source) {
+    async function logConsent(choices, source) {
         try {
-            fetch(LOG_URL, {
+            const res = await fetch(LOG_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -109,7 +110,18 @@
                     config_version: _config ? _config.version : '1.0',
                     source: source || 'banner'
                 })
-            }).catch(() => {});
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.id) {
+                    // Consent-ID nachträglich in localStorage aktualisieren
+                    try {
+                        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                        stored.consent_id = data.id;
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+                    } catch(e) {}
+                }
+            }
         } catch(e) {}
     }
 
@@ -123,6 +135,26 @@
         const container = document.getElementById('cookie-categories-dynamic');
         if (!container || !_config) return;
         container.innerHTML = '';
+
+        // Datum der letzten Einwilligung anzeigen (DSK-Empfehlung)
+        const stored = loadStored();
+        if (stored && stored.timestamp) {
+            const dateStr = new Date(stored.timestamp).toLocaleDateString('de-DE', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const existingInfo = container.parentElement.querySelector('.consent-date-info');
+            if (!existingInfo) {
+                const infoEl = document.createElement('p');
+                infoEl.className = 'consent-date-info';
+                infoEl.style.cssText = 'font-size:0.75rem;color:#999;margin-bottom:12px;';
+                infoEl.textContent = `Letzte Einwilligung: ${dateStr} Uhr`;
+                if (stored.consent_id) {
+                    infoEl.textContent += ` · ID: ${stored.consent_id.slice(0,8)}…`;
+                }
+                container.parentElement.insertBefore(infoEl, container);
+            }
+        }
 
         for (const [id, cat] of Object.entries(_config.categories || {})) {
             const checked  = cat.required ? true : ((_choices && _choices[id]) || false);
@@ -180,30 +212,30 @@
 
     // ── Aktionen (aufgerufen vom HTML) ────────────────────────────────────────
 
-    function acceptAll() {
+    async function acceptAll() {
         if (!_config) return;
         const choices = {};
         for (const id of Object.keys(_config.categories || {})) choices[id] = true;
         _choices = choices;
         saveStored(choices);
         applyChoices(choices);
-        logConsent(choices, 'accept_all');
+        await logConsent(choices, 'accept_all');
         emit('consent:given', { choices });
         hideBanner();
     }
 
-    function rejectNonEssential() {
+    async function rejectNonEssential() {
         if (!_config) return;
         const choices = buildDefaultChoices(); // nur notwendige = true
         _choices = choices;
         saveStored(choices);
         applyChoices(choices);
-        logConsent(choices, 'reject_all');
+        await logConsent(choices, 'reject_all');
         emit('consent:given', { choices });
         hideBanner();
     }
 
-    function saveCustom() {
+    async function saveCustom() {
         if (!_config) return;
         const choices = {};
         for (const id of Object.keys(_config.categories || {})) {
@@ -218,7 +250,7 @@
         _choices = choices;
         saveStored(choices);
         applyChoices(choices);
-        logConsent(choices, 'custom');
+        await logConsent(choices, 'custom');
         emit('consent:given', { choices });
         hideBanner();
     }
