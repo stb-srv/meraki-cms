@@ -78,7 +78,8 @@ export const NAV_CONFIG = [
                     { id: 'smtp',         label: 'E-Mail & SMTP',               icon: 'fa-envelope',   view: 'settings', tab: 'smtp',         description: 'SMTP-Server und E-Mail-Templates',             keywords: ['email', 'smtp', 'mail', 'versand', 'templates'] },
                     { id: 'order-emails', label: 'Bestell-E-Mail Templates',     icon: 'fa-file-alt',   view: 'settings', tab: 'order-emails', description: 'E-Mail-Vorlagen für Bestellbestätigungen',     keywords: ['bestell-email', 'bestellbestätigung', 'template', 'vorlage'] },
                     { id: 'image-ai',     label: 'KI-Bildgenerierung',           icon: 'fa-robot',      view: 'settings', tab: 'image-ai',     description: 'API-Keys für Unsplash, Pexels oder Gemini',    keywords: ['ki', 'bild', 'ai', 'gemini', 'unsplash', 'pexels', 'bildgenerierung'] },
-                    { id: 'license',      label: 'Lizenz & Module',              icon: 'fa-key',        view: 'settings', tab: 'license',      description: 'Lizenz aktivieren und Module verwalten',       keywords: ['lizenz', 'module', 'plan', 'key', 'aktivierung'] }
+                    { id: 'license',      label: 'Lizenz & Module',              icon: 'fa-key',          view: 'settings', tab: 'license',      description: 'Lizenz aktivieren und Module verwalten',       keywords: ['lizenz', 'module', 'plan', 'key', 'aktivierung'] },
+                    { id: 'plan_modules', label: 'Plan-Module',                  icon: 'fa-puzzle-piece', view: 'settings', tab: 'plan_modules', description: 'Verfügbare Module des aktuellen Plans aktivieren', keywords: ['module', 'plan', 'features', 'aktivieren', 'freischalten', 'plan-module'] }
                 ]
             },
             {
