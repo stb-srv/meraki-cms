@@ -28,6 +28,18 @@ const { startCron } = require('./server/cron.js');
 const app    = express();
 const server = require('http').createServer(app);
 const io     = require('socket.io')(server);
+
+io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-admin-token'];
+    if (!token) return next(new Error('Authentifizierung erforderlich'));
+    try {
+        socket.admin = require('jsonwebtoken').verify(token, ADMIN_SECRET);
+        next();
+    } catch (e) {
+        next(new Error('Ungültiger Token'));
+    }
+});
+
 app.set('trust proxy', 1);
 
 const PORT         = CONFIG.PORT || 5000;
@@ -99,10 +111,7 @@ const rawOrigins = CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '';
 const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean) : ['http://localhost:3000', 'http://localhost:5000'];
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const currentRaw = CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '';
-        const currentAllowed = currentRaw ? currentRaw.split(',').map(o => o.trim()).filter(Boolean) : ['http://localhost:3000', 'http://localhost:5000'];
-        if (currentAllowed.includes(origin)) return callback(null, true);
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
         return callback(new Error(`CORS: Origin '${origin}' nicht erlaubt.`));
     },
     credentials: true
@@ -224,7 +233,7 @@ app.post('/api/setup', async (req, res) => {
         await DB.setKV('settings', settings);
         if (restaurantName) { const b = await DB.getKV('branding', {}); b.name = restaurantName; await DB.setKV('branding', b); }
         const finalAdminUser = adminUser || 'admin';
-        const hash = await bcrypt.hash(adminPass, 10);
+        const hash = await bcrypt.hash(adminPass, 12);
         const plainRecoveryCodes = [], hashedCodes = [];
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         for (let i = 0; i < 3; i++) {
@@ -233,7 +242,7 @@ app.post('/api/setup', async (req, res) => {
             code += '-';
             for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)];
             plainRecoveryCodes.push(code);
-            hashedCodes.push(await bcrypt.hash(code, 10));
+            hashedCodes.push(await bcrypt.hash(code, 12));
         }
         await DB.addUser({ user: finalAdminUser, pass: hash, name: 'Setup', last_name: 'Admin', email: adminEmail || '', role: 'admin', require_password_change: 0, recovery_codes: hashedCodes });
         res.json({ success: true, trial: trialLicense, message: 'Setup abgeschlossen.', recovery_codes: plainRecoveryCodes });
