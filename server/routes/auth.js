@@ -17,9 +17,13 @@ const logger = require('../logger.js');
 /** Timing-sicherer String-Vergleich (verhindert Timing-Angriffe auf Tokens) */
 function timingSafeStringEqual(a, b) {
     try {
-        const bufA = Buffer.from(String(a));
-        const bufB = Buffer.from(String(b));
-        if (bufA.length !== bufB.length) return false;
+        const strA = String(a);
+        const strB = String(b);
+        const maxLen = Math.max(strA.length, strB.length);
+        const bufA = Buffer.alloc(maxLen);
+        const bufB = Buffer.alloc(maxLen);
+        bufA.write(strA);
+        bufB.write(strB);
         return crypto.timingSafeEqual(bufA, bufB);
     } catch {
         return false;
@@ -60,7 +64,7 @@ module.exports = (ADMIN_SECRET) => {
             }
             // Temporäres Passwort mit höherer Entropie (24 Zeichen)
             const plainPass = crypto.randomBytes(12).toString('hex');
-            const hashed   = await bcrypt.hash(plainPass, 10);
+            const hashed   = await bcrypt.hash(plainPass, 12);
             
             // Setzt Passwort und markiert require_password_change = 1
             await DB.setUserPass(u.user, hashed, true);
@@ -80,7 +84,7 @@ module.exports = (ADMIN_SECRET) => {
             // SEC-07: Mindestlänge 12 Zeichen (statt zuvor 6)
             if (!newPassword || newPassword.length < 12)
                 return res.status(400).json({ success: false, reason: 'Passwort zu kurz (min. 12 Zeichen).' });
-            const hashed = await bcrypt.hash(newPassword, 10);
+            const hashed = await bcrypt.hash(newPassword, 12);
             await DB.setUserPass(req.admin.user, hashed, false);
             const token = jwt.sign({ user: req.admin.user, role: req.admin.role, requirePasswordChange: false }, ADMIN_SECRET, { expiresIn: '12h' });
             res.json({ success: true, token });
