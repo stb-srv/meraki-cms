@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { getCurrentLicense, verifyLicenseToken } = require('./license.js');
 const DB = require('./database.js');
 const logger = require('./logger.js');
+const { extractDomain } = require('./helpers.js');
 
 const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
     const token = req.headers['x-admin-token'];
@@ -14,21 +15,6 @@ const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
     catch (e) { res.status(401).json({ success: false, reason: 'Invalid session' }); }
 };
 
-/**
- * Extrahiert die saubere Domain aus dem Request.
- * Wertet X-Forwarded-Host, Origin und Host-Header aus – entfernt Port.
- * Konsistent mit settings.js und menu.js.
- */
-function extractDomain(req) {
-    const forwarded = req.headers['x-forwarded-host'];
-    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
-    const origin = req.headers['origin'];
-    if (origin) {
-        try { return new URL(origin).hostname; } catch (_) { /* ignore */ }
-    }
-    const host = req.headers.host || 'localhost';
-    return host.split(':')[0];
-}
 
 /**
  * requireLicense – prüft ob ein Modul in der aktuellen Lizenz aktiv ist.

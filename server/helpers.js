@@ -97,6 +97,17 @@ const findAvailableTables = async (date, startTime, duration, guestCount, areaId
     return { success: false, reason: `Keine Kapazität im Bereich ${areaId || 'Gesamt'} verfügbar` };
 };
 
+function extractDomain(req) {
+    const forwarded = req.headers['x-forwarded-host'];
+    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
+    const origin = req.headers['origin'];
+    if (origin) {
+        try { return new URL(origin).hostname; } catch (_) {}
+    }
+    const host = req.headers.host || 'localhost';
+    return host.split(':')[0];
+}
+
 const tokenResponsePage = async (DB, title, message, color, emoji) => {
     const branding = await DB.getKV('branding', {});
     const restaurantName = branding.name || 'Restaurant';
@@ -132,4 +143,4 @@ const tokenResponsePage = async (DB, title, message, color, emoji) => {
 </html>`;
 };
 
-module.exports = { sanitizeText, calculateDuration, parseTime, buildEndTime, checkOverlap, findAvailableTables, tokenResponsePage };
+module.exports = { sanitizeText, calculateDuration, parseTime, buildEndTime, checkOverlap, findAvailableTables, tokenResponsePage, extractDomain };

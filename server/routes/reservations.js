@@ -10,19 +10,9 @@ const DB = require('../database.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense } = require('../license.js');
 
-function extractDomain(req) {
-    const forwarded = req.headers['x-forwarded-host'];
-    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
-    const origin = req.headers['origin'];
-    if (origin) {
-        try { return new URL(origin).hostname; } catch (_) { /* ignore */ }
-    }
-    const host = req.headers.host || 'localhost';
-    return host.split(':')[0];
-}
 const { reservationLimiter } = require('../middleware.js');
 const logger = require('../logger.js');
-const { sanitizeText, calculateDuration, buildEndTime, findAvailableTables, tokenResponsePage } = require('../helpers.js');
+const { sanitizeText, calculateDuration, buildEndTime, findAvailableTables, tokenResponsePage, extractDomain } = require('../helpers.js');
 
 /**
  * Timing-sicherer Token-Vergleich.
@@ -100,7 +90,7 @@ module.exports = (requireAuth, requireLicense) => {
                   phone  = sanitizeText(req.body.phone),
                   date   = sanitizeText(req.body.date),
                   time   = sanitizeText(req.body.time),
-                  guests = parseInt(req.body.guests) || 1,
+                  guests = Math.min(Math.max(parseInt(req.body.guests) || 1, 1), 100),
                   note   = sanitizeText(req.body.note),
                   areaId = sanitizeText(req.body.areaId);
             const duration = calculateDuration(guests, settings.reservationConfig);

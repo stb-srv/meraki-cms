@@ -5,19 +5,8 @@ const router = require('express').Router();
 const DB = require('../database.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../license.js');
-const { sanitizeText } = require('../helpers.js');
+const { sanitizeText, extractDomain } = require('../helpers.js');
 const logger = require('../logger.js');
-
-function extractDomain(req) {
-    const forwarded = req.headers['x-forwarded-host'];
-    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
-    const origin = req.headers['origin'];
-    if (origin) {
-        try { return new URL(origin).hostname; } catch (_) {}
-    }
-    const host = req.headers.host || 'localhost';
-    return host.split(':')[0];
-}
 
 
 /**

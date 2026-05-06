@@ -13,27 +13,13 @@
 const express = require('express');
 const DB      = require('../database.js');
 const { getCurrentLicense } = require('../license.js');
-const { sanitizeText } = require('../helpers.js');
+const { sanitizeText, extractDomain } = require('../helpers.js');
 
 const MAX_ITEMS_PER_ORDER    = 50;
 const MAX_QTY_PER_ITEM       = 99;
 const DEFAULT_CUTOFF_MINUTES = 30;
 const DEFAULT_LEAD_MINUTES   = 5;
 
-/**
- * BUG-D FIX: Konsistente Domain-Extraktion (identisch zu middleware.js / menu.js / settings.js).
- * Entfernt Port und wertet X-Forwarded-Host, Origin und Host aus.
- */
-function extractDomain(req) {
-    const forwarded = req.headers['x-forwarded-host'];
-    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
-    const origin = req.headers['origin'];
-    if (origin) {
-        try { return new URL(origin).hostname; } catch (_) { /* ignore */ }
-    }
-    const host = req.headers.host || 'localhost';
-    return host.split(':')[0];
-}
 
 /** Konfigurierbare Cutoff-Minuten (Bestellstopp vor Ladenschluss). */
 function getCutoffMinutes(cfg) {
