@@ -4,6 +4,9 @@ const bcrypt  = require('bcryptjs');
 const { sanitizeText } = require('../helpers.js');
 const multer = require('multer');
 const logger = require('../logger.js');
+const fs = require('fs');
+const path = require('path');
+const CONFIG = require('../../config.js');
 
 const uploadMiddleware = multer({ 
     storage: multer.memoryStorage(), 
@@ -14,6 +17,38 @@ const BACKUP_VERSION = 2;
 const { requireRole } = require('../middleware.js');
 
 module.exports = (requireAuth) => {
+    // -------------------------------------------------------
+    // GET /api/backup/list
+    // Gibt alle vorhandenen Backup-Dateien zurück
+    // -------------------------------------------------------
+    router.get('/list', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const backupDir = CONFIG.BACKUP_DIR;
+            if (!fs.existsSync(backupDir)) return res.json([]);
+            
+            const now = Date.now();
+            const files = fs.readdirSync(backupDir)
+                .map(f => {
+                    const filePath = path.join(backupDir, f);
+                    const stat = fs.statSync(filePath);
+                    if (!stat.isFile()) return null;
+                    const ageInDays = Math.floor((now - stat.mtime.getTime()) / (1000 * 60 * 60 * 24));
+                    return {
+                        name: f,
+                        groesse_mb: parseFloat((stat.size / (1024 * 1024)).toFixed(2)),
+                        datum: stat.mtime.toISOString(),
+                        alter_in_tagen: ageInDays
+                    };
+                })
+                .filter(Boolean)
+                .sort((a, b) => new Date(b.datum) - new Date(a.datum)); // Neueste zuerst
+
+            res.json(files);
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
+    });
+
     // -------------------------------------------------------
     // GET /api/backup/export
     // Erstellt einen vollständigen Snapshot aller Daten

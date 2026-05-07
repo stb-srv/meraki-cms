@@ -5,6 +5,9 @@
 const DB = require('./db.js');
 const Mailer = require('./mailer.js');
 const logger = require('./logger.js');
+const fs = require('fs');
+const path = require('path');
+const CONFIG = require('../config.js');
 
 /**
  * Job 1: Trial Expiry Check
@@ -67,6 +70,52 @@ const checkReminders = async () => {
     }
 };
 
+/**
+ * Job 3: Backup Cleanup
+ * Löscht alte Backups (älter als MAX_AGE), behält aber mindestens MIN_COUNT.
+ * Täglich um 03:00 Uhr.
+ */
+const cleanupOldBackups = () => {
+    try {
+        const now = new Date();
+        const nowHour = parseInt(new Intl.DateTimeFormat('de-DE', { hour: 'numeric', hour12: false, timeZone: 'Europe/Berlin' }).format(now), 10);
+        if (nowHour !== 3) return;
+
+        const backupDir = CONFIG.BACKUP_DIR;
+        if (!fs.existsSync(backupDir)) return;
+
+        const maxAgeMs = CONFIG.BACKUP_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+        const minCount = CONFIG.BACKUP_MIN_COUNT;
+
+        const files = fs.readdirSync(backupDir)
+            .map(f => {
+                const filePath = path.join(backupDir, f);
+                const stat = fs.statSync(filePath);
+                return { name: f, path: filePath, time: stat.mtime.getTime(), stat };
+            })
+            .filter(f => f.stat.isFile())
+            .sort((a, b) => a.time - b.time); // Älteste zuerst
+
+        let deleted = 0;
+        let remaining = files.length;
+        
+        for (const file of files) {
+            if (remaining <= minCount) break; // IMMER mindestens MIN_COUNT behalten
+
+            const ageMs = now.getTime() - file.time;
+            if (ageMs > maxAgeMs) {
+                fs.unlinkSync(file.path);
+                logger.info(`[Backup] Alte Datei gelöscht: ${file.name} (Alter: ${Math.floor(ageMs/86400000)} Tage)`);
+                remaining--;
+                deleted++;
+            }
+        }
+        if (deleted > 0) logger.info(`[Backup] Cleanup beendet. ${deleted} Dateien gelöscht.`);
+    } catch (e) {
+        logger.error({ err: e }, 'Backup Cleanup Fehler');
+    }
+};
+
 const startCron = () => {
     logger.info('Background Jobs initialisiert.');
     
@@ -77,6 +126,10 @@ const startCron = () => {
     // Reminder Check: Stündlich (filtert intern auf 10:00 Uhr)
     setInterval(checkReminders, 60 * 60 * 1000);
     checkReminders();
+
+    // Backup Cleanup: Stündlich (filtert intern auf 03:00 Uhr)
+    setInterval(cleanupOldBackups, 60 * 60 * 1000);
+    cleanupOldBackups();
 };
 
-module.exports = { startCron };
+module.exports = { startCron, cleanupOldBackups };
