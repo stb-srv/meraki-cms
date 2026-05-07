@@ -14,6 +14,8 @@ const express = require('express');
 const DB      = require('../database.js');
 const { getCurrentLicense } = require('../license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
+const validate = require('../validation/validate.js');
+const { cartOrderSchema } = require('../validation/schemas.js');
 
 const MAX_ITEMS_PER_ORDER    = 50;
 const MAX_QTY_PER_ITEM       = 99;
@@ -201,7 +203,7 @@ module.exports = function cartRoutes(requireLicense, io) {
     // -------------------------------------------------------------------------
     // POST /api/cart/order
     // -------------------------------------------------------------------------
-    router.post('/order', requireLicense('online_orders'), async (req, res) => {
+    router.post('/order', requireLicense('online_orders'), validate(cartOrderSchema), async (req, res) => {
         try {
             const { type, items, phone, tableNumber, pickupTime, delivery, guestNote,
                     customerName, customerPhone, customerEmail, deliveryAddress } = req.body;

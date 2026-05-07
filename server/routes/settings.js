@@ -7,6 +7,8 @@ const Mailer = require('../mailer.js');
 const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
 const logger = require('../logger.js');
+const validate = require('../validation/validate.js');
+const { anyObjectSchema } = require('../validation/schemas.js');
 
 
 /**
@@ -41,7 +43,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/homepage', requireAuth, async (req, res) => {
+    router.post('/homepage', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const { activeModules, ...homepageData } = req.body;
             await DB.setKV('homepage', homepageData);
@@ -53,7 +55,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         try { res.json(await DB.getKV('branding', {})); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
-    router.post('/branding', requireAuth, async (req, res) => {
+    router.post('/branding', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try { await DB.setKV('branding', req.body); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -68,7 +70,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
      * Liest erst den aktuellen Stand aus der DB und merged tief,
      * damit Teilupdates (z.B. nur smtp) nicht andere Keys (license, reservationConfig) löschen.
      */
-    router.post('/settings', requireAuth, async (req, res) => {
+    router.post('/settings', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const existing = await DB.getKV('settings', {});
             const merged   = deepMerge(existing, req.body);
@@ -81,7 +83,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
      * POST /settings/test-smtp
      * req.body.email hat Priorität – Fallback auf User-Account-Email.
      */
-    router.post('/settings/test-smtp', requireAuth, async (req, res) => {
+    router.post('/settings/test-smtp', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const toEmail = req.body?.email || (await (async () => {
                 const users  = await DB.getUsers();
@@ -110,7 +112,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/license/validate', async (req, res) => {
+    router.post('/license/validate', validate(anyObjectSchema), async (req, res) => {
         try {
             const domain = extractDomain(req);
             logger.info({ key: req.body.key, domain }, 'Lizenz-Validierung angefordert');
@@ -180,7 +182,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         }
     });
 
-    router.post('/license/modules', requireAuth, async (req, res) => {
+    router.post('/license/modules', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const { modules } = req.body;
             if (!modules || typeof modules !== 'object') return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });

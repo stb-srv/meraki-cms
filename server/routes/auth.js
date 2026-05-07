@@ -13,6 +13,8 @@ const DB     = require('../database.js');
 const Mailer = require('../mailer.js');
 const { loginLimiter, forgotPasswordLimiter, requireAuth: makeRequireAuth } = require('../middleware.js');
 const logger = require('../logger.js');
+const validate = require('../validation/validate.js');
+const { loginSchema, forgotPasswordSchema, changePasswordSchema } = require('../validation/schemas.js');
 
 /** Timing-sicherer String-Vergleich (verhindert Timing-Angriffe auf Tokens) */
 function timingSafeStringEqual(a, b) {
@@ -33,7 +35,7 @@ function timingSafeStringEqual(a, b) {
 module.exports = (ADMIN_SECRET) => {
     const requireAuth = makeRequireAuth(ADMIN_SECRET);
 
-    router.post('/login', loginLimiter, async (req, res) => {
+    router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         try {
             const { user, pass } = req.body;
             const users = await DB.getUsers();
@@ -54,7 +56,7 @@ module.exports = (ADMIN_SECRET) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+    router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSchema), async (req, res) => {
         try {
             const { user } = req.body;
             const users = await DB.getUsers();
@@ -78,7 +80,7 @@ module.exports = (ADMIN_SECRET) => {
         }
     });
 
-    router.post('/change-password', requireAuth, async (req, res) => {
+    router.post('/change-password', requireAuth, validate(changePasswordSchema), async (req, res) => {
         try {
             const { newPassword } = req.body;
             // SEC-07: Mindestlänge 12 Zeichen (statt zuvor 6)

@@ -12,6 +12,8 @@ const { extractDomain } = require('../helpers.js');
 
 const { reservationLimiter } = require('../middleware.js');
 const logger = require('../logger.js');
+const validate = require('../validation/validate.js');
+const { cartOrderSchema, orderStatusUpdateSchema } = require('../validation/schemas.js');
 
 const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
 
@@ -50,7 +52,7 @@ module.exports = (requireAuth, io) => {
     // POST neue Bestellung (Gast)
     // Für pickup/delivery: Status startet als 'pending' (wartet auf Bestätigung)
     // Für dine_in: Status startet als 'pending' und geht direkt in Küche
-    router.post('/', reservationLimiter, async (req, res) => {
+    router.post('/', reservationLimiter, validate(cartOrderSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -80,7 +82,7 @@ module.exports = (requireAuth, io) => {
     });
 
     // PUT Status-Update (Admin)
-    router.put('/:id/status', requireAuth, async (req, res) => {
+    router.put('/:id/status', requireAuth, validate(orderStatusUpdateSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;

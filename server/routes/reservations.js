@@ -13,6 +13,8 @@ const { getCurrentLicense } = require('../license.js');
 const { reservationLimiter } = require('../middleware.js');
 const logger = require('../logger.js');
 const { sanitizeText, calculateDuration, buildEndTime, findAvailableTables, tokenResponsePage, extractDomain } = require('../helpers.js');
+const validate = require('../validation/validate.js');
+const { reservationCheckSchema, reservationGridSchema, reservationSubmitSchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
 
 /**
  * Timing-sicherer Token-Vergleich.
@@ -40,7 +42,7 @@ module.exports = (requireAuth, requireLicense) => {
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/check', reservationLimiter, async (req, res) => {
+    router.post('/check', reservationLimiter, validate(reservationCheckSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -55,7 +57,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/availability-grid', reservationLimiter, async (req, res) => {
+    router.post('/availability-grid', reservationLimiter, validate(reservationGridSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -75,7 +77,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/submit', reservationLimiter, requireLicense('reservations'), async (req, res) => {
+    router.post('/submit', reservationLimiter, requireLicense('reservations'), validate(reservationSubmitSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -136,7 +138,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/:id', requireAuth, async (req, res) => {
+    router.put('/:id', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -174,7 +176,7 @@ module.exports = (requireAuth, requireLicense) => {
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/', requireAuth, async (req, res) => {
+    router.post('/', requireAuth, validate(anyArraySchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -216,7 +218,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).send('Interner Fehler.'); }
     });
 
-    router.post('/cancel/:token', reservationLimiter, async (req, res) => {
+    router.post('/cancel/:token', reservationLimiter, validate(anyObjectSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -234,7 +236,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/confirm/:token', reservationLimiter, async (req, res) => {
+    router.post('/confirm/:token', reservationLimiter, validate(anyObjectSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;

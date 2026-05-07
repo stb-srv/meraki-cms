@@ -3,13 +3,15 @@
  */
 const router = require('express').Router();
 const DB = require('../database.js');
+const validate = require('../validation/validate.js');
+const { anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
 
 module.exports = (requireAuth) => {
     router.get('/tables', async (req, res) => {
         try { res.json(await DB.getTables()); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
-    router.post('/tables', requireAuth, async (req, res) => {
+    router.post('/tables', requireAuth, validate(anyArraySchema), async (req, res) => {
         try { await DB.saveTables(req.body); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -18,7 +20,7 @@ module.exports = (requireAuth) => {
         try { res.json(await DB.getKV('areas', [{ id:'main',name:'Gastraum' },{ id:'terrace',name:'Terrasse' }])); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
-    router.post('/areas', requireAuth, async (req, res) => {
+    router.post('/areas', requireAuth, validate(anyArraySchema), async (req, res) => {
         try { await DB.setKV('areas', req.body); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -40,7 +42,7 @@ module.exports = (requireAuth) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/table-plan', requireAuth, async (req, res) => {
+    router.post('/table-plan', requireAuth, validate(anyObjectSchema), async (req, res) => {
         try {
             const plan = req.body;
             await DB.setKV('table_plan', plan);
