@@ -51,16 +51,6 @@ export async function renderSettings(container, titleEl, tab) {
 
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
-            <div class="designer-tabs" style="margin-bottom:30px;">
-                <button class="tab-btn ${settingsTab === 'license' ? 'active' : ''}" id="tab-btn-license">Lizenz &amp; Module</button>
-                <button class="tab-btn ${settingsTab === 'plan_modules' ? 'active' : ''}" id="tab-btn-plan_modules">Plan-Module</button>
-                <button class="tab-btn ${settingsTab === 'branding' ? 'active' : ''}" id="tab-btn-branding">Logo &amp; Branding</button>
-                <button class="tab-btn ${settingsTab === 'reservations' ? 'active' : ''}" id="tab-btn-reservations">Reservierungs-Einstellungen</button>
-                <button class="tab-btn ${settingsTab === 'users' ? 'active' : ''}" id="tab-btn-users">Nutzer &amp; Zugänge</button>
-                <button class="tab-btn ${settingsTab === 'image-ai' ? 'active' : ''}" id="tab-btn-image-ai"><i class="fas fa-magic" style="margin-right:6px;"></i>KI-Bildgenerierung</button>
-                <button class="tab-btn ${settingsTab === 'smtp' ? 'active' : ''}" id="tab-btn-smtp"><i class="fas fa-envelope" style="margin-right:6px;"></i>E-Mail &amp; SMTP</button>
-                <button class="tab-btn ${settingsTab === 'order-emails' ? 'active' : ''}" id="tab-btn-order-emails"><i class="fas fa-file-alt" style="margin-right:6px;"></i>Bestell-E-Mails</button>
-            </div>
 
             <div id="settings-content">
                 ${renderSettingsTab(settings, branding, users, licInfo)}
@@ -585,14 +575,6 @@ function renderSettingsTab(settings, branding, users, licInfo) {
 }
 
 function attachSettingsHandlers(container, settings, branding, users, licInfo, titleEl) {
-    container.querySelector('#tab-btn-license').onclick      = () => { settingsTab = 'license';      renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-plan_modules').onclick = () => { settingsTab = 'plan_modules'; renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-branding').onclick     = () => { settingsTab = 'branding';     renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-reservations').onclick = () => { settingsTab = 'reservations'; renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-users').onclick        = () => { settingsTab = 'users';        renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-image-ai').onclick     = () => { settingsTab = 'image-ai';     renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-smtp').onclick         = () => { settingsTab = 'smtp';         renderSettings(container, titleEl); };
-    container.querySelector('#tab-btn-order-emails').onclick = () => { settingsTab = 'order-emails'; renderSettings(container, titleEl); };
 
     // --- Plan-Module + CMS-Sichtbarkeit speichern ---
     const btnSaveModules = container.querySelector('#btn-save-modules');
