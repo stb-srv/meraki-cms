@@ -38,7 +38,7 @@ function findReservationByToken(reservations, token) {
 }
 
 module.exports = (requireAuth, requireLicense) => {
-    router.get('/', requireAuth, requireRole('waiter'), async (req, res) => {
+    router.get('/', requireAuth, requireRole('admin', 'waiter'), async (req, res) => {
         try { res.json(await DB.getReservations()); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -139,7 +139,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/:id', requireAuth, requireRole('waiter'), validate(anyObjectSchema), async (req, res) => {
+    router.put('/:id', requireAuth, requireRole('admin', 'waiter'), validate(anyObjectSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
