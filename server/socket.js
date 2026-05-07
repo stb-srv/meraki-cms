@@ -6,7 +6,10 @@ function setupSocket(server, DB, CONFIG) {
 
     io.use((socket, next) => {
         const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-admin-token'];
-        if (!token) return next(new Error('Authentifizierung erforderlich'));
+        if (!token) {
+            socket.admin = null; // Gast-Verbindung erlaubt
+            return next();
+        }
         try {
             socket.admin = require('jsonwebtoken').verify(token, ADMIN_SECRET);
             next();
