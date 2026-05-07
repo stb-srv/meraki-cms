@@ -1,3 +1,19 @@
+/* Sidebar Container Scrollbar */
+.sidebar {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100%;
+    max-height: 100vh;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+}
+
 /* ── Einheitliches Styling für nav-item UND nav-group-header ── */
 .nav-item,
 .nav-group-header {
