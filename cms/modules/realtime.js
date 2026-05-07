@@ -19,6 +19,10 @@ export function initRealtime() {
         auth: { token: token || '' }
     });
 
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
     socket.on('connect', () => {
         console.log('🔴 Realtime verbunden:', socket.id);
         document.dispatchEvent(new CustomEvent('realtime:connected'));
@@ -45,6 +49,10 @@ export function initRealtime() {
     socket.on('order:new', data => {
         document.dispatchEvent(new CustomEvent('realtime:order:new', { detail: data }));
         showRealtimeToast(`🛎️ Neue Bestellung: Tisch ${data.table || '–'}`, 'success');
+        playKitchenAlert();
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("Neue Bestellung", { body: `Tisch ${data.table || '–'}`, icon: '/favicon.ico' });
+        }
     });
 
     // Tischstatus
@@ -86,4 +94,25 @@ export function onRealtime(event, callback) {
 
 export function emitRealtime(event, data) {
     if (socket?.connected) socket.emit(event, data);
+}
+
+let audioCtx = null;
+export function playKitchenAlert() {
+    if (localStorage.getItem('kitchen_sound') === 'off') return;
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const playTone = (time) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.3, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.start(time); osc.stop(time + 0.1);
+        };
+        const now = audioCtx.currentTime;
+        playTone(now);
+        playTone(now + 0.15);
+    } catch(e) {}
 }
