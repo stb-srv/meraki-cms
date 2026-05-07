@@ -9,7 +9,7 @@ const logger = require('./logger.js');
 const { extractDomain } = require('./helpers.js');
 
 const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
-    const token = req.headers['x-admin-token'];
+    const token = req.headers['x-admin-token'] || req.query.token;
     if (!token) return res.status(401).json({ success: false, reason: 'No token' });
     try { req.admin = jwt.verify(token, ADMIN_SECRET); next(); }
     catch (e) { res.status(401).json({ success: false, reason: 'Invalid session' }); }

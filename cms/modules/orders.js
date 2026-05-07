@@ -39,6 +39,13 @@ function renderAll(container) {
                     </p>
                 </div>
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <!-- Export -->
+                    <div style="display:flex; gap:6px; align-items:center; border-right:1px solid rgba(0,0,0,.1); padding-right:12px;">
+                        <input type="date" id="export-von" class="input-light" style="padding:4px 8px; font-size:.8rem; border-radius:4px; border:1px solid #ddd;">
+                        <input type="date" id="export-bis" class="input-light" style="padding:4px 8px; font-size:.8rem; border-radius:4px; border:1px solid #ddd;">
+                        <button class="btn-primary small" id="btn-export-csv" style="background:#10b981;border-color:#10b981;"><i class="fas fa-file-csv"></i> CSV</button>
+                        <button class="btn-primary small" id="btn-export-pdf" style="background:#ef4444;border-color:#ef4444;"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div>
                     <!-- Filter -->
                     <div style="display:flex; gap:6px;">
                         <button class="km-filter-btn ${filterStatus==='active'?'active':''}" data-filter="active">Aktiv</button>
@@ -74,6 +81,24 @@ function renderAll(container) {
             container.querySelectorAll('.km-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filterStatus));
             refreshGrid(container);
         });
+    });
+
+    // Export-Buttons
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const vonInput = container.querySelector('#export-von');
+    const bisInput = container.querySelector('#export-bis');
+    if (vonInput) vonInput.value = firstDay;
+    if (bisInput) bisInput.value = lastDay;
+
+    container.querySelector('#btn-export-csv')?.addEventListener('click', () => {
+        const token = localStorage.getItem('opa_admin_token') || '';
+        window.location.href = `/api/orders/export/csv?von=${vonInput.value}&bis=${bisInput.value}&token=${token}`;
+    });
+    container.querySelector('#btn-export-pdf')?.addEventListener('click', () => {
+        const token = localStorage.getItem('opa_admin_token') || '';
+        window.location.href = `/api/orders/export/pdf?von=${vonInput.value}&bis=${bisInput.value}&token=${token}`;
     });
 
     refreshGrid(container);

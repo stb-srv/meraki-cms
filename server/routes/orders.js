@@ -18,12 +18,94 @@ const { requireRole } = require('../middleware.js');
 
 const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
 
+const PDFDocument = require('pdfkit');
+
 module.exports = (requireAuth, io) => {
 
     // GET alle Bestellungen (Admin)
     router.get('/', requireAuth, requireRole('waiter', 'kitchen'), async (req, res) => {
         try { res.json(await DB.getOrders()); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+    });
+
+    // GET /api/orders/export/csv
+    router.get('/export/csv', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const { von, bis } = req.query;
+            let orders = await DB.getOrders();
+            if (von || bis) {
+                const start = von ? new Date(von).getTime() : 0;
+                const end = bis ? new Date(bis + 'T23:59:59.999Z').getTime() : Infinity;
+                orders = orders.filter(o => {
+                    const t = new Date(o.timestamp || o.createdAt).getTime();
+                    return t >= start && t <= end;
+                });
+            }
+            let csv = 'ID,Datum,Tisch,Status,Gesamtpreis,Artikel\n';
+            for (const o of orders) {
+                const date = new Date(o.timestamp || o.createdAt).toLocaleString('de-DE');
+                const table = o.tableNumber || o.table || '';
+                const total = o.total ? parseFloat(o.total).toFixed(2) : '0.00';
+                const items = o.items ? o.items.map(i => `${i.quantity}x ${i.name}`).join(' | ') : '';
+                csv += `"${o.id}","${date}","${table}","${o.status}","${total}","${items.replace(/"/g, '""')}"\n`;
+            }
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', 'attachment; filename="bestellungen.csv"');
+            res.send('\uFEFF' + csv);
+        } catch(e) { res.status(500).send(e.message); }
+    });
+
+    // GET /api/orders/export/pdf
+    router.get('/export/pdf', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const { von, bis } = req.query;
+            let orders = await DB.getOrders();
+            if (von || bis) {
+                const start = von ? new Date(von).getTime() : 0;
+                const end = bis ? new Date(bis + 'T23:59:59.999Z').getTime() : Infinity;
+                orders = orders.filter(o => {
+                    const t = new Date(o.timestamp || o.createdAt).getTime();
+                    return t >= start && t <= end;
+                });
+            }
+            
+            const doc = new PDFDocument({ margin: 50 });
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="bestellungen.pdf"');
+            doc.pipe(res);
+            
+            doc.fontSize(20).text('OPA-Santorini', { align: 'center' });
+            doc.fontSize(14).text('Bestellbericht', { align: 'center' });
+            doc.moveDown(2);
+            
+            doc.fontSize(10);
+            const startY = doc.y;
+            doc.text('Datum', 50, startY);
+            doc.text('Tisch', 180, startY);
+            doc.text('Status', 280, startY);
+            doc.text('Gesamt', 420, startY);
+            doc.moveDown();
+            
+            let totalSum = 0;
+            for (const o of orders) {
+                if (doc.y > 700) { doc.addPage(); }
+                const y = doc.y;
+                const date = new Date(o.timestamp || o.createdAt).toLocaleString('de-DE');
+                const table = o.tableNumber || o.table || o.type;
+                const total = parseFloat(o.total || 0);
+                totalSum += total;
+                
+                doc.text(date, 50, y);
+                doc.text(String(table), 180, y);
+                doc.text(o.status, 280, y);
+                doc.text(total.toFixed(2) + ' EUR', 420, y);
+                doc.moveDown(0.5);
+            }
+            
+            doc.moveDown(2);
+            doc.fontSize(12).text(`Gesamtumsatz: ${totalSum.toFixed(2)} EUR`, { align: 'right' });
+            doc.end();
+        } catch(e) { res.status(500).send(e.message); }
     });
 
     // GET einzelne Bestellung per orderToken (Kunden-Statusseite)
