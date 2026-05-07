@@ -5,7 +5,7 @@
  *  - BUG-02: await bei DB.getKV in getMaxDishes ergänzt (MySQL-Kompatibilität)
  */
 const router = require('express').Router();
-const DB = require('../database.js');
+const DB = require('../db.js');
 const { getCurrentLicense } = require('../license.js');
 
 function extractDomain(req) {

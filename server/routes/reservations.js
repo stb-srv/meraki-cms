@@ -6,7 +6,7 @@
  */
 const router = require('express').Router();
 const crypto = require('crypto');
-const DB = require('../database.js');
+const DB = require('../db.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense } = require('../license.js');
 

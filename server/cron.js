@@ -2,7 +2,7 @@
  * OPA-CMS – Background Cron Jobs
  * Trial Expiry & Reservation Reminders
  */
-const DB = require('./database.js');
+const DB = require('./db.js');
 const Mailer = require('./mailer.js');
 const logger = require('./logger.js');
 

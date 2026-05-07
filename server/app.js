@@ -7,7 +7,7 @@ const bcrypt  = require('bcryptjs');
 const helmet  = require('helmet');
 const logger  = require('./logger.js');
 
-const DB      = require('./database.js');
+const DB      = require('./db.js');
 const { requireAuth: makeRequireAuth, requireLicense } = require('./middleware.js');
 const { PLAN_DEFINITIONS } = require('./license.js');
 const { version: APP_VERSION } = require('../package.json');

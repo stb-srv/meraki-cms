@@ -11,7 +11,7 @@
  */
 
 const express = require('express');
-const DB      = require('../database.js');
+const DB      = require('../db.js');
 const { getCurrentLicense } = require('../license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
 const validate = require('../validation/validate.js');

@@ -5,7 +5,7 @@
  *   pickup/delivery:  pending → confirmed → preparing → ready → completed
  */
 const router = require('express').Router();
-const DB     = require('../database.js');
+const DB     = require('../db.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense } = require('../license.js');
 const { extractDomain } = require('../helpers.js');

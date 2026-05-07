@@ -1,5 +1,5 @@
 const router  = require('express').Router();
-const DB      = require('../database.js');
+const DB      = require('../db.js');
 const bcrypt  = require('bcryptjs');
 const { sanitizeText } = require('../helpers.js');
 const multer = require('multer');

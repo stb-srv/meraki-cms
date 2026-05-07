@@ -4,7 +4,7 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const DB = require('../database.js');
+const DB = require('../db.js');
 const Mailer = require('../mailer.js');
 const validate = require('../validation/validate.js');
 const { userSchema, anyObjectSchema } = require('../validation/schemas.js');

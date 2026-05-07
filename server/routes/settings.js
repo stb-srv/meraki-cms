@@ -2,7 +2,7 @@
  * Routes – Settings, Branding, Homepage, License, SMTP Test
  */
 const router = require('express').Router();
-const DB = require('../database.js');
+const DB = require('../db.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');

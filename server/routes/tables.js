@@ -2,7 +2,7 @@
  * Routes – Tables, Table Plan, Areas
  */
 const router = require('express').Router();
-const DB = require('../database.js');
+const DB = require('../db.js');
 const validate = require('../validation/validate.js');
 const { anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
 
