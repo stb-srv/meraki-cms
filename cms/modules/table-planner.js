@@ -24,7 +24,81 @@ const SNAP = 20;
 let ptr = { mode: null };
 let combineMode = false;
 
-export async function renderTablePlanner(container, titleEl) {
+export async function renderTablePlanner(container, titleEl, tab = 'overview', forceRefresh = false) {
+    // Bestehendes Overlay entfernen falls vorhanden
+    document.getElementById('planner-fullscreen-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'planner-fullscreen-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: var(--bg, #f0f4ff);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    `;
+
+    // Header-Bar oben im Fullscreen
+    const header = document.createElement('div');
+    header.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: rgba(255,255,255,0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        flex-shrink: 0;
+    `;
+    header.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:20px;">🪑</span>
+            <span style="font-weight:800; font-size:16px; color:var(--primary);">Visueller Tischplaner</span>
+        </div>
+        <button id="planner-close-btn" style="
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        ">✕ Schließen</button>
+    `;
+    overlay.appendChild(header);
+
+    // Content-Wrapper (hier kommt der eigentliche Planer rein)
+    const plannerContent = document.createElement('div');
+    plannerContent.style.cssText = 'flex:1; overflow:auto; display:flex;';
+    overlay.appendChild(plannerContent);
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden'; // Scrollen hinter Overlay sperren
+
+    // Close-Button
+    header.querySelector('#planner-close-btn').onclick = () => {
+        if (state.isDirty) {
+            if (!confirm('Ungespeicherte Änderungen gehen verloren. Trotzdem schließen?')) return;
+        }
+        overlay.remove();
+        document.body.style.overflow = '';
+    };
+
+    // ESC-Taste zum Schließen
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            header.querySelector('#planner-close-btn').click();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
     titleEl.innerHTML = '<i class="fas fa-th"></i> Visueller Tischplaner';
 
     const plan         = await apiGet('table-plan');
@@ -36,7 +110,7 @@ export async function renderTablePlanner(container, titleEl) {
     state.decors       = plan.decors   || {};
     state.reservations = reservations  || [];
 
-    buildLayout(container);
+    buildLayout(plannerContent);
     renderAll();
     updateStats();
 }
@@ -54,6 +128,7 @@ function buildLayout(container) {
                 <button class="ptab-btn active" data-tab="overview" style="flex:1; padding:12px 4px; border:none; background:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--primary);">📊 Status</button>
                 <button class="ptab-btn" data-tab="add"      style="flex:1; padding:12px 4px; border:none; background:none; cursor:pointer; font-size:11px; font-weight:600; color:#666;">➕ Tisch</button>
                 <button class="ptab-btn" data-tab="layout"   style="flex:1; padding:12px 4px; border:none; background:none; cursor:pointer; font-size:11px; font-weight:600; color:#666;">🛠 Layout</button>
+                <button class="ptab-btn" data-tab="quick"    style="flex:1; padding:12px 4px; border:none; background:none; cursor:pointer; font-size:11px; font-weight:600; color:#666;">⚡ Schnell</button>
             </div>
 
             <!-- Tab: Status/Overview -->
@@ -148,6 +223,45 @@ function buildLayout(container) {
                 <button class="btn-premium" id="btn-save-plan-layout" style="width:100%; margin-top:auto;"><i class="fas fa-save"></i> Plan speichern</button>
             </div>
 
+            <!-- Tab: Schnell-Konfigurator -->
+            <div class="ptab-panel" id="ptab-quick"
+                 style="flex:1; padding:16px; display:none; flex-direction:column; gap:10px; overflow-y:auto;">
+
+                <div style="font-size:10px; font-weight:800; text-transform:uppercase;
+                            letter-spacing:.08em; color:#94a3b8; margin-bottom:4px;">
+                    Tische schnell generieren
+                </div>
+                <p style="font-size:11px; color:#64748b; margin:0 0 8px;">
+                    Trage ein wie viele Tische mit je wie vielen Sitzplätzen du möchtest.
+                    Sie werden automatisch nummeriert und im Canvas platziert.
+                </p>
+
+                <div id="quick-rows" style="display:flex; flex-direction:column; gap:8px;">
+                    <!-- Zeilen werden per JS generiert -->
+                </div>
+
+                <button class="btn-secondary" id="btn-add-quick-row"
+                        style="width:100%; font-size:12px; margin-top:4px;">
+                    ➕ Zeile hinzufügen
+                </button>
+
+                <div class="form-group" style="margin-top:8px;">
+                    <label style="font-size:10px;">Bereich</label>
+                    <select id="quick-area-sel" class="input-styled" style="font-size:12px;"></select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size:10px;">Startnummer</label>
+                    <input id="quick-start-num" type="number" class="input-styled"
+                           value="1" min="1" style="font-size:12px;">
+                </div>
+
+                <button class="btn-premium" id="btn-quick-generate"
+                        style="width:100%; margin-top:auto;">
+                    ⚡ Tische generieren
+                </button>
+            </div>
+
         </aside>
 
         <!-- Canvas Area -->
@@ -189,12 +303,95 @@ function buildLayout(container) {
         btn.onclick = () => selectTool(btn.dataset.tool);
     });
 
+    document.getElementById('btn-add-quick-row')?.addEventListener('click', () => addQuickRow());
+    document.getElementById('btn-quick-generate')?.addEventListener('click', generateQuickTables);
+    addQuickRow(5, 4);
+
     window.addEventListener('beforeunload', (e) => {
         if (state.isDirty) { e.preventDefault(); e.returnValue = ''; }
     });
 
     buildAreaTabs();
     buildAreaSideList();
+}
+
+function addQuickRow(count = 4, seats = 4) {
+    const rows = document.getElementById('quick-rows');
+    if (!rows) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 28px; gap:6px; align-items:center;';
+    row.innerHTML = `
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:9px;">Anzahl</label>
+            <input type="number" class="input-styled qr-count" value="${count}" min="1" max="100" style="font-size:12px;">
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label style="font-size:9px;">Sitzplätze</label>
+            <input type="number" class="input-styled qr-seats" value="${seats}" min="1" max="50" style="font-size:12px;">
+        </div>
+        <button class="btn-delete qr-remove"
+                style="margin-top:14px; padding:6px 8px; font-size:11px;">✕</button>
+    `;
+    row.querySelector('.qr-remove').onclick = () => row.remove();
+    rows.appendChild(row);
+}
+
+function generateQuickTables() {
+    const areaId   = document.getElementById('quick-area-sel')?.value;
+    const startNum = parseInt(document.getElementById('quick-start-num')?.value) || 1;
+    if (!areaId) return showToast('Bitte erst einen Bereich wählen');
+
+    const rows = document.querySelectorAll('#quick-rows > div');
+    if (rows.length === 0) return showToast('Bitte mindestens eine Zeile hinzufügen');
+
+    const groups = [];
+    rows.forEach(row => {
+        const count = parseInt(row.querySelector('.qr-count')?.value) || 0;
+        const seats = parseInt(row.querySelector('.qr-seats')?.value) || 4;
+        if (count > 0) groups.push({ count, seats });
+    });
+    if (groups.length === 0) return showToast('Keine gültigen Einträge');
+
+    if (!state.tables[areaId]) state.tables[areaId] = [];
+
+    const COLS     = 6;        // Tische pro Reihe
+    const CELL_W   = 80;       // Zellbreite inkl. Abstand
+    const CELL_H   = 80;       // Zellhöhe inkl. Abstand
+    const OFFSET_X = 20;
+    const OFFSET_Y = 20;
+
+    let counter = startNum;
+    let pos = 0; // Positionsindex für Grid-Layout
+
+    groups.forEach(({ count, seats }) => {
+        for (let i = 0; i < count; i++) {
+            const col = pos % COLS;
+            const row = Math.floor(pos / COLS);
+            let shape = 'square';
+            if (seats >= 6) shape = 'rect-h';
+            else if (seats === 2) shape = 'round';
+            let w = 60, h = 60;
+            if (shape === 'rect-h') { w = 100; h = 60; }
+
+            state.tables[areaId].push({
+                id:    'T' + Date.now() + '_' + pos,
+                num:   String(counter),
+                seats,
+                shape,
+                x:     OFFSET_X + col * CELL_W,
+                y:     OFFSET_Y + row * CELL_H,
+                w,
+                h
+            });
+            counter++;
+            pos++;
+        }
+    });
+
+    state.isDirty = true;
+    renderTables(areaId);
+    updateStats();
+    showToast(`✅ ${pos} Tische erfolgreich generiert (T${startNum}–T${counter - 1})`);
 }
 
 // ─── Area Tabs (top of canvas) ──────────────────────────────────────────────
@@ -228,6 +425,8 @@ function buildAreaSideList() {
                 <button class="btn-edit" onclick="window.editArea('${a.id}')" style="font-size:10px; padding:3px 8px;"><i class="fas fa-edit"></i></button>
             </div>`;
         if (sel) sel.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+        const quickSel = document.getElementById('quick-area-sel');
+        if (quickSel) quickSel.innerHTML += `<option value="${a.id}">${a.name}</option>`;
     });
     window.editArea = (id) => showAreaModal(id);
 }
