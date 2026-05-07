@@ -14,13 +14,14 @@ const { reservationLimiter } = require('../middleware.js');
 const logger = require('../logger.js');
 const validate = require('../validation/validate.js');
 const { cartOrderSchema, orderStatusUpdateSchema } = require('../validation/schemas.js');
+const { requireRole } = require('../middleware.js');
 
 const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
 
 module.exports = (requireAuth, io) => {
 
     // GET alle Bestellungen (Admin)
-    router.get('/', requireAuth, async (req, res) => {
+    router.get('/', requireAuth, requireRole('waiter', 'kitchen'), async (req, res) => {
         try { res.json(await DB.getOrders()); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -82,7 +83,7 @@ module.exports = (requireAuth, io) => {
     });
 
     // PUT Status-Update (Admin)
-    router.put('/:id/status', requireAuth, validate(orderStatusUpdateSchema), async (req, res) => {
+    router.put('/:id/status', requireAuth, requireRole('waiter', 'kitchen'), validate(orderStatusUpdateSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -116,7 +117,7 @@ module.exports = (requireAuth, io) => {
     });
 
     // DELETE Bestellung (Admin)
-    router.delete('/:id', requireAuth, async (req, res) => {
+    router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try { await DB.deleteOrder(req.params.id); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });

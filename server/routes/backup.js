@@ -11,13 +11,14 @@ const uploadMiddleware = multer({
 });
 
 const BACKUP_VERSION = 2;
+const { requireRole } = require('../middleware.js');
 
 module.exports = (requireAuth) => {
     // -------------------------------------------------------
     // GET /api/backup/export
     // Erstellt einen vollständigen Snapshot aller Daten
     // -------------------------------------------------------
-    router.get('/export', requireAuth, async (req, res) => {
+    router.get('/export', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             // Alle KV-Keys laden
             const KV_KEYS = [
@@ -90,7 +91,7 @@ module.exports = (requireAuth) => {
     // Body: multipart/form-data mit field "backup" (JSON-Datei)
     //       ODER application/json direkt
     // -------------------------------------------------------
-    router.post('/import', requireAuth, uploadMiddleware.single('backup'), async (req, res) => {
+    router.post('/import', requireAuth, requireRole('admin'), uploadMiddleware.single('backup'), async (req, res) => {
         try {
             let data = req.body;
 
@@ -201,7 +202,7 @@ module.exports = (requireAuth) => {
     // Gibt Metadaten über die aktuelle Instanz zurück
     // (Anzahl Datensätze, DB-Typ, Version)
     // -------------------------------------------------------
-    router.get('/info', requireAuth, async (req, res) => {
+    router.get('/info', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             const [menu, categories, reservations, tables, orders, users] = await Promise.all([
                 DB.getMenu(), DB.getCategories(), DB.getReservations(),

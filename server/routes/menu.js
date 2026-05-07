@@ -22,6 +22,7 @@ function extractDomain(req) {
 const jwt = require('jsonwebtoken');
 const validate = require('../validation/validate.js');
 const { menuItemSchema, menuReorderSchema, categorySchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
+const { requireRole } = require('../middleware.js');
 
 /**
  * BUG-02 FIX: await ergänzt – DB.getKV ist im MySQL-Adapter async.
@@ -88,7 +89,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/menu', requireAuth, requireLicense('menu_edit'), validate(menuItemSchema), async (req, res) => {
+    router.post('/menu', requireAuth, requireRole('admin'), requireLicense('menu_edit'), validate(menuItemSchema), async (req, res) => {
         try {
             const domain = extractDomain(req);
             let lic = null;
@@ -108,7 +109,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/menu/:id', requireAuth, requireLicense('menu_edit'), validate(anyObjectSchema), async (req, res) => {
+    router.put('/menu/:id', requireAuth, requireRole('admin'), requireLicense('menu_edit'), validate(anyObjectSchema), async (req, res) => {
         try {
             const body = req.body;
             if (typeof body.number === 'undefined' && typeof body.nr !== 'undefined') body.number = body.nr;
@@ -121,12 +122,12 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.delete('/menu/:id', requireAuth, requireLicense('menu_edit'), async (req, res) => {
+    router.delete('/menu/:id', requireAuth, requireRole('admin'), requireLicense('menu_edit'), async (req, res) => {
         try { await DB.deleteMenu(req.params.id); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/menu/reorder', requireAuth, validate(menuReorderSchema), async (req, res) => {
+    router.post('/menu/reorder', requireAuth, requireRole('admin'), validate(menuReorderSchema), async (req, res) => {
         try {
             const { ids } = req.body; // Array von Dish-IDs in neuer Reihenfolge
             if (!Array.isArray(ids)) return res.status(400).json({ success: false });
@@ -174,7 +175,7 @@ module.exports = (requireAuth, requireLicense) => {
         }
     });
 
-    router.post('/categories', requireAuth, validate(categorySchema), async (req, res) => {
+    router.post('/categories', requireAuth, requireRole('admin'), validate(categorySchema), async (req, res) => {
         try {
             const c = req.body;
             if (!c.label) return res.status(400).json({ success: false, reason: 'Label erforderlich.' });
@@ -184,7 +185,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/categories/:id', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.put('/categories/:id', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const updated = await DB.updateCategory(req.params.id, req.body);
             if (!updated) return res.status(404).json({ success: false, reason: 'Kategorie nicht gefunden.' });
@@ -192,7 +193,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.delete('/categories/:id', requireAuth, async (req, res) => {
+    router.delete('/categories/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try { await DB.deleteCategory(req.params.id); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -204,7 +205,7 @@ module.exports = (requireAuth, requireLicense) => {
             res.json((result && typeof result === 'object' && !Array.isArray(result)) ? result : {});
         } catch(e) { res.json({}); }
     });
-    router.post('/allergens', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.post('/allergens', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try { await DB.setKV('allergens', req.body); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -214,13 +215,13 @@ module.exports = (requireAuth, requireLicense) => {
             res.json((result && typeof result === 'object' && !Array.isArray(result)) ? result : {});
         } catch(e) { res.json({}); }
     });
-    router.post('/additives', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.post('/additives', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try { await DB.setKV('additives', req.body); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
     // --- Import ---
-    router.post('/menu/import', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.post('/menu/import', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const { menu, categories, allergens, additives } = req.body;
             const domain    = extractDomain(req);
@@ -254,7 +255,7 @@ module.exports = (requireAuth, requireLicense) => {
      * 4. Fertig – alle Gerichte sind übersetzt
      */
 
-    router.get('/menu/export-translations', requireAuth, async (req, res) => {
+    router.get('/menu/export-translations', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             const menu = await DB.getMenu();
             const cats = await DB.getCategories();
@@ -278,7 +279,7 @@ module.exports = (requireAuth, requireLicense) => {
         }
     });
 
-    router.post('/menu/import-translations', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.post('/menu/import-translations', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             let importData = req.body;
             let categories = [];

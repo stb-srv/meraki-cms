@@ -15,6 +15,7 @@ const logger = require('../logger.js');
 const { sanitizeText, calculateDuration, buildEndTime, findAvailableTables, tokenResponsePage, extractDomain } = require('../helpers.js');
 const validate = require('../validation/validate.js');
 const { reservationCheckSchema, reservationGridSchema, reservationSubmitSchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
+const { requireRole } = require('../middleware.js');
 
 /**
  * Timing-sicherer Token-Vergleich.
@@ -37,7 +38,7 @@ function findReservationByToken(reservations, token) {
 }
 
 module.exports = (requireAuth, requireLicense) => {
-    router.get('/', requireAuth, async (req, res) => {
+    router.get('/', requireAuth, requireRole('waiter'), async (req, res) => {
         try { res.json(await DB.getReservations()); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
@@ -138,7 +139,7 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/:id', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.put('/:id', requireAuth, requireRole('waiter'), validate(anyObjectSchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;
@@ -171,12 +172,12 @@ module.exports = (requireAuth, requireLicense) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.delete('/:id', requireAuth, async (req, res) => {
+    router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try { await DB.deleteReservation(req.params.id); res.json({ success: true }); }
         catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/', requireAuth, validate(anyArraySchema), async (req, res) => {
+    router.post('/', requireAuth, requireRole('admin'), validate(anyArraySchema), async (req, res) => {
         try {
             const host = extractDomain(req);
             let license = null;

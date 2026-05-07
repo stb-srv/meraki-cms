@@ -8,9 +8,10 @@ const DB = require('../database.js');
 const Mailer = require('../mailer.js');
 const validate = require('../validation/validate.js');
 const { userSchema, anyObjectSchema } = require('../validation/schemas.js');
+const { requireRole } = require('../middleware.js');
 
 module.exports = (requireAuth) => {
-    router.get('/', requireAuth, async (req, res) => {
+    router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             const users = await DB.getUsers();
             const safeUsers = (users || []).map(u => { const copy = { ...u }; delete copy.pass; return copy; });
@@ -18,7 +19,7 @@ module.exports = (requireAuth) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/', requireAuth, validate(userSchema), async (req, res) => {
+    router.post('/', requireAuth, requireRole('admin'), validate(userSchema), async (req, res) => {
         try {
             const u = req.body;
             const users = await DB.getUsers();
@@ -33,7 +34,7 @@ module.exports = (requireAuth) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.put('/:user', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.put('/:user', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const { pass, recovery_codes, ...safeUpdate } = req.body;
             await DB.updateUser(req.params.user, safeUpdate);
@@ -41,7 +42,7 @@ module.exports = (requireAuth) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.delete('/:user', requireAuth, async (req, res) => {
+    router.delete('/:user', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             if (req.params.user === req.admin.user)
                 return res.status(400).json({ success: false, reason: 'Kann sich selbst nicht löschen.' });
@@ -50,7 +51,7 @@ module.exports = (requireAuth) => {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    router.post('/:user/reset', requireAuth, validate(anyObjectSchema), async (req, res) => {
+    router.post('/:user/reset', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const users = await DB.getUsers();
             const target = (users || []).find(x => x.user === req.params.user);

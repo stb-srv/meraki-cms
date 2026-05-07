@@ -15,6 +15,12 @@ const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
     catch (e) { res.status(401).json({ success: false, reason: 'Invalid session' }); }
 };
 
+const requireRole = (...roles) => (req, res, next) => {
+    if (!req.admin || !req.admin.role) return res.status(403).json({ success: false, reason: "Keine Berechtigung für diese Aktion." });
+    if (req.admin.role === 'admin' || roles.includes(req.admin.role)) return next();
+    return res.status(403).json({ success: false, reason: "Keine Berechtigung für diese Aktion." });
+};
+
 
 /**
  * requireLicense – prüft ob ein Modul in der aktuellen Lizenz aktiv ist.
@@ -98,4 +104,4 @@ const reservationLimiter = rateLimit({
     message: { success: false, reason: 'Zu viele Anfragen. Bitte später erneut versuchen.' }
 });
 
-module.exports = { requireAuth, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter };
+module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter };

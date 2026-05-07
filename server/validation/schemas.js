@@ -59,7 +59,10 @@ const orderStatusUpdateSchema = z.object({
 
 // --- Users ---
 const userSchema = z.object({
-    user: z.string().min(1, "Benutzername ist erforderlich")
+    user: z.string().min(1, "Benutzername ist erforderlich"),
+    role: z.enum(['admin', 'waiter', 'kitchen'], {
+        errorMap: () => ({ message: "Rolle muss admin, waiter oder kitchen sein" })
+    })
 }).passthrough();
 
 // --- Fallbacks / Generic ---
