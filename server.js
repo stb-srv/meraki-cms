@@ -1,348 +1,48 @@
-/**
- * OPA-CMS – Server Entry Point
- * All route logic lives in server/routes/*, helpers in server/helpers.js
- *
- * SECURITY:
- *  - SEC-06: helmet.js für Security-HTTP-Header
- *  - Upload-Pfad mit nosniff + X-Frame-Options gesichert
- */
-const express = require('express');
-const cors    = require('cors');
-const fs      = require('fs');
-const path    = require('path');
-const crypto  = require('crypto');
-const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
-const logger  = require('./server/logger.js');
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
 
-const CONFIG  = require('./config.js');
-const DB      = require('./server/database.js');
-const Mailer  = require('./server/mailer.js');
-const { getCurrentLicense, PLAN_DEFINITIONS } = require('./server/license.js');
+const CONFIG = require('./config.js');
+const logger = require('./server/logger.js');
+const DB = require('./server/database.js');
+const { requireAuth: makeRequireAuth, requireLicense } = require('./server/middleware.js');
+const { startCron } = require('./server/cron.js');
 const { version: APP_VERSION } = require('./package.json');
 
-const { requireAuth: makeRequireAuth, requireLicense, requireMenuLimit,
-        loginLimiter, forgotPasswordLimiter, reservationLimiter } = require('./server/middleware.js');
-const { startCron } = require('./server/cron.js');
+const setupSocket = require('./server/socket.js');
+const createApp = require('./server/app.js');
 
-const app    = express();
-const server = require('http').createServer(app);
-const io     = require('socket.io')(server);
+const PORT = CONFIG.PORT || 5000;
+const PLUGINS_DIR = path.join(__dirname, 'plugins');
+const requireAuth = makeRequireAuth(CONFIG.ADMIN_SECRET);
 
-io.use((socket, next) => {
-    const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-admin-token'];
-    if (!token) return next(new Error('Authentifizierung erforderlich'));
-    try {
-        socket.admin = require('jsonwebtoken').verify(token, ADMIN_SECRET);
-        next();
-    } catch (e) {
-        next(new Error('Ungültiger Token'));
-    }
-});
-
-app.set('trust proxy', 1);
-
-const PORT         = CONFIG.PORT || 5000;
-const ADMIN_SECRET = CONFIG.ADMIN_SECRET;
-const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
-const UPLOADS_DIR  = path.join(__dirname, 'uploads');
-const PLUGINS_DIR  = path.join(__dirname, 'plugins');
-
-const requireAuth = makeRequireAuth(ADMIN_SECRET);
-
-// Ensure required directories exist
-[path.join(__dirname, 'server'), UPLOADS_DIR, PLUGINS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
-
-// --- SEC-06: Security-HTTP-Header via helmet ---
-try {
-    const helmet = require('helmet');
-    app.use(helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc:      ["'self'"],
-                // inline <script> Tags + eval (CMS-Admin benötigt beides)
-                // cdnjs: jsPDF, jsPDF-autotable, font-awesome
-                // cdn.jsdelivr.net: SortableJS (Drag & Drop)
-                scriptSrc:       ["'self'", "'unsafe-inline'", "'unsafe-eval'",
-                                  'https://cdnjs.cloudflare.com',
-                                  'https://cdn.jsdelivr.net'],
-                // Inline onclick=, onchange= etc. in HTML-Attributen
-                scriptSrcAttr:   ["'unsafe-inline'"],
-                // Externe Stylesheets + inline style= Attribute
-                styleSrc:        ["'self'", "'unsafe-inline'",
-                                  'https://cdnjs.cloudflare.com',
-                                  'https://fonts.googleapis.com'],
-                styleSrcAttr:    ["'unsafe-inline'"],
-                // Webfonts
-                fontSrc:         ["'self'", 'data:',
-                                  'https://cdnjs.cloudflare.com',
-                                  'https://fonts.gstatic.com'],
-                // Bilder: ui-avatars.com für Admin-Avatar ergänzt
-                imgSrc:          ["'self'", 'data:', 'blob:',
-                                  'https://maps.gstatic.com',
-                                  'https://*.googleapis.com',
-                                  'https://ui-avatars.com',
-                                  'https://images.unsplash.com',
-                                  'https://images.pexels.com'],
-                // WebSocket (Socket.IO)
-                connectSrc:      ["'self'", 'ws:', 'wss:', 
-                                  'https://cdnjs.cloudflare.com',
-                                  'https://api.unsplash.com',
-                                  'https://api.pexels.com',
-                                  'https://generativelanguage.googleapis.com',
-                                  'https://licens-prod.stb-srv.de'],
-                // Google Maps iFrame
-                frameSrc:        ["'self'",
-                                  'https://maps.google.com',
-                                  'https://maps.googleapis.com',
-                                  'https://www.google.com'],
-                objectSrc:       ["'none'"],
-            }
-        },
-        crossOriginEmbedderPolicy: false,
-    }));
-    logger.info('Helmet Security-Header aktiv.');
-} catch (e) {
-    logger.warn('helmet nicht gefunden – Security-Header deaktiviert. Bitte: npm install helmet');
-}
-
-// CORS
-const rawOrigins = CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '';
-const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean) : ['http://localhost:3000', 'http://localhost:5000'];
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error(`CORS: Origin '${origin}' nicht erlaubt.`));
-    },
-    credentials: true
-}));
-app.use(express.json({ limit: '20mb' }));
-
-// HTTP Request Logging
-app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        const ms = Date.now() - start;
-        logger.info({
-            method: req.method,
-            url: req.originalUrl,
-            status: res.statusCode,
-            ms,
-            ip: req.ip
-        }, `${req.method} ${req.originalUrl} ${res.statusCode} (${ms}ms)`);
-    });
-    next();
-});
-
-// Setup Wizard Guard
-app.use((req, res, next) => {
-    if (CONFIG.SETUP_COMPLETE || req.path === '/api/setup' || req.path === '/api/setup/status' || req.path === '/setup' || req.path.startsWith('/setup-assets')) return next();
-    if (req.path.startsWith('/api/')) return res.status(403).json({ success: false, reason: 'SETUP_REQUIRED', message: 'System must be configured first.' });
-    res.redirect('/setup');
-});
-
-
-
-// --- Mount Routes ---
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: APP_VERSION, uptime: Math.floor(process.uptime()), timestamp: new Date().toISOString() }));
-app.get('/api/version', (req, res) => res.json({ version: APP_VERSION }));
-
-app.use('/api/admin',        require('./server/routes/auth.js')(ADMIN_SECRET));
-app.use('/api/v1/setup',     require('./server/routes/setup.js'));
-app.use('/api/users',        require('./server/routes/users.js')(requireAuth));
-app.use('/api',              require('./server/routes/menu.js')(requireAuth, requireLicense));
-app.use('/api/orders',       require('./server/routes/orders.js')(requireAuth, io));
-app.use('/api/reservations', require('./server/routes/reservations.js')(requireAuth, requireLicense));
-app.use('/api',              require('./server/routes/tables.js')(requireAuth));
-app.use('/api',              require('./server/routes/settings.js')(requireAuth, requireLicense, LICENSE_SERVER));
-app.use('/api/upload',       require('./server/routes/upload.js')(requireAuth, UPLOADS_DIR));
-// Cookie Consent API (DSGVO)
-app.use('/api',              require('./server/routes/cookie.js')(requireAuth));
-app.use('/api/cart',         require('./server/routes/cart.js')(requireLicense, io));
-app.use('/api/image-ai',     requireAuth, require('./server/routes/image-ai.js')(requireAuth, DB));
-
-// Global Backup & Restore
-app.use('/api/backup', require('./server/routes/backup.js')(requireAuth));
-
-// TODO: analytics gate
-
-
-// --- Plugins ---
-const getInstalledPlugins = () => {
-    if (!fs.existsSync(PLUGINS_DIR)) return [];
-    return fs.readdirSync(PLUGINS_DIR)
-        .filter(f => fs.statSync(path.join(PLUGINS_DIR, f)).isDirectory())
-        .map(dir => { try { return JSON.parse(fs.readFileSync(path.join(PLUGINS_DIR, dir, 'plugin.json'))); } catch(e) { return null; } })
-        .filter(Boolean);
-};
-
-app.get('/api/plugins', requireAuth, async (req, res) => {
-    try {
-        const installed  = getInstalledPlugins();
-        const dbPlugins  = await DB.getKV('plugins', []);
-        res.json(installed.map(p => { const dbP = dbPlugins.find(x => x.id === p.id); return { ...p, enabled: dbP ? dbP.enabled : false }; }));
-    } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
-});
-
-app.post('/api/plugins/toggle', requireAuth, async (req, res) => {
-    try {
-        let dbPlugins = await DB.getKV('plugins', []);
-        const { id, enabled } = req.body;
-        const idx = dbPlugins.findIndex(p => p.id === id);
-        if (idx > -1) dbPlugins[idx].enabled = enabled; else dbPlugins.push({ id, enabled });
-        await DB.setKV('plugins', dbPlugins);
-        res.json({ success: true });
-    } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
-});
-
-// --- Setup Wizard ---
-app.post('/api/setup', async (req, res) => {
-    if (CONFIG.SETUP_COMPLETE) return res.status(403).json({ success: false, reason: 'Already configured' });
-
-    // Localhost-only check for security
-    const clientIp = req.ip || req.connection.remoteAddress;
-    const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
-    if (!isLocal) {
-        logger.warn({ ip: clientIp }, 'Remote setup attempt blocked');
-        return res.status(403).json({ success: false, reason: 'Setup is only allowed from localhost (127.0.0.1) for security reasons.' });
-    }
-    try {
-        const { restaurantName, licenseServer, adminSecret, smtp, adminUser, adminPass, adminEmail } = req.body;
-
-        if (!adminPass || adminPass.length < 12) {
-            return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });
-        }
-        const licenseServerUrl = (licenseServer || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
-        const trialPlan = PLAN_DEFINITIONS['FREE'];
-        const trialLicense = {
-            key: 'OPA-TRIAL-' + crypto.randomBytes(4).toString('hex').toUpperCase() + '-' + new Date().getFullYear(),
-            status: 'trial', customer: restaurantName || 'Trial',
-            type: 'FREE', label: trialPlan.label,
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            modules: trialPlan.modules,
-            limits: { max_dishes: trialPlan.menu_items, max_tables: trialPlan.max_tables },
-            isTrial: true
-        };
-        const newConfig = { LICENSE_SERVER_URL: licenseServerUrl, ADMIN_SECRET: adminSecret || crypto.randomBytes(32).toString('hex'), SMTP: smtp || {}, SETUP_COMPLETE: true };
-        const configPath = path.join(__dirname, 'server', 'config.json');
-        fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 4));
-        Object.assign(CONFIG, newConfig);
-        const settings = await DB.getKV('settings', {});
-        settings.license = trialLicense;
-        if (smtp && smtp.host) settings.smtp = smtp;
-        await DB.setKV('settings', settings);
-        if (restaurantName) { const b = await DB.getKV('branding', {}); b.name = restaurantName; await DB.setKV('branding', b); }
-        const finalAdminUser = adminUser || 'admin';
-        const hash = await bcrypt.hash(adminPass, 12);
-        const plainRecoveryCodes = [], hashedCodes = [];
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        for (let i = 0; i < 3; i++) {
-            let code = 'OPA-';
-            for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)];
-            code += '-';
-            for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)];
-            plainRecoveryCodes.push(code);
-            hashedCodes.push(await bcrypt.hash(code, 12));
-        }
-        await DB.addUser({ user: finalAdminUser, pass: hash, name: 'Setup', last_name: 'Admin', email: adminEmail || '', role: 'admin', require_password_change: 0, recovery_codes: hashedCodes });
-        res.json({ success: true, trial: trialLicense, message: 'Setup abgeschlossen.', recovery_codes: plainRecoveryCodes });
-    } catch (e) {
-        logger.error({ err: e }, 'Setup error');
-        res.status(500).json({ success: false, reason: e.message });
-    }
-});
-app.get('/api/setup/status', async (req, res) => {
-    try {
-        let licenseKey = null;
-        if (CONFIG.SETUP_COMPLETE) {
-            const settings = await DB.getKV('settings', {});
-            if (settings.license && settings.license.key) {
-                licenseKey = settings.license.key;
-            }
-        }
-        res.json({ setupComplete: CONFIG.SETUP_COMPLETE, licenseKey });
-    } catch (e) {
-        res.json({ setupComplete: CONFIG.SETUP_COMPLETE, licenseKey: null });
-    }
-});
-app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, 'cms', 'setup.html')));
-
-// --- Static ---
-app.use('/plugins', express.static(PLUGINS_DIR));
-
-// SEC-06: /uploads mit zusätzlichen Sicherheits-Headern ausliefern
-app.use('/uploads', (req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'none'");
-    res.setHeader('X-Frame-Options', 'DENY');
-    next();
-}, express.static(UPLOADS_DIR));
-
-app.use('/admin',   express.static(path.join(__dirname, 'cms')));
-app.use('/',        express.static(path.join(__dirname, 'menu-app')));
-app.use('/',        express.static(path.join(__dirname, 'public')));
-
-app.get('/status', (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
-
-// --- Error Handler ---
-app.use((err, req, res, next) => {
-    logger.error({ err, url: req.originalUrl, method: req.method }, 'Unhandled Server Error');
-    res.status(err.status || 500).json({ success: false, reason: err.message || 'Interner Serverfehler.' });
-});
-
-// --- Background Cron Jobs ---
 startCron();
 
+const server = http.createServer();
+const io = setupSocket(server, DB, CONFIG);
+const app = createApp(CONFIG, io);
+server.on('request', app);
 
-
-// =============================================================================
-// Bootstrap: async Start (Plugin-Loader + Server-Listen)
-// =============================================================================
 async function start() {
     try {
         const enabledPlugins = await DB.getKV('plugins', []);
         enabledPlugins.filter(p => p.enabled).forEach(p => {
             const safeId = path.basename(p.id);
             const resolvedPath = path.resolve(PLUGINS_DIR, safeId, 'server.js');
-
-            // 1. Path-Traversal-Schutz
-            if (!resolvedPath.startsWith(path.resolve(PLUGINS_DIR))) {
-                logger.warn({ plugin: safeId }, 'Plugin abgelehnt: Path Traversal erkannt');
-                return;
-            }
-
+            if (!resolvedPath.startsWith(path.resolve(PLUGINS_DIR))) return logger.warn({ plugin: safeId }, 'Plugin abgelehnt: Path Traversal erkannt');
             if (fs.existsSync(resolvedPath)) {
                 try {
-                    // 2. Checksum-Warnung
-                    const pluginDir = path.dirname(resolvedPath);
-                    const manifestPath = path.join(pluginDir, 'plugin.json');
-                    if (fs.existsSync(manifestPath)) {
-                        try {
-                            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-                            if (!manifest.checksum) {
-                                logger.warn({ plugin: safeId }, 'Plugin hat keine Checksum – Integrität nicht verifizierbar');
-                            }
-                        } catch (e) {
-                            logger.warn({ plugin: safeId }, 'plugin.json konnte nicht gelesen werden');
-                        }
-                    }
-
-                    // 3. Logging
                     logger.info({ plugin: safeId, path: resolvedPath }, 'Plugin geladen');
-
                     const plug = require(resolvedPath);
                     if (typeof plug === 'function') plug(app, { DB, requireAuth, requireLicense });
-                } catch(e) { 
-                    logger.error({ err: e, plugin: safeId }, 'Plugin load failed'); 
-                }
+                } catch(e) { logger.error({ err: e, plugin: safeId }, 'Plugin load failed'); }
             }
         });
-    } catch(e) {
-        logger.warn({ err: e }, 'Plugin-Loader Fehler');
-    }
+    } catch(e) { logger.warn({ err: e }, 'Plugin-Loader Fehler'); }
 
     server.listen(PORT, () => {
-        logger.info({ version: APP_VERSION, port: PORT, licenseServer: LICENSE_SERVER, cors: allowedOrigins }, 'OPA-CMS gestartet');
+        const allowedOrigins = (CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+        logger.info({ version: APP_VERSION, port: PORT, licenseServer: CONFIG.LICENSE_SERVER_URL, cors: allowedOrigins }, 'OPA-CMS gestartet');
     });
 }
 
