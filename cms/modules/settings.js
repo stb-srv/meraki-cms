@@ -66,12 +66,23 @@ export async function renderSettings(container, titleEl, tab) {
 }
 
 const MODULE_LABELS = {
-    menu_edit:      { label: 'Speisekarte bearbeiten', icon: 'utensils',       desc: 'Gerichte hinzufügen, bearbeiten & löschen' },
-    orders_kitchen: { label: 'Küchen-Monitor',         icon: 'concierge-bell', desc: 'Bestellungen in Echtzeit anzeigen' },
-    reservations:   { label: 'Online-Reservierung',    icon: 'calendar-check', desc: 'Gäste können online reservieren' },
-    custom_design:  { label: 'Design anpassen',        icon: 'paint-brush',    desc: 'Farben, Logo & Homepage bearbeiten' },
-    analytics:      { label: 'Statistiken',             icon: 'chart-bar',      desc: 'Umsatz- und Bestellstatistiken' },
-    qr_pay:         { label: 'QR-Pay',                  icon: 'qrcode',         desc: 'Bezahlung per QR-Code am Tisch' },
+    // Bereits vorhanden – beibehalten:
+    menu_edit:          { label: 'Speisekarte bearbeiten',   icon: 'utensils',       desc: 'Gerichte hinzufügen, bearbeiten & löschen', group: 'Speisekarte' },
+    orders_kitchen:     { label: 'Online-Bestellungen',      icon: 'shopping-bag',   desc: 'Kunden können online bestellen', group: 'Bestellungen' },
+    reservations:       { label: 'Online-Reservierung',      icon: 'calendar-check', desc: 'Gäste können online reservieren', group: 'Reservierungen' },
+    custom_design:      { label: 'Design anpassen',          icon: 'paint-brush',    desc: 'Farben, Logo & Homepage bearbeiten', group: 'Auftritt' },
+    analytics:          { label: 'Statistiken',              icon: 'chart-bar',      desc: 'Umsatz- und Bestellstatistiken', group: 'Dashboard' },
+    qr_pay:             { label: 'QR-Pay am Tisch',          icon: 'qrcode',         desc: 'Bezahlung per QR-Code am Tisch (Premium)', group: 'Bestellungen' },
+    
+    // NEU hinzufügen:
+    kitchen_display:    { label: 'Küchen-Display',           icon: 'fire-burner',    desc: 'Bestellungen in Echtzeit im Küchen-Monitor anzeigen', group: 'Bestellungen' },
+    table_planner:      { label: 'Tischplaner',              icon: 'project-diagram',desc: 'Visueller Saalplan und Tischzuweisung', group: 'Reservierungen' },
+    daily_specials:     { label: 'Tagesspecials',            icon: 'star',           desc: 'Goldene Heute-Badges und Special-Filter auf der Speisekarte', group: 'Speisekarte' },
+    menu_translate:     { label: 'Menü-Übersetzung',         icon: 'language',       desc: 'Speisekarte automatisch übersetzen lassen', group: 'Speisekarte' },
+    menu_import_export: { label: 'Import / Export',          icon: 'file-export',    desc: 'Speisekarte als CSV/JSON importieren oder exportieren', group: 'Speisekarte' },
+    qrcodes:            { label: 'QR-Code Generator',        icon: 'qrcode',         desc: 'QR-Codes für Tische und Speisekarte generieren', group: 'Tools' },
+    shifts:             { label: 'Schichtplan',              icon: 'calendar-week',  desc: 'Mitarbeiter-Schichten planen', group: 'Tools' },
+    backup:             { label: 'Backup & Wiederherstellung',icon: 'database',      desc: 'Datenbank sichern und wiederherstellen', group: 'Tools' },
 };
 
 function isValidImageSrc(val) {
@@ -186,94 +197,74 @@ function renderSettingsTab(settings, branding, users, licInfo) {
     if (settingsTab === 'plan_modules') {
         const l = settings.license || {};
         const activeModules = l.modules || {};
-        const mod = settings.activeModules || { orders: true, reservations: true };
+        const enabledModules = settings.enabledModules || {};
         const allModuleKeys = Object.keys(MODULE_LABELS);
-        return `
+        
+        const groups = [
+            { name: 'Speisekarte', icon: 'utensils' },
+            { name: 'Bestellungen', icon: 'shopping-bag' },
+            { name: 'Reservierungen', icon: 'calendar-alt' },
+            { name: 'Auftritt', icon: 'paint-brush' },
+            { name: 'Dashboard', icon: 'chart-pie' },
+            { name: 'Tools', icon: 'wrench' }
+        ];
+
+        let html = `
             <div style="margin-bottom:20px;">
                 <h4 style="margin:0 0 6px;"><i class="fas fa-sliders-h"></i> Plan-Module verwalten</h4>
                 <p style="color:var(--text-muted); font-size:.85rem; margin:0;">
-                    Hier kannst du einzelne Features für die aktive Lizenz manuell aktivieren oder deaktivieren.
-                    Änderungen gelten sofort – unabhängig vom zugewiesenen Plan.
+                    Zentrale Verwaltung für alle CMS-Module. Hier können Sie verfügbare Features Ihres Plans aktivieren oder deaktivieren.
                 </p>
             </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; margin-bottom:30px;">
-                ${allModuleKeys.map(key => {
-                    const m = MODULE_LABELS[key];
-                    const isOn = activeModules[key] === true;
-                    return `
-                    <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px;">
-                        <div style="width:40px;height:40px;border-radius:10px;background:${isOn ? 'rgba(16,185,129,.15)' : 'rgba(107,114,128,.1)'}; display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="fas fa-${m.icon}" style="color:${isOn ? '#10b981' : '#9ca3af'};"></i>
+        `;
+
+        groups.forEach(group => {
+            const keys = allModuleKeys.filter(k => MODULE_LABELS[k].group === group.name);
+            if (keys.length === 0) return;
+
+            html += `
+            <div style="margin-bottom:24px;">
+                <h5 style="margin:0 0 12px; font-size:.95rem; color:var(--text); border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:6px;">
+                    <i class="fas fa-${group.icon}" style="margin-right:6px; color:var(--text-muted);"></i> ${group.name}
+                </h5>
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px;">
+            `;
+
+            keys.forEach(key => {
+                const m = MODULE_LABELS[key];
+                const isLicensed = activeModules[key] === true;
+                const isOn = enabledModules[key] === true;
+                
+                const cardOpacity = isLicensed ? '1' : '0.55';
+                const cardEvents = isLicensed ? '' : 'pointer-events: none;';
+                
+                html += `
+                    <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px; opacity:${cardOpacity}; ${cardEvents} position:relative;" ${!isLicensed ? 'title="Nicht in Ihrem aktuellen Plan enthalten – Upgrade erforderlich"' : ''}>
+                        ${!isLicensed ? '<i class="fas fa-lock" style="position:absolute; top:8px; right:8px; color:var(--text-muted); font-size:.8rem;"></i>' : ''}
+                        <div style="width:40px;height:40px;border-radius:10px;background:${isOn && isLicensed ? 'rgba(16,185,129,.15)' : 'rgba(107,114,128,.1)'}; display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-${m.icon}" style="color:${isOn && isLicensed ? '#10b981' : '#9ca3af'};"></i>
                         </div>
                         <div style="flex:1; min-width:0;">
                             <div style="font-weight:700; font-size:.9rem;">${m.label}</div>
                             <div style="color:var(--text-muted); font-size:.78rem; margin-top:2px;">${m.desc}</div>
                         </div>
                         <label class="switch small" style="flex-shrink:0;">
-                            <input type="checkbox" class="module-toggle" data-module="${key}" ${isOn ? 'checked' : ''}>
+                            <input type="checkbox" class="module-toggle" data-module="${key}" ${isOn && isLicensed ? 'checked' : ''} ${!isLicensed ? 'disabled' : ''}>
                             <span class="slider round"></span>
                         </label>
                     </div>`;
-                }).join('')}
-            </div>
+            });
+            html += `</div></div>`;
+        });
 
-            <div style="border-top:1px solid rgba(0,0,0,0.07); padding-top:24px; margin-bottom:8px;">
-                <h4 style="margin:0 0 6px;"><i class="fas fa-eye"></i> CMS-Sichtbarkeit</h4>
-                <p style="color:var(--text-muted); font-size:.85rem; margin:0 0 18px;">Steuert welche Module im CMS-Menü angezeigt werden – unabhängig von der Lizenz.</p>
-                <div style="display:flex; flex-direction:column; gap:14px;">
-                    <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px;">
-                        <div style="width:40px;height:40px;border-radius:10px;background:${mod.orders ? 'rgba(16,185,129,.15)' : 'rgba(107,114,128,.1)'}; display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="fas fa-concierge-bell" style="color:${mod.orders ? '#10b981' : '#9ca3af'};"></i>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-weight:700; font-size:.9rem;">Küchen-Monitor</div>
-                            <div style="color:var(--text-muted); font-size:.78rem; margin-top:2px;">Bestellungs-Modul im CMS-Menü anzeigen</div>
-                        </div>
-                        <label class="switch small" style="flex-shrink:0;">
-                            <input type="checkbox" id="v-orders" ${mod.orders ? 'checked' : ''}>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px;">
-                        <div style="width:40px;height:40px;border-radius:10px;background:${mod.reservations ? 'rgba(16,185,129,.15)' : 'rgba(107,114,128,.1)'}; display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="fas fa-calendar-check" style="color:${mod.reservations ? '#10b981' : '#9ca3af'};"></i>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-weight:700; font-size:.9rem;">Online-Reservierung</div>
-                            <div style="color:var(--text-muted); font-size:.78rem; margin-top:2px;">Reservierungs-Modul im CMS-Menü anzeigen</div>
-                        </div>
-                        <label class="switch small" style="flex-shrink:0;">
-                            <input type="checkbox" id="v-res" ${mod.reservations ? 'checked' : ''}>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div style="border-top:1px solid rgba(0,0,0,0.07); padding-top:24px; margin-bottom:28px;">
-                <h4 style="margin:0 0 6px;"><i class="fas fa-star" style="color:var(--accent);"></i> Tagesspecials</h4>
-                <p style="color:var(--text-muted); font-size:.85rem; margin:0 0 18px;">Steuert ob die goldenen "Heute"-Badges und der Special-Filter auf der Speisekarte angezeigt werden.</p>
-                <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px;">
-                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(200,169,110,0.15); display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas fa-star" style="color:var(--accent);"></i>
-                    </div>
-                    <div style="flex:1;">
-                        <div style="font-weight:700; font-size:.9rem;">Tagesspecials anzeigen</div>
-                        <div style="color:var(--text-muted); font-size:.78rem; margin-top:2px;">Badges und Filter auf der Speisekarte aktivieren</div>
-                    </div>
-                    <label class="switch small" style="flex-shrink:0;">
-                        <input type="checkbox" id="v-specials" ${settings.dailySpecialsEnabled !== false ? 'checked' : ''}>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-
+        html += `
             <div style="display:flex; justify-content:flex-end; margin-top:24px;">
                 <button class="btn-primary" id="btn-save-modules">
                     <i class="fas fa-save"></i> Speichern
                 </button>
             </div>
         `;
+        return html;
     }
 
     if (settingsTab === 'branding') {
@@ -310,26 +301,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
         `;
     }
 
-    if (settingsTab === 'visibility') {
-        const mod = settings.activeModules || { orders: true, reservations: true };
-        return `
-            <div class="form-grid">
-                <div class="form-group">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <label class="switch small"><input type="checkbox" id="v-orders" ${mod.orders ? 'checked' : ''}><span class="slider round"></span></label>
-                        <label for="v-orders" style="margin:0; cursor:pointer; font-weight:normal;">Küchen-Monitor aktiv</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <label class="switch small"><input type="checkbox" id="v-res" ${mod.reservations ? 'checked' : ''}><span class="slider round"></span></label>
-                        <label for="v-res" style="margin:0; cursor:pointer; font-weight:normal;">Online-Reservierung erlaubt</label>
-                    </div>
-                </div>
 
-            </div>
-        `;
-    }
 
     if (settingsTab === 'reservations') {
         const rc = settings.reservationConfig || { durationSmall: 90, durationMedium: 120, durationLarge: 150, buffer: 15, allowInquiry: true };
@@ -576,31 +548,22 @@ function renderSettingsTab(settings, branding, users, licInfo) {
 
 function attachSettingsHandlers(container, settings, branding, users, licInfo, titleEl) {
 
-    // --- Plan-Module + CMS-Sichtbarkeit speichern ---
+    // --- Plan-Module speichern ---
     const btnSaveModules = container.querySelector('#btn-save-modules');
     if (btnSaveModules) {
         btnSaveModules.onclick = async () => {
-            const modules = {};
-            container.querySelectorAll('.module-toggle').forEach(cb => {
-                modules[cb.dataset.module] = cb.checked;
+            const enabledModules = {};
+            container.querySelectorAll('.module-toggle:not(:disabled)').forEach(cb => {
+                enabledModules[cb.dataset.module] = cb.checked;
             });
-            const [modRes, visRes] = await Promise.all([
-                apiPost('license/modules', { modules }),
-                apiPost('settings', {
-                    ...settings,
-                    activeModules: {
-                        orders:       container.querySelector('#v-orders')?.checked ?? (settings.activeModules?.orders ?? true),
-                        reservations: container.querySelector('#v-res')?.checked    ?? (settings.activeModules?.reservations ?? true)
-                    },
-                    dailySpecialsEnabled: container.querySelector('#v-specials')?.checked ?? true
-                })
-            ]);
-            if (modRes?.success && visRes?.success) {
-                showToast('Einstellungen gespeichert!');
-                updateSidebarVisibility({ ...settings, activeModules: { orders: container.querySelector('#v-orders')?.checked, reservations: container.querySelector('#v-res')?.checked } });
-                renderSettings(container, titleEl);
+
+            const res = await apiPost('settings/modules', { enabledModules });
+            if (res?.success) {
+                showToast('Modul-Einstellungen gespeichert!');
+                updateSidebarVisibility({ ...settings, enabledModules });
+                renderSettings(container, titleEl, 'plan_modules');
             } else {
-                showToast((modRes?.reason || visRes?.reason) || 'Fehler beim Speichern.', 'error');
+                showToast(res?.reason || 'Fehler beim Speichern.', 'error');
             }
         };
     }
@@ -829,13 +792,7 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                         link.href = b.favicon;
                     }
                 }
-            } else if (settingsTab === 'visibility') {
-                const activeModules = {
-                    orders: container.querySelector('#v-orders').checked,
-                    reservations: container.querySelector('#v-res').checked
-                };
-                const r = await apiPost('settings', { activeModules });
-                if (r?.success) { showToast('Ansicht-Einstellungen gespeichert!'); updateSidebarVisibility({ ...settings, activeModules }); }
+
             } else if (settingsTab === 'reservations') {
                 const reservationConfig = {
                     durationSmall:  parseInt(container.querySelector('#rc-small').value),

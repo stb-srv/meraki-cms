@@ -20,6 +20,14 @@ export async function renderReservations(container, titleEl) {
     
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
+            <div style="background:rgba(59,130,246,.05); border:1px solid rgba(59,130,246,.15); border-radius:14px; padding:16px 20px; margin-bottom:25px; display:flex; align-items:center; gap:16px;">
+                <i class="fas fa-info-circle" style="color:#3b82f6; font-size:1.2rem;"></i>
+                <div style="flex:1; font-size:.85rem; color:var(--text-muted); line-height:1.5;">
+                    <strong>Hinweis:</strong> Die Aktivierung oder Deaktivierung des Reservierungs-Moduls (CMS-Sichtbarkeit) wird jetzt zentral verwaltet. 
+                    <a href="#" onclick="window.switchTab('settings', 'plan_modules'); return false;" style="color:#3b82f6; font-weight:700; text-decoration:none;">Zu Plan-Module wechseln &rarr;</a>
+                </div>
+            </div>
+            
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                 <div>
                     <h3 style="margin-bottom:4px;">Aktive Reservierungen</h3>

@@ -214,11 +214,40 @@ async function init() {
 }
 
 export function updateSidebarVisibility(settings) {
+    const enabled = settings.enabledModules || {};
+    const legacy = settings.activeModules || {};
+
+    const isModuleActive = (key, legacyKey) => {
+        if (enabled[key] !== undefined) return enabled[key] !== false;
+        if (legacyKey && legacy[legacyKey] !== undefined) return legacy[legacyKey] !== false;
+        return true; 
+    };
+
+    // Orders Group
     const ordersGroup = document.getElementById('nav-orders-group');
-    if (ordersGroup) {
-        ordersGroup.style.display =
-            settings.activeModules?.orders !== false ? '' : 'none';
+    if (ordersGroup) ordersGroup.style.display = isModuleActive('orders_kitchen', 'orders') ? '' : 'none';
+
+    // Reservations Group
+    const resHeader = document.querySelector('.nav-group-header[data-view="reservations"]');
+    if (resHeader) {
+        const resGroup = resHeader.closest('.nav-group');
+        if (resGroup) resGroup.style.display = isModuleActive('reservations', 'reservations') ? '' : 'none';
     }
+
+    // Individual module items
+    const toggleItem = (selector, active) => {
+        const el = document.querySelector(selector);
+        if (el) el.style.display = active ? '' : 'none';
+    };
+
+    toggleItem('.nav-subitem[data-view="menu"][data-tab="daily"]', isModuleActive('daily_specials', 'dailySpecialsEnabled'));
+    toggleItem('.nav-subitem[data-view="table-planner"]', isModuleActive('table_planner'));
+    toggleItem('.nav-subitem[data-view="qrcodes"]', isModuleActive('qrcodes'));
+    toggleItem('.nav-subitem[data-view="shifts"]', isModuleActive('shifts'));
+    toggleItem('.nav-subitem[data-view="backup"]', isModuleActive('backup'));
+    
+    const kitchenDisplay = document.querySelector('.nav-subitem[onclick*="kitchen.html"]');
+    if (kitchenDisplay) kitchenDisplay.style.display = isModuleActive('kitchen_display') ? '' : 'none';
 }
 
 /**

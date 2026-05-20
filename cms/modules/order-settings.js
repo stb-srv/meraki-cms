@@ -47,6 +47,8 @@ export async function initOrderSettings(container, api, license) {
 
     container.innerHTML = `
     <div style="max-width:760px;">
+        <div style="background:rgba(59,130,246,.05); border:1px solid rgba(59,130,246,.15); border-radius:14px; padding:16px 20px; margin-bottom:20px; display:none; align-items:center; gap:16px;">
+        </div>
 
         <!-- Header Banner -->
         <div style="background:rgba(37,99,235,.05); border:1px solid rgba(37,99,235,.15); border-radius:14px; padding:24px 28px; margin-bottom:28px; display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
@@ -66,25 +68,21 @@ export async function initOrderSettings(container, api, license) {
             </div>
         </div>
 
-        <!-- Globaler Schalter -->
-        <div class="glass-panel" style="padding:24px 28px; margin-bottom:20px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <div style="width:48px; height:48px; border-radius:14px;
-                                background:rgba(200,169,110,.12); display:flex;
-                                align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">🛒</div>
-                    <div>
-                        <div style="font-weight:800; font-size:1rem; color:var(--text);">Bestellsystem aktiv</div>
-                        <div style="font-size:.82rem; color:var(--text-muted); margin-top:2px;">
-                            Globaler Schalter – deaktiviert alle Bestellmodi gleichzeitig
-                        </div>
-                    </div>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="os-ordersEnabled" ${checked('ordersEnabled')}>
-                    <span class="slider"></span>
-                </label>
-            </div>
+        <!-- Info-Hinweis -->
+        <div class="info-hint-modules" style="
+            display:flex; align-items:center; gap:12px;
+            background:rgba(37,99,235,.06); border:1px solid rgba(37,99,235,.15);
+            border-radius:10px; padding:14px 18px; margin:12px 0;
+            font-size:.85rem; color:var(--text-muted);
+        ">
+            <i class="fas fa-puzzle-piece" style="color:var(--primary); font-size:1.1rem; flex-shrink:0;"></i>
+            <span>
+                Dieses Modul wird zentral über 
+                <a href="#" onclick="window.switchTab('settings', 'plan_modules'); return false;" 
+                   style="color:var(--primary); font-weight:600; text-decoration:none;">
+                    Einstellungen → Plan-Module
+                </a> verwaltet.
+            </span>
         </div>
 
         <!-- Bestellmodi -->
@@ -338,12 +336,13 @@ export async function initOrderSettings(container, api, license) {
 
     </div>`;
 
-    const globalToggle = container.querySelector('#os-ordersEnabled');
     const modesSection = container.querySelector('#os-modes');
     const statusBadge  = container.querySelector('#os-status-badge');
 
     const updateModesState = () => {
-        const active = globalToggle.checked;
+        // Active state is now managed centrally. We assume true here so the UI is usable.
+        // If the module is fully disabled, the entire page would typically not be accessed.
+        const active = true;
         modesSection.style.opacity       = active ? '1'   : '0.45';
         modesSection.style.pointerEvents = active ? ''    : 'none';
         
@@ -354,7 +353,6 @@ export async function initOrderSettings(container, api, license) {
             statusBadge.style.borderColor = active ? '#10b98144' : '#6b728044';
         }
     };
-    globalToggle.addEventListener('change', updateModesState);
     updateModesState();
 
     const timeSlotModeSelect = container.querySelector('#os-timeSlotMode');
@@ -368,7 +366,6 @@ export async function initOrderSettings(container, api, license) {
         const cutoffRaw  = parseInt(container.querySelector('#os-cutoffMinutes').value, 10);
         const leadRaw    = parseInt(container.querySelector('#os-leadMinutes').value, 10);
         const newConfig  = {
-            ordersEnabled:       container.querySelector('#os-ordersEnabled').checked,
             dineInEnabled:       container.querySelector('#os-dineInEnabled').checked,
             pickupEnabled:       container.querySelector('#os-pickupEnabled').checked,
             deliveryEnabled:     container.querySelector('#os-deliveryEnabled').checked,

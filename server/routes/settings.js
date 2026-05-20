@@ -183,6 +183,30 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         }
     });
 
+    router.post('/settings/modules', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
+        try {
+            const { enabledModules } = req.body;
+            if (!enabledModules || typeof enabledModules !== 'object') {
+                return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });
+            }
+            
+            const settings = await DB.getKV('settings', {});
+            settings.enabledModules = enabledModules;
+            
+            // Abwärtskompatibilität für das Gast-Frontend
+            settings.activeModules = {
+                orders: enabledModules.orders_kitchen,
+                reservations: enabledModules.reservations
+            };
+            settings.dailySpecialsEnabled = enabledModules.daily_specials;
+            
+            await DB.setKV('settings', settings);
+            res.json({ success: true, enabledModules: settings.enabledModules });
+        } catch(e) { 
+            res.status(500).json({ success: false, reason: e.message }); 
+        }
+    });
+
     router.post('/license/modules', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const { modules } = req.body;
