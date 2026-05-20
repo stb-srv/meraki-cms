@@ -99,7 +99,9 @@ class LicenseChecker {
 
                 settings.license.licenseToken    = rawToken;
                 settings.license.lastKnownType   = payload.type;
-                settings.license.lastKnownModules = payload.allowed_modules || null;
+                settings.license.lastKnownModules = (payload.allowed_modules && Object.keys(payload.allowed_modules).length > 0)
+                    ? payload.allowed_modules
+                    : null;
                 settings.license.lastKnownLimits  = payload.limits || null;
                 settings.license.lastKnownAt      = new Date().toISOString();
                 delete settings.license.degraded;

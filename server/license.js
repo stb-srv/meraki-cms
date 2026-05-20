@@ -229,7 +229,9 @@ const getCurrentLicense = async (DB, host = null) => {
             type:     payload.type     || 'FREE',
             label:    plan.label,
             expiresAt: expiresAt?.toISOString() || null,
-            modules:  payload.allowed_modules || plan.modules,
+            modules: (payload.allowed_modules && Object.keys(payload.allowed_modules).length > 0)
+                ? payload.allowed_modules
+                : plan.modules,
             limits: {
                 max_dishes: payload.limits?.max_dishes ?? plan.menu_items,
                 max_tables: payload.limits?.max_tables ?? plan.max_tables
