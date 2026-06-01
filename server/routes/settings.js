@@ -149,6 +149,9 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                 }
                 const settings = await DB.getKV('settings', {});
                 const plan = getPlan(r.type);
+                const resolvedModules = (r.allowed_modules && Object.keys(r.allowed_modules).length > 0)
+                    ? r.allowed_modules
+                    : plan.modules;
                 settings.license = {
                     key:          req.body.key,
                     isTrial:      false,
@@ -158,13 +161,13 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                     type:         r.type || 'FREE',
                     label:        r.plan_label || plan.label,
                     expiresAt:    r.expires_at,
-                    modules:      r.allowed_modules || plan.modules,
+                    modules:      resolvedModules,
                     limits: {
                         max_dishes: r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
                         max_tables: r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables
                     },
                     lastKnownType:    r.type || 'FREE',
-                    lastKnownModules: r.allowed_modules || plan.modules,
+                    lastKnownModules: resolvedModules,
                     lastKnownLimits:  {
                         max_dishes: r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
                         max_tables: r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables
@@ -190,9 +193,14 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                 return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });
             }
             
+            // orders_kitchen und online_orders sind immer synchron
+            if (enabledModules.orders_kitchen !== undefined) {
+                enabledModules.online_orders = enabledModules.orders_kitchen;
+            }
+
             const settings = await DB.getKV('settings', {});
             settings.enabledModules = enabledModules;
-            
+
             // Abwärtskompatibilität für das Gast-Frontend
             settings.activeModules = {
                 orders: enabledModules.orders_kitchen,

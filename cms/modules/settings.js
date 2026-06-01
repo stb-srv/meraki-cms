@@ -184,7 +184,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                             ${Object.entries(p.modules || {}).map(([mod, on]) =>
                                 `<span style="color:${on ? '#10b981' : '#6b7280'}">
                                     <i class="fas fa-${on ? 'check' : 'times'}" style="width:14px;"></i>
-                                    ${{ menu_edit:'Speisekarte', orders_kitchen:'Küche', reservations:'Reservierung', custom_design:'Design', analytics:'Statistiken', qr_pay:'QR-Pay' }[mod] || mod}
+                                    ${{ menu_edit:'Speisekarte', orders_kitchen:'Bestellungen', online_orders:'Online-Bestell.', reservations:'Reservierung', custom_design:'Design', analytics:'Statistiken', qr_pay:'QR-Pay' }[mod] || mod}
                                 </span>`
                             ).join('')}
                         </div>
@@ -196,7 +196,12 @@ function renderSettingsTab(settings, branding, users, licInfo) {
 
     if (settingsTab === 'plan_modules') {
         const l = settings.license || {};
-        const activeModules = l.modules || {};
+        // licInfo.modules kommt aus getCurrentLicense() und ist korrekt aufgelöst (leere
+        // allowed_modules im JWT werden dort durch plan.modules ersetzt). Das rohe
+        // l.modules kann ein leeres Objekt sein, wenn der Lizenzserver {} zurückgab.
+        const activeModules = (licInfo && licInfo.modules && Object.keys(licInfo.modules).length > 0)
+            ? licInfo.modules
+            : (l.modules || {});
         const enabledModules = settings.enabledModules || {};
         const allModuleKeys = Object.keys(MODULE_LABELS);
         

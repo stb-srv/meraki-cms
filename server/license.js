@@ -85,7 +85,7 @@ const PLAN_DEFINITIONS = {
         label: 'Pro', menu_items: 150, max_tables: 25,
         modules: {
             menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: true, analytics: false, qr_pay: false,
+            custom_design: true, analytics: false, qr_pay: true,
             online_orders: false
         },
         note: 'Für Restaurants'
@@ -94,7 +94,7 @@ const PLAN_DEFINITIONS = {
         label: 'Pro+', menu_items: 300, max_tables: 50,
         modules: {
             menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: true, analytics: true, qr_pay: false,
+            custom_design: true, analytics: true, qr_pay: true,
             online_orders: true
         },
         note: 'Für große Restaurants'
