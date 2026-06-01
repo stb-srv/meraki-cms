@@ -122,14 +122,8 @@ module.exports = (requireAuth, requireLicense) => {
                 ip: (req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split('.').slice(0,2).join('.') + '.x.x'
             };
             // Race Condition Guard: nochmalige Prüfung direkt vor dem Speichern
-            const doubleCheck = await DB.getReservations();
-            const slotTaken = doubleCheck.some(r =>
-                r.date === date &&
-                r.start_time === time &&
-                r.areaId === areaId &&
-                r.status.toLowerCase() !== 'cancelled'
-            );
-            if (slotTaken) {
+            const doubleCheckResult = await findAvailableTables(date, time, duration, guests, areaId);
+            if (!doubleCheckResult.success && !rc.allowInquiry) {
                 return res.status(409).json({ success: false, reason: 'Dieser Zeitslot wurde soeben von jemand anderem gebucht. Bitte wähle einen anderen.' });
             }
 
@@ -155,7 +149,7 @@ module.exports = (requireAuth, requireLicense) => {
             const update = req.body;
             const criticalChanged = (update.date && old.date !== update.date) ||
                                     (update.start_time && old.start_time !== update.start_time) ||
-                                    (update.guests && old.guests != update.guests);
+                                    (update.guests && old.guests !== update.guests);
             if (criticalChanged) {
                 const d = update.date || old.date, t = update.start_time || old.start_time, g = update.guests || old.guests;
                 const duration = calculateDuration(g, settings.reservationConfig);

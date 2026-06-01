@@ -115,7 +115,7 @@ class LicenseChecker {
 
             } else if (data.status === 'revoked' || data.status === 'cancelled') {
                 console.warn(`⚠️  Lizenz wurde vom Server widerrufen (${data.status}). Degradiere auf FREE.`);
-                this._degrade(settings, 'revoked');
+                await this._degrade(settings, 'revoked');
             } else {
                 throw new Error(`Unerwartete Serverantwort: ${JSON.stringify(data)}`);
             }
@@ -125,29 +125,29 @@ class LicenseChecker {
             console.warn(`⚠️  [${new Date().toISOString()}] Lizenz-Check Fehler (${this.failCount}/${MAX_FAILURES}): ${e.message}`);
             if (this.failCount >= MAX_FAILURES) {
                 console.warn(`⚠️  Lizenz-Check ${MAX_FAILURES}x fehlgeschlagen – Offline-Fallback aktiv.`);
-                this._setOfflineFallback(settings);
+                await this._setOfflineFallback(settings);
             }
         }
     }
 
-    _setOfflineFallback(settings) {
+    async _setOfflineFallback(settings) {
         this.degraded = true;
         if (settings.license) {
             settings.license.degraded       = true;
             settings.license.degradedReason = 'unreachable';
             settings.license.degradedAt     = new Date().toISOString();
-            this.DB.setKV('settings', settings);
+            await this.DB.setKV('settings', settings);
         }
     }
 
-    _degrade(settings, reason) {
+    async _degrade(settings, reason) {
         this.degraded = true;
         if (settings.license) {
             settings.license.degraded       = true;
             settings.license.degradedReason = reason;
             settings.license.degradedAt     = new Date().toISOString();
             delete settings.license.licenseToken;
-            this.DB.setKV('settings', settings);
+            await this.DB.setKV('settings', settings);
         }
     }
 

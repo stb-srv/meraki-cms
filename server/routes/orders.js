@@ -8,7 +8,7 @@ const router = require('express').Router();
 const DB     = require('../db.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense } = require('../license.js');
-const { extractDomain } = require('../helpers.js');
+const { extractDomain, sanitizeText } = require('../helpers.js');
 
 const { reservationLimiter } = require('../middleware.js');
 const logger = require('../logger.js');
@@ -152,9 +152,9 @@ module.exports = (requireAuth, io) => {
                 timestamp:  new Date().toISOString(),
                 status:     'pending',
                 // Kundendaten validieren
-                customerName:  (req.body.customerName  || '').slice(0, 80),
-                customerPhone: (req.body.customerPhone || '').slice(0, 30),
-                customerEmail: (req.body.customerEmail || '').slice(0, 120),
+                customerName:  sanitizeText(req.body.customerName  || '').slice(0, 80),
+                customerPhone: sanitizeText(req.body.customerPhone || '').slice(0, 30),
+                customerEmail: sanitizeText(req.body.customerEmail || '').slice(0, 120),
                 deliveryAddress: req.body.type === 'delivery' ? (req.body.deliveryAddress || '') : undefined,
             };
             await DB.addOrder(newOrder);

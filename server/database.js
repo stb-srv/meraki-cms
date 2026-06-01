@@ -148,6 +148,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         "ALTER TABLE orders ADD COLUMN confirmedAt TEXT",
         "ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0",
         "ALTER TABLE categories ADD COLUMN translations TEXT DEFAULT '{}'",
+        "ALTER TABLE reservations ADD COLUMN reminderSent INTEGER DEFAULT 0",
     ];
     migrations.forEach(sql => { try { db.exec(sql + ';'); } catch (e) { /* column already exists */ } });
 
@@ -194,7 +195,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         getReservations:    db.prepare('SELECT * FROM reservations ORDER BY submittedAt DESC'),
         getReservationById: db.prepare('SELECT * FROM reservations WHERE id = ?'),
         addReservation:     db.prepare('INSERT INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
-        updateReservation:  db.prepare('UPDATE reservations SET name = ?, email = ?, phone = ?, date = ?, time = ?, start_time = ?, end_time = ?, guests = ?, note = ?, status = ?, assigned_tables = ? WHERE id = ?'),
+        updateReservation:  db.prepare('UPDATE reservations SET name = ?, email = ?, phone = ?, date = ?, time = ?, start_time = ?, end_time = ?, guests = ?, note = ?, status = ?, assigned_tables = ?, reminderSent = ? WHERE id = ?'),
         deleteReservation:  db.prepare('DELETE FROM reservations WHERE id = ?'),
         deleteAllReservations: db.prepare('DELETE FROM reservations'),
         upsertReservation:  db.prepare('INSERT OR REPLACE INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
@@ -294,7 +295,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             if (!existing) return null;
             const merged = { ...existing, ...update };
             merged.assigned_tables = safeJsonParse(typeof update.assigned_tables!=='undefined'?JSON.stringify(update.assigned_tables):existing.assigned_tables,[]);
-            stmts.updateReservation.run(merged.name, merged.email, merged.phone, merged.date, merged.time, merged.start_time, merged.end_time, merged.guests, merged.note||'', merged.status, JSON.stringify(merged.assigned_tables), id);
+            stmts.updateReservation.run(merged.name, merged.email, merged.phone, merged.date, merged.time, merged.start_time, merged.end_time, merged.guests, merged.note||'', merged.status, JSON.stringify(merged.assigned_tables), merged.reminderSent ? 1 : 0, id);
             return merged;
         },
         deleteReservation: (id) => stmts.deleteReservation.run(id),

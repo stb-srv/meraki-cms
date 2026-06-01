@@ -198,6 +198,15 @@ async function initSchema() {
             }
         } catch(e) { console.warn('⚠️  Migration menu/categories/orders columns fehlgeschlagen:', e.message); }
 
+        // Migration: reminderSent in reservations
+        try {
+            const [colsRes] = await conn.query("SHOW COLUMNS FROM reservations LIKE 'reminderSent'");
+            if (colsRes.length === 0) {
+                await conn.query("ALTER TABLE reservations ADD COLUMN reminderSent TINYINT(1) DEFAULT 0");
+                console.log('✅ Migration: Spalte reminderSent zu Tabelle reservations hinzugefügt.');
+            }
+        } catch(e) { console.warn('⚠️  Migration reservations.reminderSent fehlgeschlagen:', e.message); }
+
         // Indizes
         const idxQueries = [
             `CREATE INDEX IF NOT EXISTS idx_res_date   ON reservations(date)`,
@@ -361,8 +370,8 @@ const DB = {
         const existing = rows[0];
         const merged = { ...existing, ...update };
         merged.assigned_tables = safeJsonParse(typeof update.assigned_tables!=='undefined'?JSON.stringify(update.assigned_tables):existing.assigned_tables, []);
-        await q('UPDATE reservations SET name=?, email=?, phone=?, date=?, time=?, start_time=?, end_time=?, guests=?, note=?, status=?, assigned_tables=? WHERE id=?',
-            [merged.name, merged.email, merged.phone, merged.date, merged.time, merged.start_time, merged.end_time, merged.guests, merged.note||'', merged.status, JSON.stringify(merged.assigned_tables), id]);
+        await q('UPDATE reservations SET name=?, email=?, phone=?, date=?, time=?, start_time=?, end_time=?, guests=?, note=?, status=?, assigned_tables=?, reminderSent=? WHERE id=?',
+            [merged.name, merged.email, merged.phone, merged.date, merged.time, merged.start_time, merged.end_time, merged.guests, merged.note||'', merged.status, JSON.stringify(merged.assigned_tables), merged.reminderSent ? 1 : 0, id]);
         return merged;
     },
     deleteReservation: async (id) => q('DELETE FROM reservations WHERE id = ?', [id]),
