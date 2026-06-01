@@ -218,57 +218,46 @@ window.MenuCore = {
                     <option value="price" ${this.state.cmsSort === 'price' ? 'selected' : ''}>Preis</option>
                 </select>
                 <button class="btn-primary" id="btn-add-dish" style="background:var(--accent);"><i class="fas fa-plus"></i> Neues Gericht</button>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-secondary" id="btn-export-menu" title="Backup (JSON)"><i class="fas fa-file-export"></i></button>
-                    <button class="btn-secondary" id="btn-import-menu" title="Wiederherstellen (JSON)"><i class="fas fa-file-import"></i></button>
-                    <button class="btn-secondary" id="btn-export-pdf" style="background:rgba(239,68,68,0.1); color:#dc2626; border-color:rgba(239,68,68,0.2);" title="PDF Speisekarte"><i class="fas fa-file-pdf"></i></button>
-                    <button class="btn-secondary" id="btn-export-translations" title="Export Übersetzungen"><i class="fas fa-language"></i> <i class="fas fa-arrow-down"></i></button>
-                    <button class="btn-secondary" id="btn-import-translations" title="Import Übersetzungen"><i class="fas fa-language"></i> <i class="fas fa-arrow-up"></i></button>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <button class="btn-secondary" id="btn-export-menu" title="Backup als JSON-Datei herunterladen" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-download"></i> Backup</button>
+                    <button class="btn-secondary" id="btn-import-menu" title="Backup wiederherstellen (JSON)" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-upload"></i> Wiederherstellen</button>
+                    <button class="btn-secondary" id="btn-export-pdf" style="background:rgba(239,68,68,0.1); color:#dc2626; border-color:rgba(239,68,68,0.2); font-size:0.8rem; padding:8px 12px;" title="PDF Speisekarte generieren"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <div style="width:1px; height:20px; background:rgba(0,0,0,0.12); margin:0 2px;"></div>
+                    <button class="btn-secondary" id="btn-export-translations" title="Übersetzungen als JSON exportieren" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-language"></i> <i class="fas fa-arrow-down" style="font-size:0.65rem;"></i> Übersetzungen</button>
+                    <button class="btn-secondary" id="btn-import-translations" title="Übersetzungen aus JSON importieren" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-language"></i> <i class="fas fa-arrow-up" style="font-size:0.65rem;"></i> Übersetzungen</button>
                 </div>
             </div>
 
             <div id="dish-form-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(10px); z-index:10000; align-items:center; justify-content:center;">
-                <div class="modal-glass" style="width:90%; max-width:850px; max-height:90vh; overflow-y:auto; padding:40px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                        <h2 id="df-title">Gericht bearbeiten</h2>
+                <div class="modal-glass" style="width:92%; max-width:900px; max-height:92vh; overflow-y:auto; padding:36px;">
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
+                        <h2 id="df-title" style="margin:0;">Gericht bearbeiten</h2>
                         <button class="btn-icon" onclick="window.MenuCore.closeDishForm()"><i class="fas fa-times"></i></button>
                     </div>
-                    
-                    <div style="display:grid; grid-template-columns:1fr 280px; gap:40px;">
-                        <div>
-                            <div class="form-grid">
-                                <div class="form-group" style="grid-column: span 1;"><label>Nr.</label><input class="input-styled" id="df-nr" placeholder="z.B. 101"></div>
-                                <div class="form-group" style="grid-column: span 3;"><label>Name *</label><input class="input-styled" id="df-name" placeholder="z.B. Mousaka"></div>
-                                <div class="form-group" style="grid-column: span 2;"><label>Preis (€) *</label><input type="number" step="0.1" class="input-styled" id="df-price" placeholder="12.50"></div>
-                                <div class="form-group" style="grid-column: span 2;"><label>Kategorie</label>
-                                    <select class="input-styled" id="df-cat">
-                                        ${categories.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group" style="margin-top:20px;"><label>Beschreibung</label><textarea class="input-styled" id="df-desc" style="height:100px; resize:none;" placeholder="Zutaten, Zubereitung..."></textarea></div>
-                            
-                            <!-- Translations -->
-                            <div style="margin-top:30px; padding:20px; background:rgba(0,0,0,0.03); border-radius:16px;">
-                                <h4 style="margin-bottom:15px; font-size:0.9rem; display:flex; justify-content:space-between;">
-                                    <span>Mehrsprachigkeit</span>
-                                    <span style="opacity:0.5; font-size:0.75rem;">(Englisch, Griechisch, etc.)</span>
-                                </h4>
-                                <div id="df-translations-list" style="display:grid; gap:15px;">
-                                    ${['en', 'el'].map(lang => `
-                                        <div style="display:grid; grid-template-columns:40px 1fr 2fr; gap:10px; align-items:start;">
-                                            <span style="text-transform:uppercase; font-weight:800; font-size:0.7rem; margin-top:12px;">${lang}</span>
-                                            <input class="input-styled trans-name" data-lang="${lang}" placeholder="Name (${lang})">
-                                            <textarea class="input-styled trans-desc" data-lang="${lang}" placeholder="Beschreibung (${lang})" style="height:42px; font-size:0.8rem;"></textarea>
-                                        </div>
-                                    `).join('')}
-                                </div>
+
+                    <!-- Sektion 1: Grunddaten -->
+                    <div style="margin-bottom:20px;">
+                        <div style="font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; opacity:0.35; margin-bottom:10px;">Grunddaten</div>
+                        <div style="display:grid; grid-template-columns:80px 1fr 130px 1fr; gap:12px;">
+                            <div class="form-group"><label>Nr.</label><input class="input-styled" id="df-nr" placeholder="101"></div>
+                            <div class="form-group"><label>Name *</label><input class="input-styled" id="df-name" placeholder="z.B. Mousaka"></div>
+                            <div class="form-group"><label>Preis (€) *</label><input type="number" step="0.01" class="input-styled" id="df-price" placeholder="12.50"></div>
+                            <div class="form-group"><label>Kategorie</label>
+                                <select class="input-styled" id="df-cat">
+                                    ${categories.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}
+                                </select>
                             </div>
                         </div>
+                        <div class="form-group" style="margin-top:10px;"><label>Beschreibung</label><textarea class="input-styled" id="df-desc" style="height:80px; resize:vertical;" placeholder="Zutaten, Zubereitung, Besonderheiten..."></textarea></div>
+                    </div>
 
-                        <div>
-                            <div class="form-group">
-                                <label>Bild-URL</label>
+                    <!-- Sektion 2: Bild & Status -->
+                    <div style="margin-bottom:20px; padding:18px; background:rgba(0,0,0,0.025); border-radius:14px; border:1px solid rgba(0,0,0,0.05);">
+                        <div style="font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; opacity:0.35; margin-bottom:10px;">Bild & Status</div>
+                        <div style="display:grid; grid-template-columns:1fr auto; gap:20px; align-items:start;">
+                            <div>
+                                <label style="font-size:0.8rem; font-weight:600; margin-bottom:6px; display:block;">Bild-URL</label>
                                 <div style="display:flex; gap:8px;">
                                     <input class="input-styled" id="df-img" placeholder="https://..." style="flex:1;">
                                     <div id="ai-image-btn-container" style="display:none;">
@@ -277,31 +266,64 @@ window.MenuCore = {
                                         </button>
                                     </div>
                                 </div>
-                                <div id="df-img-preview" style="margin-top:12px; height:180px; border-radius:16px; background:rgba(0,0,0,0.05); border:1px dashed rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                                    <i class="fas fa-image fa-2x" style="opacity:0.1;"></i>
-                                </div>
                             </div>
-                            <div class="form-group" style="margin-top:20px;">
-                                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                                    <input type="checkbox" id="df-special"> Tagesempfehlung / Special ✨
+                            <div style="padding-top:26px;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; white-space:nowrap; font-size:0.85rem;">
+                                    <input type="checkbox" id="df-special"> ⭐ Tagesempfehlung
                                 </label>
                             </div>
-                            <div style="margin-top:25px;">
-                                <label style="font-size:0.8rem; font-weight:700; margin-bottom:10px; display:block;">Allergene</label>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; max-height:120px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.02); border-radius:12px;">
+                        </div>
+                        <div id="df-img-preview" style="margin-top:10px; height:130px; border-radius:12px; background:rgba(0,0,0,0.04); border:1px dashed rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <i class="fas fa-image fa-2x" style="opacity:0.1;"></i>
+                        </div>
+                    </div>
+
+                    <!-- Sektion 3: Deklaration -->
+                    <div style="margin-bottom:20px; padding:18px; background:rgba(0,0,0,0.025); border-radius:14px; border:1px solid rgba(0,0,0,0.05);">
+                        <div style="font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; opacity:0.35; margin-bottom:12px;">Deklaration (Allergene & Zusatzstoffe)</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                            <div>
+                                <label style="font-size:0.8rem; font-weight:700; margin-bottom:8px; display:block;">Allergene</label>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; max-height:160px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.02); border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
                                     ${Object.entries(allergens).map(([code, name]) => `
-                                        <label style="font-size:0.75rem; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                                        <label style="font-size:0.75rem; display:flex; align-items:center; gap:6px; cursor:pointer; padding:2px 0;">
                                             <input type="checkbox" class="dish-allergen-cb" value="${code}"> ${code}: ${name}
                                         </label>
                                     `).join('')}
+                                    ${Object.keys(allergens).length === 0 ? '<span style="font-size:0.75rem; opacity:0.4; grid-column:span 2; font-style:italic;">Keine Allergene definiert. Zuerst unter „Allergene" anlegen.</span>' : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size:0.8rem; font-weight:700; margin-bottom:8px; display:block;">Zusatzstoffe</label>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; max-height:160px; overflow-y:auto; padding:10px; background:rgba(0,0,0,0.02); border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                                    ${Object.entries(additives).map(([code, name]) => `
+                                        <label style="font-size:0.75rem; display:flex; align-items:center; gap:6px; cursor:pointer; padding:2px 0;">
+                                            <input type="checkbox" class="dish-additive-cb" value="${code}"> ${code}: ${name}
+                                        </label>
+                                    `).join('')}
+                                    ${Object.keys(additives).length === 0 ? '<span style="font-size:0.75rem; opacity:0.4; grid-column:span 2; font-style:italic;">Keine Zusatzstoffe definiert. Zuerst unter „Zusatzstoffe" anlegen.</span>' : ''}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style="margin-top:40px; display:flex; gap:15px; justify-content:flex-end; padding-top:25px; border-top:1px solid rgba(0,0,0,0.05);">
+                    <!-- Sektion 4: Mehrsprachigkeit -->
+                    <div style="padding:18px; background:rgba(0,0,0,0.025); border-radius:14px; border:1px solid rgba(0,0,0,0.05);">
+                        <div style="font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; opacity:0.35; margin-bottom:12px;">Mehrsprachigkeit</div>
+                        <div id="df-translations-list" style="display:grid; gap:10px;">
+                            ${['en', 'el'].map(lang => `
+                                <div style="display:grid; grid-template-columns:36px 1fr 2fr; gap:10px; align-items:start;">
+                                    <span style="text-transform:uppercase; font-weight:800; font-size:0.7rem; margin-top:12px; opacity:0.45;">${lang}</span>
+                                    <input class="input-styled trans-name" data-lang="${lang}" placeholder="Name (${lang})" style="font-size:0.85rem;">
+                                    <textarea class="input-styled trans-desc" data-lang="${lang}" placeholder="Beschreibung (${lang})" style="height:42px; font-size:0.8rem; resize:none;"></textarea>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div style="margin-top:28px; display:flex; gap:12px; justify-content:flex-end; padding-top:22px; border-top:1px solid rgba(0,0,0,0.06);">
                         <button class="btn-secondary" onclick="window.MenuCore.closeDishForm()">Abbrechen</button>
-                        <button class="btn-primary" id="df-save" style="width:180px; background:var(--primary);">Gericht speichern</button>
+                        <button class="btn-primary" id="df-save" style="min-width:180px; background:var(--primary);"><i class="fas fa-save"></i> Gericht speichern</button>
                     </div>
                 </div>
             </div>
@@ -411,28 +433,42 @@ window.MenuCore = {
 
     renderKVTab: function(title, data, keyName, placeholder) {
         const safeData = (data && typeof data === 'object') ? data : {};
+        const entries = Object.entries(safeData);
+
+        const helpText = keyName === 'allergens'
+            ? 'Pflichtangabe gemäß EU-Lebensmittelinformationsverordnung (LMIV). Vergib ein kurzes Kürzel (z.B. <code>gluten</code>) und einen lesbaren Namen (z.B. <em>Gluten</em>). Die gewählten Allergene erscheinen danach in der Gericht-Bearbeitung.'
+            : 'Kennzeichnungspflichtige Zusatzstoffe (z.B. E-Nummern). Vergib ein Kürzel (z.B. <code>e120</code>) und die Bezeichnung (z.B. <em>Echtes Karmin (E120)</em>). Die Zusatzstoffe erscheinen danach in der Gericht-Bearbeitung.';
+
+        const emptyMsg = keyName === 'allergens'
+            ? 'Noch keine Allergene angelegt. Füge oben die für dein Restaurant relevanten Allergene hinzu.'
+            : 'Noch keine Zusatzstoffe angelegt. Füge oben die kennzeichnungspflichtigen Zusatzstoffe hinzu.';
+
         return `
             <div class="glass-panel" style="padding:30px; max-width:800px;">
-                <h3 style="margin-bottom:20px;">${title} verwalten</h3>
-                <div style="display:flex; gap:10px; margin-bottom:30px;">
-                    <input class="input-styled" id="kv-code" style="width:100px;" placeholder="Kürzel">
+                <h3 style="margin-bottom:8px;">${title} verwalten</h3>
+                <p style="font-size:0.82rem; opacity:0.55; margin-bottom:24px; line-height:1.6;">${helpText}</p>
+                <div style="display:flex; gap:10px; margin-bottom:28px; align-items:center;">
+                    <input class="input-styled" id="kv-code" style="width:130px;" placeholder="Kürzel">
                     <input class="input-styled" id="kv-name" style="flex:1;" placeholder="${placeholder}">
                     <button class="btn-primary" id="kv-add-btn"><i class="fas fa-plus"></i> Hinzufügen</button>
                 </div>
-                <table class="cms-table">
-                    <thead><tr><th style="width:100px;">Kürzel</th><th>Name</th><th style="text-align:right;">Aktionen</th></tr></thead>
-                    <tbody>
-                        ${Object.entries(safeData).map(([code, name]) => `
-                            <tr>
-                                <td style="font-weight:800;">${code}</td>
-                                <td>${name}</td>
-                                <td style="text-align:right;">
-                                    <button class="btn-icon danger" onclick="window.MenuCore.deleteKV('${code}')"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                ${entries.length === 0
+                    ? `<div style="padding:40px; text-align:center; opacity:0.35; font-size:0.88rem; background:rgba(0,0,0,0.02); border-radius:12px;">${emptyMsg}</div>`
+                    : `<table class="cms-table">
+                        <thead><tr><th style="width:140px;">Kürzel</th><th>Bezeichnung</th><th style="text-align:right; width:80px;">Aktion</th></tr></thead>
+                        <tbody>
+                            ${entries.map(([code, name]) => `
+                                <tr>
+                                    <td><code style="background:rgba(0,0,0,0.06); padding:2px 8px; border-radius:6px; font-size:0.8rem;">${code}</code></td>
+                                    <td>${name}</td>
+                                    <td style="text-align:right;">
+                                        <button class="btn-icon danger" onclick="window.MenuCore.deleteKV('${code}')"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`
+                }
             </div>
         `;
     },
