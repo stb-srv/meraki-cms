@@ -15,6 +15,13 @@ server/config.json
 # Uploads & Temp
 uploads/
 tmp/
+*.tmp
+
+# KI-Agenten Scratch-Verzeichnisse
+brain/
+
+# Lokale Export-Dateien
+menu-translate-import/
 
 # OS
 .DS_Store
@@ -23,10 +30,3 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
-
-# Scripts that should stay local
-# (deploy/start scripts are kept in repo intentionally for convenience)
-
-# Temporäre Dateien
-tmp/
-*.tmp

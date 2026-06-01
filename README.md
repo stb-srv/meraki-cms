@@ -2,7 +2,7 @@
 
 ![Node.js Version](https://img.shields.io/badge/node-%E2%89%A518-green)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
-![Platform Linux](https://img.shields.io/badge/platform-Linux-lightgrey)
+![Version](https://img.shields.io/badge/version-3.1.1-blue)
 
 > Modulares CMS für Restaurants: Speisekarte, Reservierungen, Website-Editor, Warenkorb-System & Plugin-API.  
 > **Komplett über den Browser einrichtbar – keine Konsole oder Server-SSH nach der Installation nötig.**
@@ -91,13 +91,14 @@ OPA-Santorini verfügt über ein integriertes Warenkorb-System für Gäste.
 
 ## 🧙 Erster Start: Setup-Wizard
 
-Beim ersten Aufruf von `http://<deine-domain>/admin` startet der **Setup-Wizard**:
+Beim ersten Aufruf wird automatisch auf `/setup` weitergeleitet. Der **Setup-Wizard**:
 
-1. **Restaurantname** & Branding festlegen
-2. **Admin-Konto** erstellen (Benutzername + Passwort)
-3. **Recovery-Codes** generieren (Sicher aufbewahren!)
+1. Legt **Restaurantname** & Branding fest
+2. Erstellt das **Admin-Konto** (Benutzername + Passwort, min. 12 Zeichen)
+3. Generiert **Recovery-Codes** (sicher aufbewahren!)
+4. Schreibt `server/config.json` – diese Datei niemals committen oder löschen
 
-> ⚠️ **Wichtig:** Die Konfiguration liegt in `server/config.json`. Diese Datei niemals committen oder löschen.
+> ⚠️ Der Setup-Endpunkt ist aus Sicherheitsgründen nur von `localhost` erreichbar.
 
 ---
 
@@ -106,39 +107,53 @@ Beim ersten Aufruf von `http://<deine-domain>/admin` startet der **Setup-Wizard*
 | Variable | Beschreibung | Standard |
 |---|---|---|
 | `PORT` | Port des Express-Servers | `5000` |
-| `ADMIN_SECRET` | JWT Signing Key (sehr lang & zufällig) | - |
-| `CORS_ORIGINS` | Erlaubte Frontend-Domains (kommagetrennt) | - |
+| `ADMIN_SECRET` | JWT Signing Key (lang & zufällig, Pflicht nach Setup) | – |
+| `CORS_ORIGINS` | Erlaubte Frontend-Domains, kommagetrennt | `localhost` |
 | `DB_TYPE` | `sqlite` oder `mysql` | `sqlite` |
 | `DB_HOST` | Hostname der MySQL DB | `localhost` |
 | `DB_PORT` | Port der MySQL DB | `3306` |
-| `DB_USER` | Benutzername MySQL | - |
-| `DB_PASS` | Passwort MySQL | - |
-| `DB_NAME` | Datenbankname | - |
+| `DB_USER` | Benutzername MySQL | – |
+| `DB_PASS` | Passwort MySQL | – |
+| `DB_NAME` | Datenbankname | – |
 | `DB_SSL` | SSL für DB-Verbindung (`true`/`false`) | `false` |
-| `PEXELS_API_KEY` | Key für automatische Speisefotos | - |
-| `UNSPLASH_ACCESS_KEY` | Zweiter Key für Speisefotos | - |
+| `SMTP_HOST` | SMTP Server | – |
+| `SMTP_PORT` | SMTP Port | `465` |
+| `SMTP_USER` | SMTP Benutzername | – |
+| `SMTP_PASS` | SMTP Passwort | – |
+| `SMTP_FROM` | Absender-Adresse | – |
+| `BACKUP_DIR` | Verzeichnis für Backups | `./backups` |
+| `BACKUP_MAX_AGE_DAYS` | Backups älter als X Tage löschen | `30` |
+| `BACKUP_MIN_COUNT` | Mindestanzahl Backups behalten | `7` |
+| `PEXELS_API_KEY` | Key für automatische Speisefotos | – |
+| `UNSPLASH_ACCESS_KEY` | Zweiter Key für Speisefotos | – |
+
+> SMTP kann alternativ vollständig über den Setup-Wizard / Admin-Panel konfiguriert werden.
 
 ---
 
 ## 🔑 Lizenz aktivieren
 
-Das System bietet verschiedene Pläne (Starter, Pro, Pro+, Enterprise). Die Aktivierung erfolgt direkt im CMS unter **Einstellungen → Lizenz**.
+Das System bietet verschiedene Pläne. Die Aktivierung erfolgt im CMS unter **Einstellungen → Lizenz**.
 
-| Plan | Highlights |
-|---|---|
-| **Starter** | Bis 40 Gerichte, Reservierungen & Bestellungen |
-| **Pro** | Bis 100 Gerichte, Custom Design |
-| **Enterprise** | Unbegrenzte Tische, alle Module inkl. QR-Pay |
+| Plan | Gerichte | Tische | Highlights |
+|---|---|---|---|
+| **Free** (Trial) | 30 | 5 | Speisekarte verwalten |
+| **Starter** | 60 | 10 | Reservierungen & Bestellungen |
+| **Pro** | 150 | 25 | Custom Design |
+| **Pro+** | 300 | 50 | Analytics, Online-Bestellungen |
+| **Enterprise** | 999 | 999 | Alle Module inkl. QR-Pay |
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Node.js, Express
+- **Backend**: Node.js, Express, Pino (Logging), Helmet (Security-Header), Zod (Validierung)
 - **Datenbank**: SQLite (`better-sqlite3`) ODER MySQL/MariaDB (`mysql2`)
+- **Auth**: JWT (RS256 für Lizenz, HS256 für Admin-Sessions), bcryptjs
 - **Frontend**: Vanilla JS (ES Modules), CSS Custom Properties (Glassmorphism)
-- **Realtime**: Socket.io (für Bestelleingänge)
-- **E-Mail**: Nodemailer (dynamischer SMTP aus DB)
+- **Realtime**: Socket.io (Bestelleingänge → Kitchen-Display)
+- **E-Mail**: Nodemailer (SMTP konfigurierbar über Admin-UI)
+- **PDF**: PDFKit (Bon-Druck / Exporte)
 
 ---
 
@@ -146,22 +161,27 @@ Das System bietet verschiedene Pläne (Starter, Pro, Pro+, Enterprise). Die Akti
 
 ```
 /
-├── server.js              # Entry Point & API Routen
-├── config.js              # Konfigurations-Loader
+├── server.js              # Entry Point, Plugin-Loader, HTTP-Server
+├── config.js              # Konfigurations-Loader (config.json > .env)
 ├── server/
-│   ├── database.js        # DB-Adapter & SQLite Logik
-│   ├── database-mysql.js  # MySQL/MariaDB Adapter
-│   ├── routes/            # API Endpunkte (auth, menu, orders, cart...)
-│   ├── license.js         # Lizenz-Prüfung
-│   └── mailer.js          # E-Mail Versand
-├── cms/                   # Admin-Panel (ES Modules)
-│   ├── app.js             # Hauptlogik CMS
-│   └── modules/           # Module (menu.js, reservations.js...)
+│   ├── app.js             # Express-App, alle Route-Mounts, CORS/Helmet
+│   ├── database.js        # SQLite-Adapter (better-sqlite3)
+│   ├── database-mysql.js  # MySQL/MariaDB-Adapter
+│   ├── db.js              # Adapter-Selector (DB_TYPE)
+│   ├── middleware.js      # requireAuth, requireRole, requireLicense
+│   ├── license.js         # PLAN_DEFINITIONS, getCurrentLicense
+│   ├── cron.js            # Background-Jobs (Trial, Reminder, Backup-Cleanup)
+│   ├── socket.js          # Socket.IO Setup
+│   ├── mailer.js          # E-Mail Versand
+│   ├── routes/            # API Endpunkte (auth, menu, orders, cart, ...)
+│   └── validation/        # Zod-Schemas + validate()-Middleware
+├── cms/                   # Admin-Panel (ES Modules, Vanilla JS)
+│   └── modules/           # CMS-Module (menu, orders, reservations, ...)
 ├── menu-app/              # Gäste-Frontend
-│   ├── app.js             # Hauptlogik Speisekarte
-│   ├── cart.js            # Warenkorb-Logik
-│   └── cart.css           # Warenkorb-Styles
-└── plugins/               # Erweiterungs-Schnittstelle
+│   ├── i18n/              # 14 Sprachen (DE, EN, EL, ES, FR, IT, ...)
+│   └── cart.js            # Warenkorb-Logik (clientseitig, LocalStorage)
+├── plugins/               # Erweiterungs-Schnittstelle
+└── scripts/               # Utility-Scripts (auto-images, create-admin, ...)
 ```
 
 ---
@@ -171,4 +191,4 @@ Das System bietet verschiedene Pläne (Starter, Pro, Pro+, Enterprise). Die Akti
 - [ ] Gutschein-System (digitale Geschenkkarten)
 - [ ] Google Reviews Integration
 - [ ] QR-Pay (Bezahlung am Tisch)
-- [ ] Mehrsprachigkeit (DE / EN / EL)
+- [ ] Docker Compose Support

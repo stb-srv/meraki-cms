@@ -7,32 +7,45 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
-### Security
-- **SEC-02 FIXED**: `requireLicense` Middleware prüft jetzt immer das RS256-signierte JWT
-  via `verifyLicenseToken()` statt rohem DB-Cache. Direkter DB-Zugriff reicht nicht mehr
-  aus um Module freizuschalten.
-- **SEC-04**: Plugin-System ohne Code-Signing – `require(serverPath)` lädt Plugins blind.
-  Geplant: Integritäts-Prüfung (Hash/Signatur) vor dem Laden.
+### Geplant
+- Docker Compose Support
+- Grace-Period für Token-Ablauf (CMS läuft bei Heartbeat-Fehler noch 24–48h weiter)
+- Trial-Lizenz Reset-Limit
+- OpenAPI/Swagger-Dokumentation
+- GitHub Actions CI (Tests + Lint)
 
-### Fixed
-- **FIX-04**: Plan-Definitionen mit License-Server synchronisiert:
-  - FREE: `menu_items` 10 → 30
-  - STARTER: 40 → 60
-  - PRO: 100 → 150
-  - PRO_PLUS: 200 → 300
-  - ENTERPRISE: 500 → 999
+### Sicherheit (offen)
+- **SEC-04**: Plugin-System ohne Code-Signing – Plugins werden ohne Hash/Signatur-Prüfung geladen. Geplant: Integritäts-Check vor dem Laden.
 
-### Improvements
-- **IMP-02**: RSA Public Key kann jetzt per `LICENSE_PUBLIC_KEY` Env-Variable überschrieben
-  werden – kein Code-Änderung mehr nötig bei Schlüsselwechsel.
-  Nächster Schritt: automatisches Laden von `/api/v1/public-key` beim CMS-Start.
-- **IMP-04**: Grace-Period für Token-Ablauf geplant (CMS läuft bei Heartbeat-Fehler
-  noch 24-48h weiter).
-- **IMP-05**: Docker Compose geplant.
-- **IMP-06**: Trial-Lizenz-Registrierung oder Reset-Limit geplant.
-- **NTH-01**: OpenAPI/Swagger-Dokumentation geplant.
-- **NTH-02**: GitHub Actions CI (Tests + Lint) geplant.
-- **NTH-06**: Content-Security-Policy-Header für Admin-Frontend geplant.
+---
+
+## [3.1.1] – 2026-05-xx
+
+### Hinzugefügt
+- Setup-Wizard (erster Start via `/setup`, schreibt `server/config.json`, erstellt Admin-User + Trial-Lizenz)
+- Backup-System mit automatischem Cleanup (cron, konfigurierbar via `BACKUP_MAX_AGE_DAYS` / `BACKUP_MIN_COUNT`)
+- Tisch-Planer (Drag & Drop im Admin-Panel, Grundriss-Editor)
+- Gäste-Frontend Mehrsprachigkeit: 14 Sprachen (DE, EN, EL, ES, FR, IT, NL, PL, PT, RU, TR, UK, AR, DA)
+- Zod-Validierung für alle API-Endpunkte (`server/validation/`)
+- `requireRole`-Middleware für rollenbasierte Zugangskontrolle (admin / waiter / kitchen)
+- Cookie-Banner und DSGVO-Consent-Management
+- AI-Bildvorschläge für Speisen (`/api/image-ai`)
+- Reservierungs-Erinnerungs-E-Mails (Cron, täglich 10:00 Uhr Berlin)
+- Socket.IO Real-time Push für Bestelleingänge (Kitchen-Display)
+- Plugin-System: Drittanbieter-Erweiterungen via `plugins/<id>/`
+- `deepMerge` in Settings-Routen (partielle Updates ohne Überschreiben)
+
+### Sicherheit
+- **SEC-02**: `requireLicense` prüft jetzt immer das RS256-signierte JWT via `verifyLicenseToken()` statt rohem DB-Cache
+- **SEC-04**: Path-Traversal-Schutz beim Plugin-Laden
+- Helmet Security-Header (inkl. CSP)
+- Rate-Limiter auf Login, Passwort-Vergessen und Reservierungen
+
+### Geändert
+- Plan-Limits mit License-Server synchronisiert (FREE: 30, STARTER: 60, PRO: 150, PRO+: 300, ENTERPRISE: 999 Gerichte)
+- RSA Public Key wird beim Start automatisch vom Lizenzserver geladen; `LICENSE_PUBLIC_KEY` Env-Variable überschreibt diesen
+- Offline-Fallback: letzter bekannter Plan bleibt aktiv wenn Lizenzserver nicht erreichbar
+- `ADMIN_SECRET = Default-Wert` blockiert Server-Start nach abgeschlossenem Setup (SEC-04)
 
 ---
 
