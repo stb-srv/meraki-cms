@@ -550,6 +550,7 @@ function buildSearchIndex() {
                 label:       item.label,
                 description: item.description || '',
                 keywords:    item.keywords || [],
+                group:       item.group || group.label || '',
                 view:        item.view,
                 tab:         item.tab || null,
                 external:    item.external || null,
@@ -563,47 +564,174 @@ const _searchIndex = buildSearchIndex();
 const navSearch = document.getElementById('nav-search');
 const navSearchResults = document.getElementById('nav-search-results');
 
+// ── Fuzzy-Suche Hilfsfunktionen ──
+function _normalizeText(s) {
+    return s.toLowerCase()
+        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function _levenshtein(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return 99;
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, (_, i) => i);
+    for (let j = 1; j <= n; j++) {
+        let prev = j;
+        for (let i = 1; i <= m; i++) {
+            const curr = a[i - 1] === b[j - 1] ? dp[i - 1] : 1 + Math.min(dp[i - 1], dp[i], prev);
+            dp[i - 1] = prev;
+            prev = curr;
+        }
+        dp[m] = prev;
+    }
+    return dp[m];
+}
+
+function _fuzzyScore(query, item) {
+    const q = _normalizeText(query);
+    if (!q) return 0;
+
+    const haystack = _normalizeText(
+        item.label + ' ' + item.description + ' ' + item.keywords.join(' ')
+    );
+    const labelN = _normalizeText(item.label);
+
+    // Exakter Substring – höchste Priorität
+    if (labelN.includes(q)) return 100;
+    if (haystack.includes(q)) return 80;
+
+    // Alle Query-Wörter müssen irgendwo matchen
+    const qWords = q.split(' ').filter(Boolean);
+    const allMatch = qWords.every(w => haystack.includes(w));
+    if (allMatch) return 65;
+
+    // Wortanfang-Match (Query-Wort startet Haystack-Wort)
+    const hWords = haystack.split(' ').filter(Boolean);
+    const prefixMatch = qWords.every(qw =>
+        hWords.some(hw => hw.startsWith(qw) || qw.startsWith(hw.slice(0, Math.max(3, hw.length - 1))))
+    );
+    if (prefixMatch) return 45;
+
+    // Levenshtein ≤ 1 für Query-Wörter ≥ 4 Zeichen
+    const fuzzyMatch = qWords.filter(w => w.length >= 4).every(qw =>
+        hWords.some(hw => _levenshtein(qw, hw) <= 1)
+    );
+    if (fuzzyMatch && qWords.some(w => w.length >= 4)) return 25;
+
+    return 0;
+}
+
+// ── Zuletzt besucht (sessionStorage) ──
+const _RECENT_KEY = 'opa_nav_recent';
+function _getRecent() {
+    try { return JSON.parse(sessionStorage.getItem(_RECENT_KEY) || '[]'); } catch { return []; }
+}
+function _addRecent(view, tab) {
+    if (!view) return;
+    const key = view + (tab ? '/' + tab : '');
+    const list = _getRecent().filter(k => k !== key);
+    list.unshift(key);
+    sessionStorage.setItem(_RECENT_KEY, JSON.stringify(list.slice(0, 5)));
+}
+function _renderResultItem(m) {
+    const action = m.external
+        ? `window.open('${m.external}','_blank','width=1280,height=800')`
+        : `window.switchTab('${m.view}'${m.tab ? `,'${m.tab}'` : ''})`;
+    return `<li class="nav-search-result-item" tabindex="-1"
+        data-action="${action.replace(/"/g, '&quot;')}"
+        onclick="${action}; _closeNavSearch();">
+        <i class="fas ${m.icon}"></i>
+        <div>
+            <strong>${m.label}</strong>
+            <span>${m.group ? m.group + ' · ' : ''}${m.description}</span>
+        </div>
+    </li>`;
+}
+window._closeNavSearch = function() {
+    if (navSearch) navSearch.value = '';
+    if (navSearchResults) navSearchResults.style.display = 'none';
+};
+
+function _showRecentItems() {
+    const recent = _getRecent();
+    if (!recent.length) { navSearchResults.style.display = 'none'; return; }
+    const items = recent.map(key => {
+        const [v, t] = key.split('/');
+        return _searchIndex.find(i => i.view === v && (i.tab || null) === (t || null));
+    }).filter(Boolean);
+    if (!items.length) { navSearchResults.style.display = 'none'; return; }
+    navSearchResults.innerHTML =
+        `<li class="nav-search-no-result" style="font-size:.72rem; padding:8px 12px 4px; opacity:.55; pointer-events:none;">Zuletzt besucht</li>` +
+        items.map(_renderResultItem).join('');
+    navSearchResults.style.display = 'block';
+}
+
+function _runSearch(q) {
+    if (!q) { _showRecentItems(); return; }
+    const scored = _searchIndex
+        .map(item => ({ item, score: _fuzzyScore(q, item) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 8)
+        .map(({ item }) => item);
+
+    if (scored.length) {
+        navSearchResults.innerHTML = scored.map(_renderResultItem).join('');
+        navSearchResults.style.display = 'block';
+    } else {
+        navSearchResults.innerHTML = `<li class="nav-search-no-result">Nichts gefunden für „${q}" – Tipp: Englische Begriffe funktionieren auch</li>`;
+        navSearchResults.style.display = 'block';
+    }
+}
+
+// ── Tastatur-Navigation in der Ergebnisliste ──
+function _navSearchKeyboard(e) {
+    if (navSearchResults.style.display === 'none') return;
+    const items = Array.from(navSearchResults.querySelectorAll('.nav-search-result-item'));
+    if (!items.length) return;
+    const focused = document.activeElement;
+    const idx = items.indexOf(focused);
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        (idx < items.length - 1 ? items[idx + 1] : items[0]).focus();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        (idx > 0 ? items[idx - 1] : navSearch).focus();
+    } else if (e.key === 'Enter' && idx >= 0) {
+        e.preventDefault();
+        items[idx].click();
+    } else if (e.key === 'Escape') {
+        _closeNavSearch();
+        navSearch.blur();
+    }
+}
+
 if (navSearch) {
     navSearch.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        if (!q) {
-            navSearchResults.innerHTML = '';
-            navSearchResults.style.display = 'none';
-            document.querySelectorAll('.nav-group, .nav-item').forEach(el => {
-                el.style.display = '';
-            });
-            return;
-        }
-        const matches = _searchIndex.filter(item =>
-            item.label.toLowerCase().includes(q)
-            || item.description.toLowerCase().includes(q)
-            || item.keywords.some(k => k.includes(q))
-        );
-        if (matches.length) {
-            navSearchResults.innerHTML = matches.map(m => `
-                <li class="nav-search-result-item"
-                    onclick="${m.external
-                        ? `window.open('${m.external}','_blank','width=1280,height=800')`
-                        : `window.switchTab('${m.view}'${m.tab ? `,'${m.tab}'` : ''})`
-                    }; document.getElementById('nav-search').value=''; document.getElementById('nav-search-results').style.display='none';">
-                    <i class="fas ${m.icon}"></i>
-                    <div>
-                        <strong>${m.label}</strong>
-                        <span>${m.description}</span>
-                    </div>
-                </li>`).join('');
-            navSearchResults.style.display = 'block';
-        } else {
-            navSearchResults.innerHTML = `<li class="nav-search-no-result">Keine Ergebnisse für „${q}"</li>`;
-            navSearchResults.style.display = 'block';
-        }
+        _runSearch(e.target.value.trim());
     });
+    navSearch.addEventListener('focus', () => {
+        if (!navSearch.value.trim()) _showRecentItems();
+    });
+    navSearch.addEventListener('keydown', _navSearchKeyboard);
+    navSearchResults.addEventListener('keydown', _navSearchKeyboard);
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.nav-search-wrap')) {
             navSearchResults.style.display = 'none';
         }
     });
 }
+
+// ── Ctrl+K / Cmd+K fokussiert die Suche ──
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        navSearch?.focus();
+        navSearch?.select();
+    }
+});
+
 
 // ── Mobile Hamburger ──
 const sidebarToggle  = document.getElementById('sidebar-toggle');
@@ -642,9 +770,9 @@ async function updateOrderBadge() {
 updateOrderBadge();
 setInterval(updateOrderBadge, 30000);
 
-const _origSwitchView = switchView;
 window.switchTab = (view, tab) => {
-    _origSwitchView(view, tab);
+    _addRecent(view, tab);
+    switchView(view, tab);
     if (view !== 'orders') setTimeout(updateOrderBadge, 500);
     ensureActiveGroupOpen();
 };
