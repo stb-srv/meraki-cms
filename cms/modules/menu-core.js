@@ -156,7 +156,7 @@ window.MenuCore = {
         const p = d.price?.toFixed(2) || '0.00';
         const isAvail = d.available !== false;
         const lastUpd = this.formatRelativeTime(d.updated_at);
-        const hasImg = d.image && d.image.startsWith('http');
+        const hasImg = d.image && (d.image.startsWith('http') || d.image.startsWith('/'));
         
         return `
             <tr class="dish-row ${!isAvail ? 'dish-unavailable' : ''}" data-id="${d.id}">
@@ -186,21 +186,38 @@ window.MenuCore = {
         `;
     },
 
+    normalizeCatId: function(cat) {
+        if (!cat) return '';
+        return String(cat).toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+    },
+
+    catMatchesFilter: function(dishCat, filterCatId, categories) {
+        if (!dishCat) return false;
+        if (dishCat === filterCatId) return true;
+        if (this.normalizeCatId(dishCat) === filterCatId) return true;
+        const cat = categories.find(c => c.id === filterCatId);
+        if (cat && dishCat.trim().toLowerCase() === (cat.label || '').trim().toLowerCase()) return true;
+        return false;
+    },
+
     renderDishesTab: function(menu, categories, allergens, additives) {
         let filtered = menu.filter(d => {
             const matchesSearch = !this.state.cmsSearch || d.name.toLowerCase().includes(this.state.cmsSearch.toLowerCase()) || (d.number && d.number.toString().includes(this.state.cmsSearch));
-            const matchesCat    = this.state.cmsCatFilter === 'All' || d.cat === this.state.cmsCatFilter;
+            const matchesCat    = this.state.cmsCatFilter === 'All' || this.catMatchesFilter(d.cat, this.state.cmsCatFilter, categories);
             return matchesSearch && matchesCat;
         });
 
         if (this.state.cmsSort === 'name')   filtered.sort((a,b) => a.name.localeCompare(b.name));
         if (this.state.cmsSort === 'price')  filtered.sort((a,b) => a.price - b.price);
         if (this.state.cmsSort === 'nr')     filtered.sort((a,b) => (parseInt(a.number)||0) - (parseInt(b.number)||0));
-        
-        const totalItems = filtered.length;
-        const paged = filtered.slice((this.state.cmsPage-1)*this.state.cmsPageSize, this.state.cmsPage*this.state.cmsPageSize);
 
         const useGroupedView = this.state.cmsCatFilter === 'All' && !this.state.cmsSearch;
+        const totalItems = filtered.length;
+
+        // In grouped view show all dishes; pagination only applies to flat (search/filter) view
+        const paged = useGroupedView
+            ? filtered
+            : filtered.slice((this.state.cmsPage-1)*this.state.cmsPageSize, this.state.cmsPage*this.state.cmsPageSize);
 
         return `
             <div class="toolbar-glass" style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:24px; padding:15px; border-radius:16px;">
@@ -342,31 +359,58 @@ window.MenuCore = {
                         </tr>
                     </thead>
                     <tbody id="dishes-table-body">
-                        ${useGroupedView 
-                            ? categories.map(cat => {
-                                const catDishes = paged.filter(d => d.cat === cat.id);
-                                if (catDishes.length === 0) return '';
-                                const isCollapsed = this.state.collapsedCats.has(cat.id);
-                                return `
-                                    <tr class="cat-group-row" onclick="window.MenuCore.toggleCatCollapse('${cat.id}')" style="background:rgba(0,0,0,0.02); cursor:pointer;">
-                                        <td colspan="7" style="padding:12px 20px;">
-                                            <div style="display:flex; align-items:center; gap:12px;">
-                                                <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}" style="opacity:0.3; width:15px;"></i>
-                                                <span style="font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:1px; font-size:0.8rem;">${cat.label}</span>
-                                                <span class="badge" style="background:rgba(0,0,0,0.05); color:var(--text); font-size:0.7rem;">${catDishes.length}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    ${!isCollapsed ? catDishes.map(d => this.renderDishRow(d, true)).join('') : ''}
-                                `;
-                            }).join('')
+                        ${useGroupedView
+                            ? (() => {
+                                const assignedIds = new Set();
+                                const catGroups = categories.map(cat => {
+                                    const catDishes = paged.filter(d => {
+                                        if (!d.cat) return false;
+                                        const match = d.cat === cat.id ||
+                                            this.normalizeCatId(d.cat) === cat.id ||
+                                            d.cat.trim().toLowerCase() === (cat.label || '').trim().toLowerCase();
+                                        return match;
+                                    });
+                                    catDishes.forEach(d => assignedIds.add(d.id));
+                                    if (catDishes.length === 0) return '';
+                                    const isCollapsed = this.state.collapsedCats.has(cat.id);
+                                    return `
+                                        <tr class="cat-group-row" onclick="window.MenuCore.toggleCatCollapse('${cat.id}')" style="background:rgba(0,0,0,0.02); cursor:pointer;">
+                                            <td colspan="7" style="padding:12px 20px;">
+                                                <div style="display:flex; align-items:center; gap:12px;">
+                                                    <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}" style="opacity:0.3; width:15px;"></i>
+                                                    <span style="font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:1px; font-size:0.8rem;">${cat.label}</span>
+                                                    <span class="badge" style="background:rgba(0,0,0,0.05); color:var(--text); font-size:0.7rem;">${catDishes.length}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        ${!isCollapsed ? catDishes.map(d => this.renderDishRow(d, true)).join('') : ''}
+                                    `;
+                                });
+                                const uncatDishes = paged.filter(d => !assignedIds.has(d.id));
+                                if (uncatDishes.length > 0) {
+                                    const isCollapsed = this.state.collapsedCats.has('__uncat__');
+                                    catGroups.push(`
+                                        <tr class="cat-group-row" onclick="window.MenuCore.toggleCatCollapse('__uncat__')" style="background:rgba(0,0,0,0.02); cursor:pointer;">
+                                            <td colspan="7" style="padding:12px 20px;">
+                                                <div style="display:flex; align-items:center; gap:12px;">
+                                                    <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}" style="opacity:0.3; width:15px;"></i>
+                                                    <span style="font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-size:0.8rem;">Unsortiert</span>
+                                                    <span class="badge" style="background:rgba(0,0,0,0.05); color:var(--text); font-size:0.7rem;">${uncatDishes.length}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        ${!isCollapsed ? uncatDishes.map(d => this.renderDishRow(d, true)).join('') : ''}
+                                    `);
+                                }
+                                return catGroups.join('');
+                            })()
                             : paged.map(d => this.renderDishRow(d, false)).join('')
                         }
                     </tbody>
                 </table>
                 ${totalItems === 0 ? `<div style="padding:60px; text-align:center; opacity:0.3;"><i class="fas fa-search fa-3x" style="margin-bottom:15px;"></i><br>Keine Gerichte gefunden.</div>` : ''}
             </div>
-            ${this.renderPagination(totalItems, this.state.cmsPage, this.state.cmsPageSize)}
+            ${!useGroupedView ? this.renderPagination(totalItems, this.state.cmsPage, this.state.cmsPageSize) : ''}
         `;
     },
 
@@ -388,14 +432,19 @@ window.MenuCore = {
         document.getElementById('df-nr').value = d.number || '';
         document.getElementById('df-name').value = d.name || '';
         document.getElementById('df-price').value = d.price || '';
-        document.getElementById('df-cat').value = d.cat || '';
+        // Resolve cat label → id for the select (dishes may store label instead of id)
+        const categories = this.state.cachedMenuData.categories || [];
+        const resolvedCatId = d.cat
+            ? (categories.find(c => c.id === d.cat || this.normalizeCatId(d.cat) === c.id || (d.cat || '').trim().toLowerCase() === (c.label || '').trim().toLowerCase())?.id || d.cat)
+            : '';
+        document.getElementById('df-cat').value = resolvedCatId;
         document.getElementById('df-desc').value = d.desc || '';
         document.getElementById('df-img').value = d.image || '';
         document.getElementById('df-special').checked = !!d.is_daily_special;
         
         // Preview
         const preview = document.getElementById('df-img-preview');
-        if (d.image && d.image.startsWith('http')) {
+        if (d.image && (d.image.startsWith('http') || d.image.startsWith('/'))) {
             preview.innerHTML = `<img src="${d.image}" style="width:100%; height:100%; object-fit:cover; border-radius:10px;">`;
         } else {
             preview.innerHTML = '<i class="fas fa-image fa-2x" style="opacity:0.1;"></i>';
@@ -606,7 +655,7 @@ window.MenuCore = {
             imgInp.onchange = (e) => {
                 const preview = document.getElementById('df-img-preview');
                 const url = e.target.value;
-                if (url && url.startsWith('http')) preview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:10px;">`;
+                if (url && (url.startsWith('http') || url.startsWith('/'))) preview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:10px;">`;
                 else preview.innerHTML = '<i class="fas fa-image fa-2x" style="opacity:0.1;"></i>';
             };
         }
