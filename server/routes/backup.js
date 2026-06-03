@@ -219,9 +219,12 @@ module.exports = (requireAuth) => {
                 results.restored.users = usersRestored;
             }
 
-            res.json({
-                success: true,
-                message: 'Backup erfolgreich eingespielt.',
+            const hasErrors = results.errors.length > 0;
+            res.status(hasErrors ? 207 : 200).json({
+                success: !hasErrors,
+                message: hasErrors
+                    ? `Backup teilweise eingespielt – ${results.errors.length} Fehler aufgetreten.`
+                    : 'Backup erfolgreich eingespielt.',
                 meta:    data._meta,
                 results
             });

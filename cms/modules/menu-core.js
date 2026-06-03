@@ -660,6 +660,17 @@ window.MenuCore = {
             };
         }
 
+        // Escape-Taste schließt offenes Modal
+        if (!this._escapeHandlerAttached) {
+            this._escapeHandlerAttached = true;
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const overlay = document.getElementById('dish-form-overlay');
+                    if (overlay && overlay.style.display !== 'none') this.closeDishForm();
+                }
+            });
+        }
+
         // Sub-module handlers
         if (currentTab === 'categories' && window.MenuCategories) window.MenuCategories.attachHandlers(container);
         if (window.MenuImportExport) window.MenuImportExport.attachHandlers(container);

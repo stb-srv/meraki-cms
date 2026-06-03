@@ -385,8 +385,8 @@ const DB = {
         try {
             await conn.query('DELETE FROM reservations');
             for (const r of list) {
-                await conn.query('INSERT INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                    [r.id, r.token, r.name, r.email, r.phone, r.date, r.time, r.start_time, r.end_time, r.guests, r.note||'', r.status, JSON.stringify(r.assigned_tables||[]), r.submittedAt, r.ip||null]);
+                await conn.query('INSERT INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip, reminderSent) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    [r.id, r.token, r.name, r.email, r.phone, r.date, r.time, r.start_time, r.end_time, r.guests, r.note||'', r.status, JSON.stringify(r.assigned_tables||[]), r.submittedAt, r.ip||null, r.reminderSent ? 1 : 0]);
             }
             await conn.commit();
         } catch(e) { await conn.rollback(); throw e; } finally { conn.release(); }
@@ -417,6 +417,11 @@ const DB = {
     },
     getOrderById: async (id) => {
         const rows = await q('SELECT * FROM orders WHERE id = ?', [id]);
+        if (!rows[0]) return null;
+        return { ...rows[0], items: safeJsonParse(rows[0].items, []) };
+    },
+    getOrderByToken: async (token) => {
+        const rows = await q('SELECT * FROM orders WHERE orderToken = ? LIMIT 1', [token]);
         if (!rows[0]) return null;
         return { ...rows[0], items: safeJsonParse(rows[0].items, []) };
     },

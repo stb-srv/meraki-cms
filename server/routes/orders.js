@@ -111,8 +111,7 @@ module.exports = (requireAuth, io) => {
     // GET einzelne Bestellung per orderToken (Kunden-Statusseite)
     router.get('/status/:token', async (req, res) => {
         try {
-            const orders = await DB.getOrders();
-            const order  = orders.find(o => o.orderToken === req.params.token);
+            const order = await DB.getOrderByToken(req.params.token);
             if (!order) return res.status(404).json({ success: false, reason: 'Bestellung nicht gefunden.' });
             // Nur sichere Felder zurückgeben
             res.json({

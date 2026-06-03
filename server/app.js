@@ -36,7 +36,7 @@ module.exports = function(CONFIG, io) {
                     styleSrc:        ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
                     styleSrcAttr:    ["'unsafe-inline'"],
                     fontSrc:         ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-                    imgSrc:          ["'self'", 'data:', 'blob:', 'https://maps.gstatic.com', 'https://*.googleapis.com', 'https://ui-avatars.com', 'https://images.unsplash.com', 'https://images.pexels.com'],
+                    imgSrc:          ["'self'", 'data:', 'blob:', 'https://maps.gstatic.com', 'https://maps.googleapis.com', 'https://ui-avatars.com', 'https://images.unsplash.com', 'https://images.pexels.com'],
                     connectSrc:      ["'self'", 'ws:', 'wss:', 'https://cdnjs.cloudflare.com', 'https://api.unsplash.com', 'https://api.pexels.com', 'https://generativelanguage.googleapis.com', 'https://licens-prod.stb-srv.de'],
                     frameSrc:        ["'self'", 'https://maps.google.com', 'https://maps.googleapis.com', 'https://www.google.com'],
                     objectSrc:       ["'none'"],
@@ -75,7 +75,16 @@ module.exports = function(CONFIG, io) {
         res.redirect('/setup');
     });
 
-    app.get('/api/health', (req, res) => res.json({ status: 'ok', version: APP_VERSION, uptime: Math.floor(process.uptime()), timestamp: new Date().toISOString() }));
+    app.get('/api/health', (req, res) => {
+        const failedPlugins = global._failedPlugins || [];
+        res.json({
+            status: failedPlugins.length > 0 ? 'degraded' : 'ok',
+            version: APP_VERSION,
+            uptime: Math.floor(process.uptime()),
+            timestamp: new Date().toISOString(),
+            ...(failedPlugins.length > 0 && { failedPlugins })
+        });
+    });
     app.get('/api/version', (req, res) => res.json({ version: APP_VERSION }));
 
     app.use('/api/admin',        require('./routes/auth.js')(ADMIN_SECRET));

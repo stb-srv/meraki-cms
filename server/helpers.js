@@ -21,7 +21,17 @@ const parseTime = (timeStr, dateStr = null) => {
     if (!timeStr) return new Date();
     const cleanTime = timeStr.replace(/[^0-9:]/g, '');
     const [hrs, mins] = cleanTime.split(':').map(Number);
-    const d = dateStr ? new Date(dateStr.split('.').reverse().join('-')) : new Date();
+    let d;
+    if (dateStr) {
+        // Primär: DD.MM.YYYY → YYYY-MM-DD; Fallback: ISO / native Parsing
+        const iso = /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)
+            ? dateStr.split('.').reverse().join('-')
+            : dateStr;
+        d = new Date(iso);
+        if (isNaN(d.getTime())) d = new Date();
+    } else {
+        d = new Date();
+    }
     d.setHours(hrs || 0, mins || 0, 0, 0);
     return d;
 };

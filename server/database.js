@@ -198,12 +198,13 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         updateReservation:  db.prepare('UPDATE reservations SET name = ?, email = ?, phone = ?, date = ?, time = ?, start_time = ?, end_time = ?, guests = ?, note = ?, status = ?, assigned_tables = ?, reminderSent = ? WHERE id = ?'),
         deleteReservation:  db.prepare('DELETE FROM reservations WHERE id = ?'),
         deleteAllReservations: db.prepare('DELETE FROM reservations'),
-        upsertReservation:  db.prepare('INSERT OR REPLACE INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
+        upsertReservation:  db.prepare('INSERT OR REPLACE INTO reservations (id, token, name, email, phone, date, time, start_time, end_time, guests, note, status, assigned_tables, submittedAt, ip, reminderSent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
         getTables:          db.prepare('SELECT * FROM tables'),
         upsertTable:        db.prepare('INSERT OR REPLACE INTO tables (id, name, capacity, combinable, active, area_id) VALUES (?, ?, ?, ?, ?, ?)'),
         deactivateMissingTables: db.prepare('UPDATE tables SET active = 0 WHERE id NOT IN (SELECT value FROM json_each(?))'),
         getOrders:          db.prepare('SELECT * FROM orders ORDER BY timestamp DESC'),
         getOrderById:       db.prepare('SELECT * FROM orders WHERE id = ?'),
+        getOrderByToken:    db.prepare('SELECT * FROM orders WHERE orderToken = ? LIMIT 1'),
         addOrder:           db.prepare('INSERT OR REPLACE INTO orders (id, table_id, table_name, orderToken, type, status, timestamp, total, note, items, customerName, customerPhone, customerEmail, deliveryAddress, estimatedTime, confirmedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
         updateOrderStatus:  db.prepare('UPDATE orders SET status = ?, estimatedTime = ?, confirmedAt = ? WHERE id = ?'),
         deleteOrder:        db.prepare('DELETE FROM orders WHERE id = ?'),
@@ -306,7 +307,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             }
             db.transaction((items) => {
                 stmts.deleteAllReservations.run();
-                items.forEach(r => stmts.upsertReservation.run(r.id, r.token, r.name, r.email, r.phone, r.date, r.time, r.start_time, r.end_time, r.guests, r.note||'', r.status, JSON.stringify(r.assigned_tables||[]), r.submittedAt, r.ip||null));
+                items.forEach(r => stmts.upsertReservation.run(r.id, r.token, r.name, r.email, r.phone, r.date, r.time, r.start_time, r.end_time, r.guests, r.note||'', r.status, JSON.stringify(r.assigned_tables||[]), r.submittedAt, r.ip||null, r.reminderSent ? 1 : 0));
             })(list);
         },
         getTables: () => stmts.getTables.all(),
@@ -322,6 +323,11 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         },
         getOrderById: (id) => {
             const r = stmts.getOrderById.get(id);
+            if (!r) return null;
+            return { ...r, items: safeJsonParse(r.items, []) };
+        },
+        getOrderByToken: (token) => {
+            const r = stmts.getOrderByToken.get(token);
             if (!r) return null;
             return { ...r, items: safeJsonParse(r.items, []) };
         },

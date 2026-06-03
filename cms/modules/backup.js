@@ -267,13 +267,14 @@ export async function renderBackup(container, titleEl) {
                 if (r.users)        log(`   Benutzer:       ${r.users} (neu)`);
 
                 if (result.results?.errors?.length > 0) {
-                    log('\n⚠️ Warnungen:', '#f59e0b');
+                    log('\n⚠️ Fehler bei Teilen des Restores:', '#f59e0b');
                     result.results.errors.forEach(e => log('   ' + e, '#f59e0b'));
+                    showToast(`Backup teilweise eingespielt – ${result.results.errors.length} Fehler. Details im Log.`, 'error');
+                } else {
+                    showToast('Backup vollständig eingespielt!');
                 }
-
-                showToast('Backup erfolgreich eingespielt!');
             } else {
-                log('❌ Fehler: ' + result.reason, '#ef4444');
+                log('❌ Fehler: ' + (result.reason || result.message), '#ef4444');
                 showToast('Restore fehlgeschlagen.', 'error');
             }
         } catch (e) {

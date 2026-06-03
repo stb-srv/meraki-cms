@@ -23,6 +23,9 @@ const io = setupSocket(server, DB, CONFIG);
 const app = createApp(CONFIG, io);
 server.on('request', app);
 
+// Fehlgeschlagene Plugins global verfügbar machen (für /api/health)
+global._failedPlugins = [];
+
 async function start() {
     try {
         const enabledPlugins = await DB.getKV('plugins', []);
@@ -35,10 +38,22 @@ async function start() {
                     logger.info({ plugin: safeId, path: resolvedPath }, 'Plugin geladen');
                     const plug = require(resolvedPath);
                     if (typeof plug === 'function') plug(app, { DB, requireAuth, requireLicense });
-                } catch(e) { logger.error({ err: e, plugin: safeId }, 'Plugin load failed'); }
+                } catch(e) {
+                    logger.error({ err: e, plugin: safeId }, 'Plugin load failed');
+                    global._failedPlugins.push({ id: safeId, error: e.message });
+                }
             }
         });
     } catch(e) { logger.warn({ err: e }, 'Plugin-Loader Fehler'); }
+
+    // SMTP-Konfigurationsprüfung beim Start
+    try {
+        const settings = await DB.getKV('settings', {});
+        const smtp = settings?.smtp || {};
+        if (!smtp.host && !process.env.SMTP_HOST) {
+            logger.warn('SMTP nicht konfiguriert – E-Mail-Versand (Reservierungserinnerungen, Bestätigungen) ist deaktiviert.');
+        }
+    } catch(_) {}
 
     server.listen(PORT, () => {
         const allowedOrigins = (CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);

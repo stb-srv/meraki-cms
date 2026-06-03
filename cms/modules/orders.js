@@ -93,11 +93,11 @@ function renderAll(container) {
     if (bisInput) bisInput.value = lastDay;
 
     container.querySelector('#btn-export-csv')?.addEventListener('click', () => {
-        const token = localStorage.getItem('opa_admin_token') || '';
+        const token = sessionStorage.getItem('opa_admin_token') || '';
         window.location.href = `/api/orders/export/csv?von=${vonInput.value}&bis=${bisInput.value}&token=${token}`;
     });
     container.querySelector('#btn-export-pdf')?.addEventListener('click', () => {
-        const token = localStorage.getItem('opa_admin_token') || '';
+        const token = sessionStorage.getItem('opa_admin_token') || '';
         window.location.href = `/api/orders/export/pdf?von=${vonInput.value}&bis=${bisInput.value}&token=${token}`;
     });
 
