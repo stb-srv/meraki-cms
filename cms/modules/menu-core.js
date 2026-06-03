@@ -176,10 +176,10 @@ window.MenuCore = {
                 </td>
                 <td style="width:100px; font-weight:800; font-family:var(--font-mono); color:var(--accent);">${p}€</td>
                 <td style="width:100px;">${this.renderAvailabilityToggle(d)}</td>
-                <td style="width:120px; text-align:right;">
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button class="btn-icon" onclick="window.MenuCore.editDish('${d.id}')" title="Bearbeiten"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon danger" onclick="window.MenuCore.deleteDish('${d.id}')" title="Löschen"><i class="fas fa-trash"></i></button>
+                <td style="width:130px; text-align:right;">
+                    <div style="display:flex; gap:6px; justify-content:flex-end;">
+                        <button class="btn-icon" onclick="window.MenuCore.editDish('${d.id}')"><i class="fas fa-pen"></i> Bearbeiten</button>
+                        <button class="btn-icon danger" onclick="window.MenuCore.deleteDish('${d.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
             </tr>
@@ -250,7 +250,7 @@ window.MenuCore = {
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
                         <h2 id="df-title" style="margin:0;">Gericht bearbeiten</h2>
-                        <button class="btn-icon" onclick="window.MenuCore.closeDishForm()"><i class="fas fa-times"></i></button>
+                        <button class="btn-icon" onclick="window.MenuCore.closeDishForm()" style="padding:7px 10px;" title="Schließen"><i class="fas fa-times"></i></button>
                     </div>
 
                     <!-- Sektion 1: Grunddaten -->
