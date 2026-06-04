@@ -22,6 +22,21 @@ import { showSetupWizard } from './modules/setup-wizard.js';
 import { initRealtime } from './modules/realtime.js';
 import { renderShiftPlanner } from './modules/shifts.js';
 
+// One-time migration of legacy storage keys from opa_* → meraki_*
+(function migrateLegacyKeys() {
+    const keys = [
+        ['sessionStorage', 'meraki_admin_token', 'meraki_admin_token'],
+        ['localStorage',   'meraki_license_key',  'meraki_license_key'],
+        ['sessionStorage', 'opa_nav_recent',   'meraki_nav_recent'],
+    ];
+    for (const [store, oldKey, newKey] of keys) {
+        const s = window[store];
+        const val = s.getItem(oldKey);
+        if (val && !s.getItem(newKey)) s.setItem(newKey, val);
+        s.removeItem(oldKey);
+    }
+})();
+
 const loginContainer    = document.getElementById('login-container');
 const adminDashboard    = document.getElementById('admin-dashboard');
 const loginForm         = document.getElementById('login-form');
@@ -35,7 +50,7 @@ let tokenExpiryTimer = null;
 
 function scheduleTokenExpiryWarning() {
     if (tokenExpiryTimer) clearTimeout(tokenExpiryTimer);
-    const token = sessionStorage.getItem('opa_admin_token');
+    const token = sessionStorage.getItem('meraki_admin_token');
     if (!token) return;
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -69,7 +84,7 @@ function buildInitialsAvatar(name) {
 
 /** Liest den Benutzernamen aus dem JWT-Token und zeigt ihn im Header an */
 function applyUserFromToken() {
-    const token = sessionStorage.getItem('opa_admin_token');
+    const token = sessionStorage.getItem('meraki_admin_token');
     if (!token) return;
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -82,14 +97,14 @@ function applyUserFromToken() {
 }
 
 async function init() {
-    const savedKey = localStorage.getItem('opa_license_key');
+    const savedKey = localStorage.getItem('meraki_license_key');
     if (!savedKey) {
         try {
             const statusRes = await fetch('/api/setup/status');
             const statusData = await statusRes.json();
             if (statusData.setupComplete) {
                 const serverKey = statusData.licenseKey || 'SETUP_DONE';
-                localStorage.setItem('opa_license_key', serverKey);
+                localStorage.setItem('meraki_license_key', serverKey);
                 loginContainer.style.display = 'flex';
                 adminDashboard.style.display = 'none';
                 const pwdContainer = document.getElementById('password-change-container');
@@ -114,7 +129,7 @@ async function init() {
         return;
     }
 
-    const token = sessionStorage.getItem('opa_admin_token');
+    const token = sessionStorage.getItem('meraki_admin_token');
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
@@ -181,7 +196,7 @@ async function init() {
         if (licInfo?.type === 'TRIAL' && licInfo.expires_at) {
             const daysLeft = Math.ceil((new Date(licInfo.expires_at) - Date.now()) / 86400000);
             if (daysLeft <= 0) {
-                showTrialExpiredLock(localStorage.getItem('opa_license_key'));
+                showTrialExpiredLock(localStorage.getItem('meraki_license_key'));
             } else {
                 showTrialBanner(daysLeft);
             }
@@ -209,7 +224,7 @@ async function init() {
     initUpgradeModal();
 
     initRealtime();
-    window.__opaShowToast = showToast;
+    window.__merakiShowToast = showToast;
     window.updateDashboardBadges = updateOrderBadge;
 }
 
@@ -472,7 +487,7 @@ if (pwdChangeForm) {
         if (newPassword.length < 6) return showToast('Passwort muss mind. 6 Zeichen haben.', 'error');
 
         try {
-            const token = sessionStorage.getItem('opa_admin_token');
+            const token = sessionStorage.getItem('meraki_admin_token');
             const res   = await fetch('/api/admin/change-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
@@ -480,7 +495,7 @@ if (pwdChangeForm) {
             });
             const data = await res.json();
             if (data.success && data.token) {
-                sessionStorage.setItem('opa_admin_token', data.token);
+                sessionStorage.setItem('meraki_admin_token', data.token);
                 showToast('Passwort erfolgreich geändert! Willkommen im Dashboard.', 'success');
                 scheduleTokenExpiryWarning();
                 init();
@@ -622,7 +637,7 @@ function _fuzzyScore(query, item) {
 }
 
 // ── Zuletzt besucht (sessionStorage) ──
-const _RECENT_KEY = 'opa_nav_recent';
+const _RECENT_KEY = 'meraki_nav_recent';
 function _getRecent() {
     try { return JSON.parse(sessionStorage.getItem(_RECENT_KEY) || '[]'); } catch { return []; }
 }

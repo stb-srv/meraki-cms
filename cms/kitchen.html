@@ -87,7 +87,13 @@
 <body>
 <script>
 (function() {
-    const token = sessionStorage.getItem('opa_admin_token');
+    // One-time migration opa_admin_token → meraki_admin_token
+    const _old = sessionStorage.getItem('meraki_admin_token');
+    if (_old && !sessionStorage.getItem('meraki_admin_token')) sessionStorage.setItem('meraki_admin_token', _old);
+    sessionStorage.removeItem('meraki_admin_token');
+})();
+(function() {
+    const token = sessionStorage.getItem('meraki_admin_token');
     if (!token) {
         document.body.innerHTML =
             '<div style="display:flex;align-items:center;justify-content:center;' +
@@ -174,7 +180,7 @@
 
     // ── Initiale Bestellungen laden ────────────────────────────────────────────
     fetch('/api/orders', {
-        headers: { 'x-admin-token': sessionStorage.getItem('opa_admin_token') || '' }
+        headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') || '' }
     })
     .then(r => r.json())
     .then(data => {
@@ -289,7 +295,7 @@
         fetch(`/api/orders/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type':'application/json',
-                       'x-admin-token': sessionStorage.getItem('opa_admin_token') || '' },
+                       'x-admin-token': sessionStorage.getItem('meraki_admin_token') || '' },
             body: JSON.stringify({ status: 'ready' })
         }).catch(() => {});
 

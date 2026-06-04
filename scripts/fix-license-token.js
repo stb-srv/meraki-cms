@@ -83,7 +83,7 @@ async function main() {
         console.log(`   Domain:      ${payload?.domain}`);
         console.log(`   Gültig bis:  ${exp}`);
         console.log(`   Max Speisen: ${payload?.limits?.max_dishes ?? '?'}`);
-        console.log('\n🚀 CMS neu starten: pm2 restart opa-cms\n');
+        console.log('\n🚀 CMS neu starten: pm2 restart meraki-cms\n');
 
     } catch (e) {
         console.error('\u274c Fehler:', e.message);

@@ -216,7 +216,7 @@ async function main() {
     console.log(`\u26a0\ufe0f  Kein Bild:    ${skip}`);
     console.log(`\u274c Fehler:       ${fail}`);
     console.log('');
-    if (!DRY_RUN && ok > 0) console.log('\ud83d\ude80 pm2 restart opa-cms  (optional, Bilder sind sofort sichtbar)\n');
+    if (!DRY_RUN && ok > 0) console.log('\ud83d\ude80 pm2 restart meraki-cms  (optional, Bilder sind sofort sichtbar)\n');
 
     process.exit(0);
 }

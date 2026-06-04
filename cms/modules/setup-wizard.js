@@ -1,7 +1,7 @@
 /**
  * Meraki CMS – Installations-Assistent
  * Führt neue Instanzen durch: Trial-Registrierung → Admin-Account → Grundeinstellungen
- * Wird gezeigt wenn KEIN opa_license_key UND KEIN Admin-Account existiert.
+ * Wird gezeigt wenn KEIN meraki_license_key UND KEIN Admin-Account existiert.
  */
 
 const LICENSE_SERVER = window.MERAKI_LICENSE_SERVER || 'https://license.meraki-cms.de';

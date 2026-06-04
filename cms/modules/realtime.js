@@ -64,8 +64,8 @@ export function initRealtime() {
 
 function showRealtimeToast(msg, type = 'info') {
     // Nutzt das bestehende showToast aus utils.js falls verfügbar
-    if (window.__opaShowToast) {
-        window.__opaShowToast(msg, type);
+    if (window.__merakiShowToast) {
+        window.__merakiShowToast(msg, type);
         return;
     }
     const t = document.createElement('div');

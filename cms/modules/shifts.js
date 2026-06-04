@@ -119,7 +119,7 @@ export async function renderShiftPlanner(container, titleEl) {
     document.getElementById('btn-share-shift')?.addEventListener('click', () => {
         const url = `${location.origin}/shifts/view?week=${monday.toISOString().slice(0,10)}`;
         navigator.clipboard.writeText(url).then(() => {
-            if (window.__opaShowToast) window.__opaShowToast('Link kopiert!', 'success');
+            if (window.__merakiShowToast) window.__merakiShowToast('Link kopiert!', 'success');
         });
     });
 
