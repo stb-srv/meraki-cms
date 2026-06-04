@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Onboarding Checkliste
+ * Meraki CMS – Onboarding Checkliste
  * Zeigt nach Trial-Aktivierung eine interaktive Checkliste im Dashboard.
  * Wird ausgeblendet sobald alle Schritte erledigt sind.
  */
@@ -14,12 +14,12 @@ const STEPS = [
 
 function getProgress() {
     try {
-        return JSON.parse(localStorage.getItem('opa_onboarding') || '{}');
+        return JSON.parse(localStorage.getItem('meraki_onboarding') || '{}');
     } catch { return {}; }
 }
 
 function saveProgress(progress) {
-    localStorage.setItem('opa_onboarding', JSON.stringify(progress));
+    localStorage.setItem('meraki_onboarding', JSON.stringify(progress));
 }
 
 export function markOnboardingStep(stepId) {
@@ -42,7 +42,7 @@ export function renderOnboardingWidget(container) {
     }
 
     // Nur für Trial-Nutzer anzeigen
-    const key = localStorage.getItem('opa_license_key');
+    const key = localStorage.getItem('meraki_license_key');
     if (!key) return;
 
     const done = STEPS.filter(s => progress[s.id]).length;
@@ -66,7 +66,7 @@ export function renderOnboardingWidget(container) {
                     🚀 Erste Schritte (${done}/${STEPS.length})
                 </h3>
                 <p style="font-size:.8rem; color:#6b7280; margin:4px 0 0;">
-                    Richten Sie Ihr Restaurant ein um das Beste aus OPA! herauszuholen.
+                    Richten Sie Ihr Restaurant ein um das Beste aus Meraki herauszuholen.
                 </p>
             </div>
             <button id="onboarding-dismiss"
@@ -109,7 +109,7 @@ export function renderOnboardingWidget(container) {
     container.prepend(widget);
 
     document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
-        localStorage.setItem('opa_onboarding_dismissed', '1');
+        localStorage.setItem('meraki_onboarding_dismissed', '1');
         widget.remove();
     });
 }

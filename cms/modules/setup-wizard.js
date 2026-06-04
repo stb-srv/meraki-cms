@@ -1,13 +1,13 @@
 /**
- * OPA-CMS – Installations-Assistent
+ * Meraki CMS – Installations-Assistent
  * Führt neue Instanzen durch: Trial-Registrierung → Admin-Account → Grundeinstellungen
  * Wird gezeigt wenn KEIN opa_license_key UND KEIN Admin-Account existiert.
  */
 
-const LICENSE_SERVER = window.OPA_LICENSE_SERVER || 'https://license.opa-santorini.de';
+const LICENSE_SERVER = window.MERAKI_LICENSE_SERVER || 'https://license.meraki-cms.de';
 
 export async function shouldShowWizard() {
-    const key = localStorage.getItem('opa_license_key');
+    const key = localStorage.getItem('meraki_license_key');
     if (key) return false;
     try {
         const res = await fetch('/api/admin/login', { method: 'HEAD' });
@@ -52,7 +52,7 @@ export async function showSetupWizard(container, onComplete) {
     const renderStep = () => {
         if (step === 1) return `
             <h2 style="font-size:1.4rem; font-weight:900; color:#1b3a5c; margin-bottom:8px; text-align:center;">
-                🍽️ Willkommen bei OPA! Santorini
+                🍽️ Willkommen bei Meraki
             </h2>
             <p style="color:#6b7280; text-align:center; font-size:.9rem; margin-bottom:28px;">
                 Schritt 1 von 3: Starten Sie Ihren kostenlosen 30-Tage Trial.
@@ -105,7 +105,7 @@ export async function showSetupWizard(container, onComplete) {
                 🎉 Alles bereit!
             </h2>
             <p style="color:#6b7280; text-align:center; font-size:.9rem; margin-bottom:28px;">
-                Ihr OPA! Santorini CMS ist einsatzbereit.
+                Ihr Meraki CMS ist einsatzbereit.
             </p>
             <ul style="list-style:none; padding:0; margin:0 0 28px; display:flex; flex-direction:column; gap:10px;">
                 <li style="display:flex; gap:10px; align-items:center;">
@@ -155,7 +155,7 @@ export async function showSetupWizard(container, onComplete) {
                     const data = await res.json();
                     if (data.success) {
                         trialKey = data.license_key;
-                        localStorage.setItem('opa_license_key', trialKey);
+                        localStorage.setItem('meraki_license_key', trialKey);
                         step = 2; render();
                     } else {
                         showFeedback(data.message || 'Fehler bei der Registrierung.');
@@ -175,7 +175,7 @@ export async function showSetupWizard(container, onComplete) {
                 try {
                     const res  = await fetch('/api/v1/setup', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-setup-token': window.OPA_SETUP_TOKEN || '' },
+                        headers: { 'Content-Type': 'application/json', 'x-setup-token': window.MERAKI_SETUP_TOKEN || '' },
                         body: JSON.stringify({ username, password })
                     });
                     const data = await res.json();

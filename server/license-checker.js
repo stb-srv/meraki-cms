@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – License Checker (Stufe 3: Periodische Online-Validierung)
+ * Meraki CMS – License Checker (Stufe 3: Periodische Online-Validierung)
  *
  * Beim Start wird zuerst der RSA Public Key vom Lizenzserver abgerufen
  * (via initPublicKey), danach erst die Token-Prüfung gestartet.

@@ -1,5 +1,5 @@
 /**
- * OPA! Extra Plugin - Website Side
+ * Meraki Extra Plugin - Website Side
  */
 (function() {
     console.log("🌊 Guest Plugin 'Opa! Extra' geladen!");

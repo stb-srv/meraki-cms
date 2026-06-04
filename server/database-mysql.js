@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – MySQL/MariaDB Datenbank-Adapter
+ * Meraki CMS – MySQL/MariaDB Datenbank-Adapter
  *
  * Identisches Interface wie database.js (SQLite-Adapter).
  * Wird geladen wenn DB_TYPE=mysql in der .env gesetzt ist.

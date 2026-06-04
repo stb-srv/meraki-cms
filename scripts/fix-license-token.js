@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * OPA-CMS – Einmaliges Fix-Script: Lizenz-Token erneuern
+ * Meraki CMS – Einmaliges Fix-Script: Lizenz-Token erneuern
  *
  * Aufruf: node scripts/fix-license-token.js prodbeta.stb-srv.de
  */
@@ -16,7 +16,7 @@ async function main() {
     const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
     const cliDomain = process.argv[2] ? process.argv[2].replace(/^https?:\/\//, '').split('/')[0] : null;
 
-    console.log('\n🔒 OPA-CMS License Token Fix-Script');
+    console.log('\n🔒 Meraki CMS License Token Fix-Script');
     console.log('='.repeat(45));
 
     if (typeof DB.init === 'function') await DB.init();

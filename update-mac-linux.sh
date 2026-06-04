@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "=============================================================="
-echo " OPA-CMS - Automatisches Update-Skript (Mac / Linux)"
+echo " Meraki CMS - Automatisches Update-Skript (Mac / Linux)"
 echo "=============================================================="
 echo ""
 
@@ -33,9 +33,9 @@ echo "[3/3] Server neu starten..."
 if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q 'opa-cms'; then
     pm2 restart opa-cms
     echo "[OK] PM2: opa-cms neu gestartet."
-elif systemctl is-active --quiet opa-santorini 2>/dev/null; then
-    sudo systemctl restart opa-santorini
-    echo "[OK] systemd: opa-santorini neu gestartet."
+elif systemctl is-active --quiet meraki-cms 2>/dev/null; then
+    sudo systemctl restart meraki-cms
+    echo "[OK] systemd: meraki-cms neu gestartet."
 elif command -v pm2 &>/dev/null; then
     echo "[INFO] PM2 verfügbar, aber kein 'opa-cms' Prozess gefunden."
     echo "       Starte mit: pm2 start server.js --name opa-cms"
@@ -47,5 +47,5 @@ fi
 
 echo ""
 echo "=============================================================="
-echo " Update abgeschlossen! OPA-CMS läuft auf dem neuesten Stand."
+echo " Update abgeschlossen! Meraki CMS läuft auf dem neuesten Stand."
 echo "=============================================================="

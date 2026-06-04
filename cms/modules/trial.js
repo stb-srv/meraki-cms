@@ -1,10 +1,10 @@
 /**
- * OPA-CMS – Trial Self-Registration & Onboarding
+ * Meraki CMS – Trial Self-Registration & Onboarding
  * Zeigt beim ersten Start (kein Lizenz-Key) ein Registrierungsformular.
  * Meldet die Instanz am Lizenz-Server an und speichert den erhaltenen Key.
  */
 
-const LICENSE_SERVER = window.OPA_LICENSE_SERVER || 'https://license.opa-santorini.de';
+const LICENSE_SERVER = window.MERAKI_LICENSE_SERVER || 'https://license.meraki-cms.de';
 
 export async function initTrialOnboarding(container, onKeyReceived) {
     container.innerHTML = `
@@ -15,7 +15,7 @@ export async function initTrialOnboarding(container, onKeyReceived) {
 
             <div style="font-size:3rem; margin-bottom:16px;">🍽️</div>
             <h1 style="font-size:1.6rem; font-weight:900; color:#1b3a5c; margin-bottom:8px;">
-                Willkommen bei OPA! Santorini
+                Willkommen bei Meraki
             </h1>
             <p style="color:#6b7280; font-size:.9rem; margin-bottom:32px; line-height:1.6;">
                 Starten Sie jetzt Ihren <strong>kostenlosen 30-Tage Trial</strong> –
@@ -66,7 +66,7 @@ export async function initTrialOnboarding(container, onKeyReceived) {
                 <p style="font-size:.82rem; color:#6b7280; margin-bottom:10px;">
                     Haben Sie bereits einen Lizenz-Key?
                 </p>
-                <input id="trial-existing-key" type="text" placeholder="OPA-XXXX-XXXX-XXXX"
+                <input id="trial-existing-key" type="text" placeholder="MERAKI-XXXX-XXXX-XXXX"
                        style="width:100%; padding:10px 14px; border:1.5px solid #e5e7eb;
                        border-radius:10px; font-size:.88rem; box-sizing:border-box; text-align:center;
                        letter-spacing:1px; font-family:monospace;" />

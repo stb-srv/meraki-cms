@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Gäste-Feedback Modul
+ * Meraki CMS – Gäste-Feedback Modul
  * Zeigt eingegangene Bewertungen als Feed im Dashboard.
  */
 import { apiGet } from './api.js';

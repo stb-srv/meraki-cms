@@ -1,5 +1,5 @@
 /**
- * Main Entry Point for OPA-CMS (Modular Version)
+ * Main Entry Point for Meraki CMS (Modular Version)
  */
 
 import { checkAuth, login, logout } from './modules/auth.js';
@@ -152,7 +152,7 @@ async function init() {
 
     const branding = await apiGet('branding');
     if (branding) {
-        document.getElementById('disp-res-name').textContent    = branding.name   || 'OPA! Santorini';
+        document.getElementById('disp-res-name').textContent    = branding.name   || 'Meraki';
         document.getElementById('disp-res-slogan').textContent  = branding.slogan || 'Restaurant Management';
         if (branding.name) document.title = branding.name + ' CMS';
 

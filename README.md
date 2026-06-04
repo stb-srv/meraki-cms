@@ -1,4 +1,4 @@
-# 🏛️ OPA-CMS – Restaurant Management System
+# 🏛️ Meraki CMS – Restaurant Management System
 
 ![Node.js Version](https://img.shields.io/badge/node-%E2%89%A518-green)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
@@ -46,8 +46,8 @@ Dies ist der empfohlene Weg für den Produktivbetrieb mit **PM2** als Prozessman
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/stb-srv/OPA-Santorini.git /opt/opa-santorini
-cd /opt/opa-santorini
+git clone https://github.com/stb-srv/Meraki CMS.git /opt/meraki-cms
+cd /opt/meraki-cms
 
 # 2. Installer starten
 chmod +x install-ubuntu.sh
@@ -58,7 +58,7 @@ sudo ./install-ubuntu.sh
 
 ## 🗄️ MySQL/MariaDB Setup
 
-Standardmäßig nutzt OPA-Santorini **SQLite** (kein Setup nötig). Für größere Installationen oder Shared-Hosting (Netcup, Hetzner etc.) wird **MySQL/MariaDB** empfohlen.
+Standardmäßig nutzt Meraki CMS **SQLite** (kein Setup nötig). Für größere Installationen oder Shared-Hosting (Netcup, Hetzner etc.) wird **MySQL/MariaDB** empfohlen.
 
 1. Erstelle eine neue Datenbank und einen Benutzer.
 2. Trage in der `.env` Datei folgende Werte ein:
@@ -79,7 +79,7 @@ DB_SSL=false
 
 ## 🛒 Warenkorb & Online-Bestellung
 
-OPA-Santorini verfügt über ein integriertes Warenkorb-System für Gäste.
+Meraki CMS verfügt über ein integriertes Warenkorb-System für Gäste.
 
 - **Dine-In**: Gäste scannen einen QR-Code am Tisch und bestellen direkt an ihre Tischnummer.
 - **Abholung (Pickup)**: Bestellen von zu Hause mit Angabe der gewünschten Abholzeit.

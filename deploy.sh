@@ -2,7 +2,7 @@
 set -e
 
 # ============================================================
-#  OPA-CMS - Deploy Script
+#  Meraki CMS - Deploy Script
 #  Ubuntu 22.04+ / Debian 12+ | Ausführen als root oder sudo
 #  Verwendung: bash deploy.sh
 # ============================================================
@@ -15,16 +15,16 @@ log_ok()    { echo -e "${GREEN}[ OK ]${NC}  $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 log_step()  { echo -e "\n${BOLD}${GREEN}▶ $1${NC}"; }
 
-APP_DIR="/opt/opa-santorini"
+APP_DIR="/opt/meraki-cms"
 APP_USER="opa-cms"
 REPO="https://github.com/stb-srv/OPA-Santorini.git"
-SERVICE_NAME="opa-santorini"
+SERVICE_NAME="meraki-cms"
 PORT=5000
 
 clear
 echo -e "${BOLD}"
 echo "  ╔══════════════════════════════════════════════════════╗"
-echo "  ║         OPA-CMS - Server Deploy Script v3.0         ║"
+echo "  ║         Meraki CMS - Server Deploy Script v3.0         ║"
 echo "  ╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -96,7 +96,7 @@ log_ok "Berechtigungen gesetzt"
 log_step "[7/8] Systemd Service einrichten"
 cat > /etc/systemd/system/${SERVICE_NAME}.service <<EOF
 [Unit]
-Description=OPA Restaurant CMS
+Description=Meraki Restaurant CMS
 After=network.target
 
 [Service]

@@ -1,10 +1,10 @@
 /**
- * OPA-CMS – Gast-Warenkorb
+ * Meraki CMS – Gast-Warenkorb
  *
  * Komplett clientseitig (localStorage). Kein Login nötig.
  * Funktioniert unabhängig vom gewählten Lizenzplan.
  *
- * Kachel-Klick-Modus: window.OPA_CART_CLICK_MODE (gesetzt von app.js)
+ * Kachel-Klick-Modus: window.MERAKI_CART_CLICK_MODE (gesetzt von app.js)
  *   'button' – nur der + Button fügt hinzu
  *   'tile'   – Klick auf die ganze Kachel fügt hinzu (Standard)
  *   'both'   – Kachel UND + Button fügen hinzu
@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'opa_cart';
+    const STORAGE_KEY = 'meraki_cart';
     let cartItems    = [];
     let cartConfig   = {
         ordersEnabled: false, deliveryEnabled: false, pickupEnabled: false,
@@ -137,7 +137,7 @@
         if (!body) return;
 
         if (cartItems.length === 0) {
-            const mode = window.OPA_CART_CLICK_MODE || 'tile';
+            const mode = window.MERAKI_CART_CLICK_MODE || 'tile';
             const hint = mode === 'tile' ? 'Tippe auf ein Gericht um es hinzuzuf\u00fcgen.'
                        : mode === 'both' ? 'Tippe auf ein Gericht oder den + Button.'
                        : 'Tippe auf <strong>+</strong> bei einem Gericht um es hinzuzuf\u00fcgen.';
@@ -452,7 +452,7 @@
             }))
         };
 
-        console.log('[OPA Cart] submitOrder mode:', mode, 'payload.type:', payload.type);
+        console.log('[Meraki Cart] submitOrder mode:', mode, 'payload.type:', payload.type);
 
         if (mode === 'dine_in') {
             const table = document.getElementById('co-table')?.value.trim();
@@ -529,7 +529,7 @@
     // Add-Buttons + Kachel-Klick injizieren
     // =========================================================================
     function injectAddButtons() {
-        const mode    = window.OPA_CART_CLICK_MODE || 'tile';
+        const mode    = window.MERAKI_CART_CLICK_MODE || 'tile';
         const showBtn  = (mode === 'button' || mode === 'both');
         const showTile = (mode === 'tile'   || mode === 'both');
 

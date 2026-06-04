@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – License Plan Definitions, Token Verification & Helpers
+ * Meraki CMS – License Plan Definitions, Token Verification & Helpers
  *
  * Der RSA Public Key wird beim Start automatisch vom Lizenzserver geladen
  * (GET /api/v1/public-key). Nur wenn das fehlschlägt, wird der eingebettete
@@ -8,7 +8,7 @@
 
 const jwt = require('jsonwebtoken');
 
-const OPA_PUBLIC_KEY_FALLBACK = `-----BEGIN PUBLIC KEY-----
+const MERAKI_PUBLIC_KEY_FALLBACK = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAutES8Xqif1PpLJU9ClMJ
 rGfeCoUVOOni5/WiwGFdTd5ygYyie22fBheBA2fRek6xXDfGtC/QdIg7zbqI/0eQ
 V7DCcytIGJSfPRNW4t6cb7oRUVTbo74jia5GUDyJNLJPQDsPVWDvi6rpB+/hv+Uh
@@ -19,13 +19,13 @@ HQIDAQAB
 -----END PUBLIC KEY-----`;
 
 // Aktiver Public Key – wird durch initPublicKey() überschrieben
-let OPA_PUBLIC_KEY = (process.env.LICENSE_PUBLIC_KEY || '').trim() || null;
+let MERAKI_PUBLIC_KEY = (process.env.LICENSE_PUBLIC_KEY || '').trim() || null;
 
-if (OPA_PUBLIC_KEY) {
+if (MERAKI_PUBLIC_KEY) {
     console.log('✅  RSA Public Key aus LICENSE_PUBLIC_KEY Env-Variable geladen.');
 } else {
     console.log('ℹ️   LICENSE_PUBLIC_KEY nicht gesetzt – Public Key wird beim Start vom Lizenzserver abgerufen.');
-    OPA_PUBLIC_KEY = OPA_PUBLIC_KEY_FALLBACK; // temporärer Fallback bis initPublicKey() läuft
+    MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK; // temporärer Fallback bis initPublicKey() läuft
 }
 
 /**
@@ -49,12 +49,12 @@ const initPublicKey = async (licenseServerUrl) => {
         if (!key || !key.includes('BEGIN PUBLIC KEY')) {
             throw new Error('Antwort enthält keinen gültigen PEM-Key.');
         }
-        OPA_PUBLIC_KEY = key;
+        MERAKI_PUBLIC_KEY = key;
         console.log('✅  RSA Public Key erfolgreich vom Lizenzserver geladen:', url);
         return true;
     } catch (e) {
         console.warn(`⚠️   Public Key-Abruf fehlgeschlagen (${e.message}) – Fallback-Key aktiv.`);
-        OPA_PUBLIC_KEY = OPA_PUBLIC_KEY_FALLBACK;
+        MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK;
         return false;
     }
 };
@@ -131,7 +131,7 @@ const FREE_RESULT = (extra = {}) => ({
 const verifyLicenseToken = (token, host = null) => {
     if (!token || typeof token !== 'string') return null;
     try {
-        const payload = jwt.verify(token, OPA_PUBLIC_KEY, { algorithms: ['RS256'] });
+        const payload = jwt.verify(token, MERAKI_PUBLIC_KEY, { algorithms: ['RS256'] });
         if (payload.domain && host) {
             const normalizeHost = (h) => (h || '').replace(/:\d+$/, '').toLowerCase().trim();
             const tokenDomain  = normalizeHost(payload.domain);
@@ -250,4 +250,4 @@ const getCurrentLicense = async (DB, host = null) => {
     return FREE_RESULT();
 };
 
-module.exports = { PLAN_DEFINITIONS, getPlan, getCurrentLicense, verifyLicenseToken, initPublicKey, OPA_PUBLIC_KEY };
+module.exports = { PLAN_DEFINITIONS, getPlan, getCurrentLicense, verifyLicenseToken, initPublicKey, MERAKI_PUBLIC_KEY };

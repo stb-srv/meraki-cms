@@ -1,14 +1,14 @@
 /**
- * API Module for OPA-CMS
+ * API Module for Meraki CMS
  */
 
 const API_URL = '/api';
 
-export const getAuthToken = () => sessionStorage.getItem('opa_admin_token');
+export const getAuthToken = () => sessionStorage.getItem('meraki_admin_token');
 
 export const handleAuthFailure = () => { 
     if (!getAuthToken()) return null; 
-    sessionStorage.removeItem('opa_admin_token'); 
+    sessionStorage.removeItem('meraki_admin_token'); 
     location.reload(); 
     return null; 
 };
@@ -26,7 +26,7 @@ function checkTokenExpiry() {
                 headers: { 'x-admin-token': token }
             })
             .then(r => r.json())
-            .then(data => { if (data.token) sessionStorage.setItem('opa_admin_token', data.token); })
+            .then(data => { if (data.token) sessionStorage.setItem('meraki_admin_token', data.token); })
             .catch(() => {});
         }
     } catch (_) {}

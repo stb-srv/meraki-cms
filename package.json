@@ -1,7 +1,7 @@
 {
-  "name": "opa-cms",
+  "name": "meraki-cms",
   "version": "3.1.1",
-  "description": "OPA-CMS – Modulares Restaurant Management System (Speisekarte, Reservierungen, Website-Editor)",
+  "description": "Meraki CMS – Modulares Restaurant Management System (Speisekarte, Reservierungen, Website-Editor)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

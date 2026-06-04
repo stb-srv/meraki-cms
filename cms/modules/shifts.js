@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Schichtplan Modul
+ * Meraki CMS – Schichtplan Modul
  * Einfache Wochenansicht zum Eintragen von Mitarbeiterschichten.
  */
 import { apiGet } from './api.js';

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-#  OPA-CMS - Update & Upgrade Skript
+#  Meraki CMS - Update & Upgrade Skript
 #  Holt die neueste Version von GitHub und startet den Server neu.
 #
 #  Nutzung:
@@ -27,7 +27,7 @@ cd "${INSTALL_DIR}"
 clear
 echo -e "${BOLD}"
 echo "  ╔══════════════════════════════════════════════════════╗"
-echo "  ║       OPA-CMS - Update & Upgrade Skript            ║"
+echo "  ║       Meraki CMS - Update & Upgrade Skript            ║"
 echo "  ╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 log_info "Verzeichnis: ${INSTALL_DIR}"
@@ -107,13 +107,13 @@ if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q 'opa-cms'; then
     log_ok "PM2: opa-cms neu gestartet"
     RESTARTED=true
 # systemd
-elif systemctl is-active --quiet opa-santorini 2>/dev/null; then
+elif systemctl is-active --quiet meraki-cms 2>/dev/null; then
     if [[ $EUID -eq 0 ]]; then
-        systemctl restart opa-santorini
+        systemctl restart meraki-cms
     else
-        sudo systemctl restart opa-santorini
+        sudo systemctl restart meraki-cms
     fi
-    log_ok "systemd: opa-santorini neu gestartet"
+    log_ok "systemd: meraki-cms neu gestartet"
     RESTARTED=true
 elif command -v pm2 &>/dev/null; then
     log_warn "PM2 verfügbar, aber kein 'opa-cms' Prozess aktiv."
@@ -136,7 +136,7 @@ echo "  ║             ✓ UPDATE ABGESCHLOSSEN                  ║"
 echo "  ╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 if [ "${RESTARTED}" = true ]; then
-    echo -e "  ${GREEN}✅ OPA-CMS läuft auf dem neuesten Stand.${NC}"
+    echo -e "  ${GREEN}✅ Meraki CMS läuft auf dem neuesten Stand.${NC}"
 else
     echo -e "  ${YELLOW}⚠️  Code aktualisiert, Server muss noch manuell gestartet werden.${NC}"
 fi

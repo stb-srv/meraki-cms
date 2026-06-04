@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * OPA-CMS – Auto-Image Script
+ * Meraki CMS – Auto-Image Script
  * Sucht für alle Gerichte ohne Bild automatisch ein passendes Foto.
  *
  * Quellen (Reihenfolge im Auto-Modus):
@@ -46,7 +46,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function httpGet(url, headers = {}) {
     return new Promise((resolve, reject) => {
         const proto = url.startsWith('https') ? https : http;
-        proto.get(url, { headers: { 'User-Agent': 'OPA-CMS-AutoImage/1.0', ...headers } }, (res) => {
+        proto.get(url, { headers: { 'User-Agent': 'Meraki-CMS-AutoImage/1.0', ...headers } }, (res) => {
             if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
                 return httpGet(res.headers.location, headers).then(resolve).catch(reject);
             }
@@ -61,7 +61,7 @@ function download(url, dest, headers = {}) {
     return new Promise((resolve, reject) => {
         const proto = url.startsWith('https') ? https : http;
         const file  = fs.createWriteStream(dest);
-        proto.get(url, { headers: { 'User-Agent': 'OPA-CMS-AutoImage/1.0', ...headers } }, (res) => {
+        proto.get(url, { headers: { 'User-Agent': 'Meraki-CMS-AutoImage/1.0', ...headers } }, (res) => {
             if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
                 file.close(); fs.unlinkSync(dest);
                 return download(res.headers.location, dest, headers).then(resolve).catch(reject);
@@ -127,7 +127,7 @@ async function findImage(query) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-    console.log('\n\ud83c\udf04 OPA-CMS Auto-Image Script');
+    console.log('\n\ud83c\udf04 Meraki CMS Auto-Image Script');
     console.log('='.repeat(50));
 
     const hasPexels   = !!PEXELS_KEY;

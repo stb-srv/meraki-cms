@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Cookie Consent API
+ * Meraki CMS – Cookie Consent API
  * DSGVO Art. 7, ePrivacy-Richtlinie, EuGH Planet49
  *
  * Öffentliche Endpoints (keine Auth):
@@ -35,7 +35,7 @@ const DEFAULT_CONFIG = {
             required: true,
             enabled: true,
             cookies: [
-                { name: 'opa_consent', purpose: 'Speichert Ihre Cookie-Einstellungen', duration: '12 Monate', provider: 'OPA! CMS' }
+                { name: 'meraki_consent', purpose: 'Speichert Ihre Cookie-Einstellungen', duration: '12 Monate', provider: 'Meraki CMS' }
             ]
         },
         functional: {
@@ -45,7 +45,7 @@ const DEFAULT_CONFIG = {
             required: false,
             enabled: true,
             cookies: [
-                { name: 'opa_lang', purpose: 'Gespeicherte Spracheinstellung', duration: '12 Monate', provider: 'OPA! CMS' }
+                { name: 'meraki_lang', purpose: 'Gespeicherte Spracheinstellung', duration: '12 Monate', provider: 'Meraki CMS' }
             ]
         },
         analytics: {

@@ -1,5 +1,5 @@
 /**
- * OPA-CMS Navigation Config – Single Source of Truth
+ * Meraki CMS Navigation Config – Single Source of Truth
  * Alle Sidebar-Einträge, Breadcrumbs und Suchindexe basieren auf dieser Struktur.
  */
 

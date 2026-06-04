@@ -1,5 +1,5 @@
 /**
- * Dashboard Module for OPA-CMS
+ * Dashboard Module for Meraki CMS
  */
 
 import { apiGet, apiPost } from './api.js';

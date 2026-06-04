@@ -53,7 +53,7 @@ export async function renderDesigner(container, titleEl, initialTab = null) {
 // ── Cookie-Config ────────────────────────────────────────────────────────────
 async function _fetchCookieConfig() {
     try {
-        const token = sessionStorage.getItem('opa_admin_token');
+        const token = sessionStorage.getItem('meraki_admin_token');
         const res = await fetch('/api/cookie-config/admin', { headers: { 'x-admin-token': token } });
         if (!res.ok) return null;
         return await res.json();
@@ -62,7 +62,7 @@ async function _fetchCookieConfig() {
 
 async function _saveCookieConfig(config) {
     try {
-        const token = sessionStorage.getItem('opa_admin_token');
+        const token = sessionStorage.getItem('meraki_admin_token');
         const res = await fetch('/api/cookie-config/admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
@@ -74,7 +74,7 @@ async function _saveCookieConfig(config) {
 
 async function _fetchConsentLog(page = 1) {
     try {
-        const token = sessionStorage.getItem('opa_admin_token');
+        const token = sessionStorage.getItem('meraki_admin_token');
         const res = await fetch(`/api/cookie-consent/log?page=${page}&limit=50`, { headers: { 'x-admin-token': token } });
         if (!res.ok) return null;
         return await res.json();
@@ -83,7 +83,7 @@ async function _fetchConsentLog(page = 1) {
 
 async function _triggerRecons() {
     try {
-        const token = sessionStorage.getItem('opa_admin_token');
+        const token = sessionStorage.getItem('meraki_admin_token');
         const res = await fetch('/api/cookie-consent/recons', { method: 'POST', headers: { 'x-admin-token': token } });
         return await res.json();
     } catch (e) { return { success: false, reason: e.message }; }
@@ -91,7 +91,7 @@ async function _triggerRecons() {
 
 async function _clearConsentLog() {
     try {
-        const token = sessionStorage.getItem('opa_admin_token');
+        const token = sessionStorage.getItem('meraki_admin_token');
         const res = await fetch('/api/cookie-consent/log', { method: 'DELETE', headers: { 'x-admin-token': token } });
         return await res.json();
     } catch (e) { return { success: false, reason: e.message }; }

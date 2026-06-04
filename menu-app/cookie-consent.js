@@ -1,8 +1,8 @@
 /**
- * OPA! Santorini – Cookie Consent Manager
+ * Meraki – Cookie Consent Manager
  * DSGVO Art. 7 / ePrivacy-Richtlinie / EuGH Planet49 konform
  *
- * Öffentliche API: window.OPAConsent
+ * Öffentliche API: window.MerakiConsent
  *   .init()              – Initialisierung, Banner bei Bedarf anzeigen
  *   .hasConsent(cat)     – true/false
  *   .showPreferences()   – Banner erneut anzeigen (für Footer-Link)
@@ -22,7 +22,7 @@
 (function () {
     'use strict';
 
-    const STORAGE_KEY   = 'opa_consent';
+    const STORAGE_KEY   = 'meraki_consent';
     const CONFIG_URL    = '/api/cookie-config';
     const LOG_URL       = '/api/cookie-consent';
     const MAX_AGE_MS    = 365 * 24 * 60 * 60 * 1000; // 12 Monate
@@ -287,7 +287,7 @@
     };
 
     // ── Öffentliche API ──────────────────────────────────────────────────────
-    window.OPAConsent = {
+    window.MerakiConsent = {
         hasConsent(category) {
             if (!_choices) return false;
             return _choices[category] === true;

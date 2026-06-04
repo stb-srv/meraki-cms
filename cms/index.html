@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPA! Santorini CMS</title>
+    <title>Meraki CMS</title>
     <!-- Config: muss vor allen anderen Scripts stehen -->
     <script>
-        window.OPA_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
-        window.OPA_CONFIG = {
-            licenseServer: window.OPA_LICENSE_SERVER,
+        window.MERAKI_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
+        window.MERAKI_CONFIG = {
+            licenseServer: window.MERAKI_LICENSE_SERVER,
             version: '2.x'
         };
     </script>
@@ -32,7 +32,7 @@
     <main class="login-container" id="login-container">
         <div class="login-wrapper">
             <div class="login-logo-container">
-                <img src="assets/logo.png" alt="OPA! Santorini" class="login-logo" onerror="this.style.display='none'">
+                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
             </div>
             <!-- SEC-FIX: method="post" + action="javascript:void(0)" verhindert Credentials in URL falls JS nicht lädt -->
             <form id="login-form" class="login-form" method="post" action="javascript:void(0)">
@@ -58,7 +58,7 @@
     <main class="login-container" id="forgot-password-container" style="display:none;">
         <div class="login-wrapper">
             <div class="login-logo-container">
-                <img src="assets/logo.png" alt="OPA! Santorini" class="login-logo" onerror="this.style.display='none'">
+                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
             </div>
             <form id="forgot-password-form" class="login-form" method="post" action="javascript:void(0)">
                 <p class="login-welcome-text" style="font-size:0.9rem">Passwort zurücksetzen</p>
@@ -82,7 +82,7 @@
     <main class="login-container" id="password-change-container" style="display:none;">
         <div class="login-wrapper">
             <div class="login-logo-container">
-                <img src="assets/logo.png" alt="OPA! Santorini" class="login-logo" onerror="this.style.display='none'">
+                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
             </div>
             <form id="password-change-form" class="login-form" method="post" action="javascript:void(0)">
                 <p class="login-welcome-text" style="font-size:0.9rem">Bitte ändern Sie Ihr Passwort für den ersten Zugang.</p>
@@ -103,7 +103,7 @@
 
                 <div class="sidebar-header">
                     <div>
-                        <h2 id="disp-res-name">OPA! CMS</h2>
+                        <h2 id="disp-res-name">Meraki CMS</h2>
                         <p id="disp-res-slogan">Restaurant Management</p>
                     </div>
                     <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Sidebar einklappen" title="Sidebar einklappen">
@@ -308,7 +308,7 @@
             <section class="main-content">
                 <header class="content-header">
                     <div class="header-left">
-                        <img id="cms-header-logo" src="assets/logo.png" alt="Logo"
+                        <img id="cms-header-logo" src="assets/logo.svg" alt="Logo"
                              style="height:28px; width:auto; object-fit:contain; display:none; margin-right:8px;">
                         <h2 id="view-title">Dashboard</h2>
                     </div>

@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "=============================================================="
-echo " OPA-CMS - Restaurant Management System"
+echo " Meraki CMS - Restaurant Management System"
 echo " Lokaler Start (Mac / Linux)"
 echo "=============================================================="
 echo ""

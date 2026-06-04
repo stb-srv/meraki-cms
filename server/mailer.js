@@ -1,5 +1,5 @@
 /**
- * Mailer Service for OPA-CMS
+ * Mailer Service for Meraki CMS
  * Der Transporter wird bei jedem Aufruf frisch aus der aktuellen Konfiguration
  * erstellt, damit SMTP-Änderungen im CMS sofort ohne Neustart greifen.
  */
@@ -278,7 +278,7 @@ const Mailer = {
 
         const bodyContent = `
             <h2 style="color: #38a169;">✅ SMTP-Konfiguration funktioniert!</h2>
-            <p>Wenn du diese E-Mail siehst, ist die E-Mail-Konfiguration deines OPA! CMS korrekt eingerichtet.</p>
+            <p>Wenn du diese E-Mail siehst, ist die E-Mail-Konfiguration deines Meraki CMS korrekt eingerichtet.</p>
             <p style="color: #718096; font-size: 13px;">Gesendet am: ${new Date().toLocaleString('de-DE')}</p>
         `;
         const html = wrapHtml(restaurantName, bodyContent);
@@ -286,7 +286,7 @@ const Mailer = {
         await sendWithRetry(transporter, {
             from,
             to: toEmail,
-            subject: 'OPA! CMS - SMTP Test erfolgreich ✅',
+            subject: 'Meraki CMS - SMTP Test erfolgreich ✅',
             html
         });
     },

@@ -1,4 +1,4 @@
-window.OPA_LICENSE_SERVER = 'https://license.opa-santorini.de';
+window.MERAKI_LICENSE_SERVER = 'https://license.meraki-cms.de';
 /**
  * Grieche-CMS Module Configuration
  * This file controls which features are active in the system.

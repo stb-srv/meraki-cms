@@ -1,4 +1,4 @@
-// QR-Code Modul für OPA Admin
+// QR-Code Modul für Meraki Admin
 (function() {
     window.AdminQR = {
         render(container, titleEl) {

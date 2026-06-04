@@ -142,7 +142,7 @@ module.exports = function(CONFIG, io) {
             const licenseServerUrl = (licenseServer || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
             const trialPlan = PLAN_DEFINITIONS['FREE'];
             const trialLicense = {
-                key: 'OPA-TRIAL-' + crypto.randomBytes(4).toString('hex').toUpperCase() + '-' + new Date().getFullYear(),
+                key: 'MERAKI-TRIAL-' + crypto.randomBytes(4).toString('hex').toUpperCase() + '-' + new Date().getFullYear(),
                 status: 'trial', customer: restaurantName || 'Trial', type: 'FREE', label: trialPlan.label,
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 modules: trialPlan.modules, limits: { max_dishes: trialPlan.menu_items, max_tables: trialPlan.max_tables },
@@ -162,7 +162,7 @@ module.exports = function(CONFIG, io) {
             const plainRecoveryCodes = [], hashedCodes = [];
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             for (let i = 0; i < 3; i++) {
-                let code = 'OPA-';
+                let code = 'MERAKI-';
                 for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)]; code += '-';
                 for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)];
                 plainRecoveryCodes.push(code); hashedCodes.push(await bcrypt.hash(code, 12));

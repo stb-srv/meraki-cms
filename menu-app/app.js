@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const br = await get('branding');
             if (br) {
-                const restaurantName = br.name || 'OPA! Santorini';
+                const restaurantName = br.name || 'Meraki';
                 document.title = restaurantName;
 
                 // Meta Description
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const m = await get('menu');
         const cats = await get('categories');
-        if (cats && Array.isArray(cats)) { window.OPA_CATEGORIES = cats; }
+        if (cats && Array.isArray(cats)) { window.MERAKI_CATEGORIES = cats; }
 
         if (m && Array.isArray(m)) {
             menuItems = m;
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- BRANDING ---
     function applyBranding(d) {
-        window.OPA_DAILY_SPECIALS_ENABLED = d.dailySpecialsEnabled !== false;
+        window.MERAKI_DAILY_SPECIALS_ENABLED = d.dailySpecialsEnabled !== false;
         if (d.heroTitle) document.getElementById('hero-title').textContent = d.heroTitle;
         if (d.heroSlogan) document.getElementById('hero-slogan').textContent = d.heroSlogan;
         if (d.bgImage) {
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Kachel-Klick-Modus: wird aus homeData.cartClickMode gelesen
     // Mögliche Werte: 'button' (nur +), 'tile' (nur Kachel), 'both' (beides)
     // FIX: Default auf 'tile' – kein + Button mehr vorhanden
-    window.OPA_CART_CLICK_MODE = 'tile';
+    window.MERAKI_CART_CLICK_MODE = 'tile';
 
     function showMenuSkeleton(count = 6) {
         // Kategorie-Skeleton
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderCategories() {
         const c = document.getElementById('categories');
         if (!c) return;
-        const dbCats = window.OPA_CATEGORIES || [];
+        const dbCats = window.MERAKI_CATEGORIES || [];
 
         // "Alle"-Button immer zuerst
         const allBtn = `<button class="cat-btn active" onclick="window.filterMenu('Alle', this)" data-i18n="menu.all_categories">
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).join('');
 
         let specialBtn = '';
-        if (window.OPA_DAILY_SPECIALS_ENABLED) {
+        if (window.MERAKI_DAILY_SPECIALS_ENABLED) {
             const hasSpecials = menuItems.some(i => i.is_daily_special && i.active !== false && i.available !== false);
             if (hasSpecials) {
                 const label = window.OpaI18n ? OpaI18n.t('menu.daily_specials').replace('⭐ ','') : 'Tagesspecials';
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Kachel-Klick-Modus aus homeData laden (Fallback: 'tile')
         const clickMode = homeData.cartClickMode || 'tile';
-        window.OPA_CART_CLICK_MODE = clickMode;
+        window.MERAKI_CART_CLICK_MODE = clickMode;
 
         // tile / both: Kachel bekommt cursor:pointer + data-cart-tile Marker
         const tileClickable = (clickMode === 'tile' || clickMode === 'both');
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                  data-item-desc="${(itemDesc || '').replace(/"/g, '&quot;')}"
                  ${tileClickable ? 'data-cart-tile="1"' : ''}>
                 <div class="dish-card-img">
-                    ${(item.is_daily_special && window.OPA_DAILY_SPECIALS_ENABLED) ? `<span class="daily-special-badge" data-i18n="menu.today_badge">⭐ ${window.OpaI18n ? OpaI18n.t('menu.today_badge') : 'Heute'}</span>` : ''}
+                    ${(item.is_daily_special && window.MERAKI_DAILY_SPECIALS_ENABLED) ? `<span class="daily-special-badge" data-i18n="menu.today_badge">⭐ ${window.OpaI18n ? OpaI18n.t('menu.today_badge') : 'Heute'}</span>` : ''}
                     ${item.image
                         ? `<img src="${item.image}" alt="${itemName}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                            <span style="display:none"><i class="fas fa-utensils"></i> ${item.cat}</span>`
@@ -1078,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isActive = false;
         if (isActive) {
             let seen = false;
-            try { seen = sessionStorage.getItem('opa_vacation_seen'); } catch(e) {}
+            try { seen = sessionStorage.getItem('meraki_vacation_seen'); } catch(e) {}
             if (!seen) {
                 const modal = document.getElementById('vacation-modal');
                 if (modal) {
@@ -1099,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modal = document.getElementById('vacation-modal');
         if (modal) {
             modal.classList.remove('active');
-            try { sessionStorage.setItem('opa_vacation_seen', '1'); } catch(e) {}
+            try { sessionStorage.setItem('meraki_vacation_seen', '1'); } catch(e) {}
         }
     };
 
@@ -1109,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const start = v.start ? new Date(v.start) : null;
         const end   = v.end   ? new Date(v.end)   : null;
         let seen = false;
-        try { seen = sessionStorage.getItem('opa_holiday_seen'); } catch(e) {}
+        try { seen = sessionStorage.getItem('meraki_holiday_seen'); } catch(e) {}
         if (start && end && now >= start && now <= end && !seen) {
             const modal = document.getElementById('holiday-modal');
             if (modal) {
@@ -1124,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modal = document.getElementById('holiday-modal');
         if (modal) {
             modal.classList.remove('active');
-            try { sessionStorage.setItem('opa_holiday_seen', '1'); } catch(e) {}
+            try { sessionStorage.setItem('meraki_holiday_seen', '1'); } catch(e) {}
         }
     };
 

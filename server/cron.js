@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Background Cron Jobs
+ * Meraki CMS – Background Cron Jobs
  * Trial Expiry & Reservation Reminders
  */
 const DB = require('./db.js');

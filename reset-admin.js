@@ -1,5 +1,5 @@
 /**
- * OPA-CMS Admin Recovery Script
+ * Meraki CMS Admin Recovery Script
  * Nutzung: node reset-admin.js
  *
  * Setzt das Passwort des ersten Admin-Accounts auf ein zufälliges Passwort zurück.
@@ -13,7 +13,7 @@ const crypto = require('crypto');
 
 async function resetPassword() {
     console.log('\n╔══════════════════════════════════════════════╗');
-    console.log('║       OPA-CMS - Admin Wiederherstellung      ║');
+    console.log('║       Meraki CMS - Admin Wiederherstellung      ║');
     console.log('╚══════════════════════════════════════════════╝\n');
 
     try {

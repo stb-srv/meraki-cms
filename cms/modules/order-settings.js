@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Online-Bestellungen Einstellungen
+ * Meraki CMS – Online-Bestellungen Einstellungen
  */
 
 const escHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

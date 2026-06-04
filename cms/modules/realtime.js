@@ -1,5 +1,5 @@
 /**
- * OPA-CMS – Realtime-Bridge via Socket.io
+ * Meraki CMS – Realtime-Bridge via Socket.io
  * Empfängt Server-Events und dispatcht sie als CustomEvents im Browser.
  */
 
@@ -13,7 +13,7 @@ export function initRealtime() {
         return;
     }
 
-    const token = sessionStorage.getItem('opa_admin_token');
+    const token = sessionStorage.getItem('meraki_admin_token');
     socket = io({
         transports: ['websocket', 'polling'],
         auth: { token: token || '' }

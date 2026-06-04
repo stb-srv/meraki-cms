@@ -79,7 +79,7 @@ module.exports = (requireAuth) => {
                 _meta: {
                     version:     BACKUP_VERSION,
                     createdAt:   new Date().toISOString(),
-                    generator:   'OPA-Santorini CMS',
+                    generator:   'Meraki CMS',
                     recordCount: {
                         kv:           Object.keys(kv).length,
                         menu:         menu.length,

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-#  OPA-CMS - Linux Installations-Skript
+#  Meraki CMS - Linux Installations-Skript
 #  Getestet auf: Ubuntu 22.04 / 24.04, Debian 12, Rocky Linux 9
 # ==============================================================================
 #  Nutzung:
@@ -36,7 +36,7 @@ if [[ -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]]; then
 else
     SCRIPT_USER="opa"
     if ! id -u opa &>/dev/null; then
-        useradd --system --create-home --shell /bin/bash --comment "OPA-CMS Service" opa
+        useradd --system --create-home --shell /bin/bash --comment "Meraki CMS Service" opa
         log_ok "System-User 'opa' angelegt"
     else
         log_warn "System-User 'opa' bereits vorhanden"
@@ -46,7 +46,7 @@ fi
 clear
 echo -e "${BOLD}"
 echo "  ╔══════════════════════════════════════════════════════╗"
-echo "  ║         OPA-CMS - Linux Installer v3.2              ║"
+echo "  ║         Meraki CMS - Linux Installer v3.2              ║"
 echo "  ╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 log_info "Installationsverzeichnis: ${INSTALL_DIR}"
@@ -83,7 +83,7 @@ else
     if [[ "${SERVER_DOMAIN}" != "localhost" && "${SERVER_DOMAIN}" != "127.0.0.1" ]]; then
         echo
         log_warn "Du hast eine Domain angegeben aber kein SSL gewählt."
-        log_warn "Falls du später manuell SSL einrichtest, musst du in /opt/opa-santorini/.env"
+        log_warn "Falls du später manuell SSL einrichtest, musst du in /opt/meraki-cms/.env"
         log_warn "die Zeile \"CORS_ORIGINS=http://\" auf \"CORS_ORIGINS=https://\" ändern"
         log_warn "und danach \"pm2 restart opa-cms\" ausführen."
         echo
@@ -196,7 +196,7 @@ if [[ "${INSTALL_NGINX,,}" == "j" || "${INSTALL_NGINX,,}" == "y" ]]; then
     log_step "Nginx konfigurieren"
     apt-get install -yq nginx
 
-    NGINX_CONF="/etc/nginx/sites-available/opa-santorini"
+    NGINX_CONF="/etc/nginx/sites-available/meraki-cms"
     cat > "${NGINX_CONF}" <<EOF
 server {
     listen 80;
@@ -217,7 +217,7 @@ server {
 }
 EOF
 
-    ln -sf "${NGINX_CONF}" /etc/nginx/sites-enabled/opa-santorini
+    ln -sf "${NGINX_CONF}" /etc/nginx/sites-enabled/meraki-cms
     rm -f /etc/nginx/sites-enabled/default
     nginx -t && systemctl reload nginx
     log_ok "Nginx konfiguriert für: ${SERVER_DOMAIN}"

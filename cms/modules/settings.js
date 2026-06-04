@@ -1,5 +1,5 @@
 /**
- * Settings Module for OPA-CMS
+ * Settings Module for Meraki CMS
  */
 
 import { apiGet, apiPost } from './api.js';
@@ -129,7 +129,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                     </div>
                     <div style="flex:1;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                            <h3 style="margin:0;">OPA! Santorini CMS</h3>
+                            <h3 style="margin:0;">Meraki CMS</h3>
                             <span style="background:${badgeColor}22; color:${badgeColor}; border:1px solid ${badgeColor}44; border-radius:20px; padding:2px 12px; font-size:.78rem; font-weight:600;">${badgeText}</span>
                         </div>
                         <p style="color:var(--text-muted); font-size:.85rem; margin:0;">
@@ -156,7 +156,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                 <p style="color:var(--text-muted); font-size:.85rem; margin-bottom:16px;">Geben Sie Ihren Lizenz-Key ein um auf einen höheren Plan zu wechseln oder eine abgelaufene Lizenz zu erneuern.</p>
                 <div style="display:flex; gap:12px; flex-wrap:wrap;">
                     <input id="license-key-input" class="input-styled" style="flex:1; min-width:260px; font-family:monospace; letter-spacing:.05em;"
-                        placeholder="z.B. OPA-XXXX-XXXX-XXXX-XXXX"
+                        placeholder="z.B. MERAKI-XXXX-XXXX-XXXX-XXXX"
                         value="${isActive ? (l.key || '') : ''}">
                     <button id="btn-activate-license" class="btn-primary" style="white-space:nowrap;">
                         <i class="fas fa-check-circle"></i> Lizenz aktivieren
@@ -275,7 +275,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
     if (settingsTab === 'branding') {
         return `
             <div class="form-grid">
-                <div class="form-group full"><label>Restaurant Name</label><input id="br-name" class="input-styled" value="${branding.name || ''}" placeholder="z.B. OPA! Santorini"></div>
+                <div class="form-group full"><label>Restaurant Name</label><input id="br-name" class="input-styled" value="${branding.name || ''}" placeholder="z.B. Mein Restaurant"></div>
                 <div class="form-group"><label>Slogan</label><input id="br-slogan" class="input-styled" value="${branding.slogan || ''}" placeholder="z.B. Griechische Meeresfrüchte"></div>
                 <div class="form-group"><label>Telefon (Gästeansicht)</label><input id="br-phone" class="input-styled" value="${branding.phone || ''}" placeholder="0123 / 456789"></div>
                 <div class="form-group full" style="border-top:1px solid rgba(0,0,0,0.05); padding-top:15px; margin-top:10px;">
@@ -869,7 +869,7 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
 
     window.deleteUser = async (user) => {
         if (await showConfirm('Nutzer löschen?', `Möchten Sie den Zugang für ${user} wirklich entfernen?`)) {
-            const res = await fetch(`/api/users/${user}`, { method: 'DELETE', headers: { 'x-admin-token': sessionStorage.getItem('opa_admin_token') }});
+            const res = await fetch(`/api/users/${user}`, { method: 'DELETE', headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') }});
             const data = await res.json();
             if (data.success) { showToast('Nutzer gelöscht'); renderSettings(container, titleEl); }
             else showToast(data.reason || 'Fehler beim Löschen', 'error');
@@ -878,7 +878,7 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
 
     window.resetUserPassword = async (user) => {
         if (await showConfirm('Passwort zurücksetzen?', `Dem Nutzer ${user} wird ein neues Passwort generiert und an seine E-Mail-Adresse gesendet.`)) {
-            const res = await fetch(`/api/users/${user}/reset`, { method: 'POST', headers: { 'x-admin-token': sessionStorage.getItem('opa_admin_token') }});
+            const res = await fetch(`/api/users/${user}/reset`, { method: 'POST', headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') }});
             const data = await res.json();
             if (data.success) { showToast('Passwort zurückgesetzt & E-Mail gesendet!'); }
             else showToast(data.reason || 'Senden fehlgeschlagen', 'error');
@@ -919,7 +919,7 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 role: modal.querySelector('#mu-role').value
             };
             let res, data;
-            const headers = { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('opa_admin_token') };
+            const headers = { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('meraki_admin_token') };
             if (isNew) { res = await fetch('/api/users', { method: 'POST', headers, body: JSON.stringify(payload) }); }
             else { res = await fetch(`/api/users/${u.user}`, { method: 'PUT', headers, body: JSON.stringify(payload) }); }
             data = await res.json();

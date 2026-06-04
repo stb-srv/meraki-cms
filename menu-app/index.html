@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPA! Santorini – Griechisches Restaurant</title>
+    <title>Meraki – Griechisches Restaurant</title>
     <link rel="icon" href="/admin/assets/favicon.ico" sizes="any">
     <link rel="icon" href="/admin/assets/favicon.svg" type="image/svg+xml">
     <meta name="description" content="Authentische griechische Küche im Herzen Münchens. Frische Zutaten, traditionelle Rezepte, modernes Ambiente.">
@@ -17,7 +17,7 @@
 
     <!-- NAVIGATION -->
     <nav class="nav" id="main-nav">
-        <a onclick="window.switchTab('home')" class="nav-logo" id="nav-logo" style="cursor:pointer;">OPA!</a>
+        <a onclick="window.switchTab('home')" class="nav-logo" id="nav-logo" style="cursor:pointer;">Meraki</a>
         <div class="nav-links" id="nav-links"></div>
         <button class="nav-hamburger" id="nav-hamburger" 
                 aria-label="Menü öffnen" onclick="window.toggleMobileNav()">
@@ -43,7 +43,7 @@
         <div class="hero-overlay"></div>
         <div class="hero-center">
             <p class="hero-label">WILLKOMMEN BEI</p>
-            <h1 id="hero-title">OPA! Santorini</h1>
+            <h1 id="hero-title">Meraki</h1>
             <p class="hero-sub" id="hero-slogan">Authentische Griechische Küche</p>
             <a class="hero-btn" onclick="window.switchTab('menu')" data-i18n="nav.menu">Speisekarte <i class="fas fa-arrow-down"></i></a>
         </div>
@@ -176,7 +176,7 @@
             </div>
 
             <div class="res-footer-info" style="text-align:center; margin-top:40px; font-size:.8rem; opacity:.5;">
-                Online Reservierungen mit <span style="font-weight:700;">OPA! SmartPlanner</span>
+                Online Reservierungen mit <span style="font-weight:700;">Meraki SmartPlanner</span>
             </div>
         </div>
     </section>
@@ -229,17 +229,17 @@
                 <a onclick="window.switchTab('legal'); window.setLegalView('impressum')" data-i18n="legal.imprint">Impressum</a>
                 <a onclick="window.switchTab('legal'); window.setLegalView('privacy')" data-i18n="legal.privacy">Datenschutz</a>
                 <!-- DSGVO: Widerruf jederzeit möglich -->
-                <a onclick="window.OPAConsent && window.OPAConsent.showPreferences()" style="cursor:pointer;" title="Cookie-Einstellungen anpassen" data-i18n="cookie.title">Cookie-Einstellungen</a>
+                <a onclick="window.MerakiConsent && window.MerakiConsent.showPreferences()" style="cursor:pointer;" title="Cookie-Einstellungen anpassen" data-i18n="cookie.title">Cookie-Einstellungen</a>
             </div>
             <div class="footer-muted" style="text-align:right;">
-                © <span id="footer-year"></span> <span data-i18n="footer.rights">Alle Rechte vorbehalten.</span> OPA!
+                © <span id="footer-year"></span> <span data-i18n="footer.rights">Alle Rechte vorbehalten.</span> Meraki
             </div>
         </div>
     </footer>
 
     <!-- GDPR COOKIE BANNER -->
     <div id="cookie-settings-trigger" class="cookie-trigger" style="display:none;"
-         onclick="window.OPAConsent && window.OPAConsent.showPreferences()"
+         onclick="window.MerakiConsent && window.MerakiConsent.showPreferences()"
          title="Cookie-Einstellungen"
          role="button" aria-label="Cookie-Einstellungen öffnen" tabindex="0">
         <i class="fas fa-fingerprint"></i>
@@ -286,7 +286,7 @@
                    data-i18n="legal.privacy">Datenschutz</a> &bull;
                 <a onclick="window.switchTab('legal'); window.setLegalView('impressum')" 
                    data-i18n="legal.imprint">Impressum</a> &bull;
-                <a onclick="window.OPAConsent && window.OPAConsent.revokeAll()" 
+                <a onclick="window.MerakiConsent && window.MerakiConsent.revokeAll()"
                    style="cursor:pointer;" 
                    title="Einwilligung widerrufen (Art. 7 Abs. 3 DSGVO)">
                    Einwilligung widerrufen
