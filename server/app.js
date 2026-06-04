@@ -53,6 +53,7 @@ module.exports = function(CONFIG, io) {
     const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean) : ['http://localhost:3000', 'http://localhost:5000'];
     app.use(cors({
         origin: (origin, callback) => {
+            if (!CONFIG.SETUP_COMPLETE) return callback(null, true);
             if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
             return callback(new Error(`CORS: Origin '${origin}' nicht erlaubt.`));
         },
@@ -130,12 +131,6 @@ module.exports = function(CONFIG, io) {
 
     app.post('/api/setup', async (req, res) => {
         if (CONFIG.SETUP_COMPLETE) return res.status(403).json({ success: false, reason: 'Already configured' });
-        const clientIp = req.ip || req.connection.remoteAddress;
-        const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
-        if (!isLocal) {
-            logger.warn({ ip: clientIp }, 'Remote setup attempt blocked');
-            return res.status(403).json({ success: false, reason: 'Setup is only allowed from localhost (127.0.0.1) for security reasons.' });
-        }
         try {
             const { restaurantName, licenseServer, adminSecret, smtp, adminUser, adminPass, adminEmail } = req.body;
             if (!adminPass || adminPass.length < 12) return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });

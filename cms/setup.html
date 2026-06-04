@@ -141,6 +141,26 @@
                 </div>
                 <div class="hint"><i class="fas fa-triangle-exclamation"></i> Niemals teilen. Wird für Session-Tokens genutzt.</div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Admin-Passwort</label>
+                    <div class="input-wrap">
+                        <input type="password" id="adminPass" placeholder="Mindestens 12 Zeichen" oninput="checkPwStrength(this.value)">
+                        <button class="toggle-pw" type="button" onclick="togglePw('adminPass',this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <div id="pw-strength" class="pw-strength" style="display:none"></div>
+                    <div id="pw-hint" class="hint"></div>
+                </div>
+                <div class="form-group">
+                    <label>Passwort bestätigen</label>
+                    <div class="input-wrap">
+                        <input type="password" id="adminPassConfirm" placeholder="Passwort wiederholen">
+                        <button class="toggle-pw" type="button" onclick="togglePw('adminPassConfirm',this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <div id="pw-confirm-hint" class="hint"></div>
+                </div>
+            </div>
+            <div id="setup-step1-error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:8px"></div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="validateLicenseAndNext()">Weiter <i class="fas fa-arrow-right"></i></button>
             </div>
@@ -219,7 +239,7 @@
             <p>Das CMS wurde erfolgreich eingerichtet.<br>Du kannst dich jetzt mit folgenden Daten anmelden:</p>
             <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin:20px 0; font-family:monospace;">
                 Benutzer: <strong>admin</strong><br>
-                Passwort: <strong>admin</strong>
+                Passwort: <strong id="success-pw-display">●●●●●●●●●●●●</strong>
             </div>
             <button class="btn btn-primary" style="max-width:220px;margin:0 auto" onclick="location.href='/admin'"><i class="fas fa-arrow-right"></i> Zum Dashboard</button>
         </div>
@@ -253,6 +273,7 @@ function togglePw(id, btn) {
 function checkPwStrength(pw) {
     const bar = document.getElementById('pw-strength');
     const hint = document.getElementById('pw-hint');
+    bar.style.display = pw.length > 0 ? 'block' : 'none';
     let score = 0;
     if (pw.length >= 8) score++;
     if (/[A-Z]/.test(pw)) score++;
@@ -262,7 +283,9 @@ function checkPwStrength(pw) {
     const labels = ['Schwach','Mittel','Gut','Stark'];
     bar.style.width = (score * 25) + '%';
     bar.style.background = colors[score - 1] || '#334155';
-    hint.textContent = score > 0 ? 'Passwortstärke: ' + (labels[score - 1] || '') : 'Mind. 8 Zeichen, Groß-/Kleinbuchstaben, Zahlen';
+    hint.style.color = '';
+    hint.textContent = score > 0 ? 'Passwortstärke: ' + (labels[score - 1] || '') : 'Mind. 12 Zeichen, Groß-/Kleinbuchstaben, Zahlen';
+    document.getElementById('pw-confirm-hint').textContent = '';
 }
 
 async function validateLicenseAndNext() {
@@ -308,6 +331,20 @@ function onDbTypeChange() {
 
 async function finishSetup() {
     const btn = document.getElementById('btn-finish');
+    const adminPass = document.getElementById('adminPass').value;
+    const adminPassConfirm = document.getElementById('adminPassConfirm').value;
+
+    if (!adminPass || adminPass.length < 12) {
+        document.getElementById('pw-hint').textContent = 'Passwort muss mindestens 12 Zeichen lang sein.';
+        document.getElementById('pw-hint').style.color = 'var(--danger)';
+        return;
+    }
+    if (adminPass !== adminPassConfirm) {
+        document.getElementById('pw-confirm-hint').textContent = 'Passwörter stimmen nicht überein.';
+        document.getElementById('pw-confirm-hint').style.color = 'var(--danger)';
+        return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Wird gespeichert...';
 
@@ -343,7 +380,7 @@ async function finishSetup() {
         },
         adminUser: 'admin',
         adminEmail: '',
-        adminPass: 'admin'
+        adminPass
     };
 
     try {
@@ -354,6 +391,7 @@ async function finishSetup() {
         });
         const result = await res.json();
         if (result.success) {
+            document.getElementById('success-pw-display').textContent = adminPass;
             for (let i = 1; i <= TOTAL; i++) {
                 document.getElementById(`ps${i}`).classList.remove('active');
                 document.getElementById(`ps${i}`).classList.add('done');
@@ -361,12 +399,12 @@ async function finishSetup() {
             document.getElementById(`step${currentStep}`).classList.remove('active');
             document.getElementById('success-screen').style.display = 'block';
         } else {
-            alert('Fehler: ' + result.reason);
+            alert('Fehler: ' + (result.reason || result.message || 'Unbekannter Fehler'));
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-check"></i> Setup abschließen';
         }
     } catch(e) {
-        alert('Netzwerkfehler beim Speichern.');
+        alert('Netzwerkfehler beim Speichern. Bitte prüfe ob der Server erreichbar ist.\n\nDetails: ' + e.message);
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-check"></i> Setup abschließen';
     }
