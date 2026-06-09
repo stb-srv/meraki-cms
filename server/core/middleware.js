@@ -3,10 +3,10 @@
  */
 const jwt      = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
-const { getCurrentLicense, verifyLicenseToken } = require('./license.js');
-const DB = require('./db.js');
+const { getCurrentLicense, verifyLicenseToken } = require('../services/license.js');
+const DB = require('../db');
 const logger = require('./logger.js');
-const { extractDomain } = require('./helpers.js');
+const { extractDomain } = require('../helpers.js');
 
 const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
     const token = req.headers['x-admin-token'] || req.query.token;

@@ -9,10 +9,10 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
-const DB     = require('../db.js');
-const Mailer = require('../mailer.js');
-const { loginLimiter, forgotPasswordLimiter, requireAuth: makeRequireAuth } = require('../middleware.js');
-const logger = require('../logger.js');
+const DB     = require('../db');
+const Mailer = require('../services/mailer.js');
+const { loginLimiter, forgotPasswordLimiter, requireAuth: makeRequireAuth } = require('../core/middleware.js');
+const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { loginSchema, forgotPasswordSchema, changePasswordSchema } = require('../validation/schemas.js');
 

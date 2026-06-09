@@ -3,9 +3,9 @@ const path = require('path');
 const fs = require('fs');
 
 const CONFIG = require('./config.js');
-const logger = require('./server/logger.js');
-const DB = require('./server/db.js');
-const { requireAuth: makeRequireAuth, requireLicense } = require('./server/middleware.js');
+const logger = require('./server/core/logger.js');
+const DB = require('./server/db');
+const { requireAuth: makeRequireAuth, requireLicense } = require('./server/core/middleware.js');
 const { startCron } = require('./server/cron.js');
 const { version: APP_VERSION } = require('./package.json');
 

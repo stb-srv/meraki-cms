@@ -6,16 +6,16 @@
  */
 const router = require('express').Router();
 const crypto = require('crypto');
-const DB     = require('../db.js');
-const Mailer = require('../mailer.js');
-const { getCurrentLicense } = require('../license.js');
+const DB     = require('../db');
+const Mailer = require('../services/mailer.js');
+const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain, sanitizeText } = require('../helpers.js');
 
-const { reservationLimiter } = require('../middleware.js');
-const logger = require('../logger.js');
+const { reservationLimiter } = require('../core/middleware.js');
+const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { cartOrderSchema, orderStatusUpdateSchema } = require('../validation/schemas.js');
-const { requireRole } = require('../middleware.js');
+const { requireRole } = require('../core/middleware.js');
 
 const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
 

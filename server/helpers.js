@@ -2,7 +2,7 @@
  * Server Helpers – shared utility functions
  */
 const sanitizeHtml = require('sanitize-html');
-const DB = require('./db.js');
+const DB = require('./db');
 
 const sanitizeText = (str) => {
     if (!str) return '';

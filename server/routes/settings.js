@@ -2,14 +2,14 @@
  * Routes – Settings, Branding, Homepage, License, SMTP Test
  */
 const router = require('express').Router();
-const DB = require('../db.js');
-const Mailer = require('../mailer.js');
-const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../license.js');
+const DB = require('../db');
+const Mailer = require('../services/mailer.js');
+const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../services/license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
-const logger = require('../logger.js');
+const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { anyObjectSchema } = require('../validation/schemas.js');
-const { requireRole } = require('../middleware.js');
+const { requireRole } = require('../core/middleware.js');
 
 
 /**

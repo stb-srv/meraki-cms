@@ -9,47 +9,74 @@ import { onRealtime } from './realtime.js';
 import { showToast } from './utils.js';
 
 const DEFAULT_WIDGETS = [
-    { id: 'branding',       size: 'span-6' },
-    { id: 'dishes',         size: 'span-3' },
-    { id: 'categories',     size: 'span-3' },
-    { id: 'reservations',   size: 'span-4' },
-    { id: 'status',         size: 'span-4' },
-    { id: 'vacation',       size: 'span-4' },
-    { id: 'menu_breakdown', size: 'span-6' },
-    { id: 'price_stats',    size: 'span-3' },
-    { id: 'avg_price',      size: 'span-3' },
-    { id: 'website',        size: 'span-12' }
+    { id: 'branding',               size: 'span-6' },
+    { id: 'dishes',                 size: 'span-3' },
+    { id: 'categories',             size: 'span-3' },
+    { id: 'orders_today',           size: 'span-3' },
+    { id: 'revenue_today',          size: 'span-3' },
+    { id: 'pending_orders',         size: 'span-3' },
+    { id: 'upcoming_reservations',  size: 'span-3' },
+    { id: 'reservations',           size: 'span-4' },
+    { id: 'status',                 size: 'span-4' },
+    { id: 'vacation',               size: 'span-4' },
+    { id: 'quick_actions',          size: 'span-4', active: false },
+    { id: 'table_overview',         size: 'span-8', active: false },
+    { id: 'menu_breakdown',         size: 'span-6' },
+    { id: 'price_stats',            size: 'span-3' },
+    { id: 'avg_price',              size: 'span-3' },
+    { id: 'website',                size: 'span-12' }
 ];
 
 const WIDGET_META = {
-    branding:       { label: 'Restaurant Info',           icon: 'fa-store' },
-    dishes:         { label: 'Gerichte-Zähler',           icon: 'fa-utensils' },
-    reservations:   { label: 'Reservierungen',            icon: 'fa-calendar-check' },
-    status:         { label: 'Heutige Zeiten',            icon: 'fa-clock' },
-    vacation:       { label: 'Urlaubs-Status',            icon: 'fa-umbrella-beach' },
-    website:        { label: 'Website Status',            icon: 'fa-magic' },
-    categories:     { label: 'Kategorien',                icon: 'fa-tags' },
-    menu_breakdown: { label: 'Speisen nach Kategorie',    icon: 'fa-chart-bar' },
-    price_stats:    { label: 'Preisspanne',               icon: 'fa-euro-sign' },
-    avg_price:      { label: 'Durchschnittspreis',        icon: 'fa-calculator' },
+    branding:               { label: 'Restaurant Info',           icon: 'fa-store' },
+    dishes:                 { label: 'Gerichte-Zähler',           icon: 'fa-utensils' },
+    reservations:           { label: 'Reservierungen',            icon: 'fa-calendar-check' },
+    status:                 { label: 'Heutige Zeiten',            icon: 'fa-clock' },
+    vacation:               { label: 'Urlaubs-Status',            icon: 'fa-umbrella-beach' },
+    website:                { label: 'Website Status',            icon: 'fa-magic' },
+    categories:             { label: 'Kategorien',                icon: 'fa-tags' },
+    menu_breakdown:         { label: 'Speisen nach Kategorie',    icon: 'fa-chart-bar' },
+    price_stats:            { label: 'Preisspanne',               icon: 'fa-euro-sign' },
+    avg_price:              { label: 'Durchschnittspreis',        icon: 'fa-calculator' },
+    orders_today:           { label: 'Bestellungen Heute',        icon: 'fa-receipt' },
+    revenue_today:          { label: 'Umsatz Heute',              icon: 'fa-coins' },
+    pending_orders:         { label: 'Ausstehende Bestellungen',  icon: 'fa-hourglass-half' },
+    upcoming_reservations:  { label: 'Bald: Reservierungen',      icon: 'fa-calendar-alt' },
+    quick_actions:          { label: 'Schnellzugriff',            icon: 'fa-bolt' },
+    table_overview:         { label: 'Tischübersicht',            icon: 'fa-chair' },
 };
 
 const WIDGET_TEMPLATES = {
-    branding: (d) => `
-        <div class="stat-widget accent full-height">
+    branding: (d) => {
+        const isTrial = d.l?.isTrial;
+        const planLabel = d.l?.label || d.l?.type || 'FREE';
+        const exp = d.l?.expiresAt ? new Date(d.l.expiresAt).toLocaleDateString('de-DE') : null;
+        return `<div class="stat-widget accent full-height">
             <i class="fas fa-store"></i>
-            <div>
+            <div style="flex:1;">
                 <h3 style="color:#fff;">${d.branding?.name || 'Restaurant'}</h3>
-                <p style="color:rgba(255,255,255,.8);">Lizenz: ${d.l.type || 'PRO'} &bull; ${d.l.status || 'aktiv'}</p>
+                <p style="color:rgba(255,255,255,.8);">
+                    <span style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;font-size:.72rem;font-weight:700;">${planLabel}</span>
+                    ${isTrial && exp ? `&nbsp;· Trial bis ${exp}` : `&nbsp;· ${d.l.status || 'aktiv'}`}
+                </p>
             </div>
-        </div>`,
+        </div>`;
+    },
 
-    dishes: (d) => `
-        <div class="stat-widget clickable full-height" onclick="window.switchTab('menu', 'dishes')">
+    dishes: (d) => {
+        const count = d.menu?.length || 0;
+        const max = d.l?.limits?.max_dishes || 30;
+        const pct = Math.min(Math.round((count / max) * 100), 100);
+        const warn = pct >= 85;
+        return `<div class="stat-widget clickable full-height" onclick="window.switchTab('menu', 'dishes')">
             <div class="widget-header"><h3>Gerichte</h3><i class="fas fa-utensils"></i></div>
-            <div class="value">${d.menu?.length || 0}</div>
-            <p>auf der Speisekarte</p>
-        </div>`,
+            <div class="value">${count}</div>
+            <div style="margin:6px 0 2px;height:5px;background:rgba(0,0,0,.07);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${warn ? 'var(--widget-warn)' : 'var(--primary)'};border-radius:99px;transition:width .5s;"></div>
+            </div>
+            <p>${count} / ${max} (${pct}%)</p>
+        </div>`;
+    },
 
     reservations: (d) => `
         <div class="stat-widget clickable full-height" onclick="window.switchTab('reservations')">
@@ -58,12 +85,14 @@ const WIDGET_TEMPLATES = {
             <p>insgesamt empfangen</p>
         </div>`,
 
-    status: (d) => `
-        <div class="stat-widget clickable full-height" onclick="window.switchTab('opening')">
-            <div class="widget-header"><h3>Status</h3><i class="fas fa-clock"></i></div>
-            <div class="value" style="font-size:1.4rem;margin:10px 0;">${d.ohText}</div>
-            <p>Öffnungszeiten heute</p>
-        </div>`,
+    status: (d) => {
+        const isOpen = !d.ohText.includes('geschlossen');
+        return `<div class="stat-widget clickable full-height widget-status-${isOpen ? 'ok' : 'closed'}" onclick="window.switchTab('opening')">
+            <div class="widget-header"><h3>Status</h3><i class="fas fa-circle" style="color:${isOpen ? 'var(--widget-ok)' : 'var(--widget-danger)'}!important;opacity:1!important;font-size:.6rem!important;"></i></div>
+            <div class="value" style="font-size:1.3rem;margin:8px 0;color:${isOpen ? 'var(--widget-ok)' : 'var(--widget-danger)'};">${isOpen ? 'Geöffnet' : 'Geschlossen'}</div>
+            <p>${d.ohText}</p>
+        </div>`;
+    },
 
     vacation: (d) => {
         const h = d.home || {};
@@ -154,6 +183,75 @@ const WIDGET_TEMPLATES = {
                 <p>Ø über alle Gerichte</p>
             </div>`;
     },
+
+    orders_today: (d) => {
+        const count = d.todayOrders?.length || 0;
+        const pending = d.pendingOrders?.length || 0;
+        return `<div class="stat-widget clickable full-height" onclick="window.switchTab('orders')">
+            <div class="widget-header"><h3>Bestellungen Heute</h3><i class="fas fa-receipt"></i></div>
+            <div class="value">${count}</div>
+            <p>${pending > 0 ? `<span style="color:var(--widget-warn);font-weight:700;">${pending} ausstehend</span>` : 'Alle erledigt'}</p>
+        </div>`;
+    },
+
+    revenue_today: (d) => {
+        const rev = (d.revenueToday || 0).toFixed(2);
+        const count = d.todayOrders?.length || 0;
+        return `<div class="stat-widget clickable full-height" onclick="window.switchTab('orders')">
+            <div class="widget-header"><h3>Umsatz Heute</h3><i class="fas fa-coins"></i></div>
+            <div class="value">${rev}&thinsp;€</div>
+            <p>${count} Bestellung${count !== 1 ? 'en' : ''}</p>
+        </div>`;
+    },
+
+    pending_orders: (d) => {
+        const count = d.pendingOrders?.length || 0;
+        const urgent = count > 0;
+        return `<div class="stat-widget clickable full-height${urgent ? ' widget-urgent' : ''}" onclick="window.switchTab('orders')">
+            <div class="widget-header"><h3>Ausstehend</h3><i class="fas fa-hourglass-half"></i></div>
+            <div class="value" style="color:${urgent ? 'var(--widget-warn)' : 'var(--widget-ok)'};">${count}</div>
+            <p>${urgent ? 'Aktion erforderlich' : 'Keine offenen Bestellungen'}</p>
+        </div>`;
+    },
+
+    upcoming_reservations: (d) => {
+        const items = (d.upcomingRes || []).slice(0, 4);
+        const rows = items.length
+            ? items.map(r => `<div class="widget-list-row"><span>${r.name}</span><span class="widget-badge">${r.date} ${r.start_time}</span></div>`).join('')
+            : '<div style="opacity:.5;font-size:.82rem;padding:12px 0;text-align:center;">Keine Reservierungen</div>';
+        return `<div class="stat-widget full-height" style="overflow:auto;">
+            <div class="widget-header"><h3>Bald</h3><i class="fas fa-calendar-alt"></i></div>
+            ${rows}
+            ${items.length === 0 ? '' : `<button class="widget-link-btn" onclick="window.switchTab('reservations')">Alle anzeigen</button>`}
+        </div>`;
+    },
+
+    quick_actions: () => `
+        <div class="stat-widget full-height">
+            <div class="widget-header"><h3>Schnellzugriff</h3><i class="fas fa-bolt"></i></div>
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="window.switchTab('menu','dishes')"><i class="fas fa-plus-circle"></i>Gericht</button>
+                <button class="quick-action-btn" onclick="window.switchTab('orders')"><i class="fas fa-receipt"></i>Bestellungen</button>
+                <button class="quick-action-btn" onclick="window.switchTab('reservations')"><i class="fas fa-calendar-check"></i>Reservierung</button>
+                <button class="quick-action-btn" onclick="window.switchTab('settings')"><i class="fas fa-cog"></i>Einstellungen</button>
+            </div>
+        </div>`,
+
+    table_overview: (d) => {
+        const tables = (d.tables || []).filter(t => t.active);
+        if (!tables.length) return `<div class="stat-widget full-height" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><p>Keine aktiven Tische</p></div>`;
+        const pendingNums = new Set((d.pendingOrders || []).map(o => String(o.tableNumber || o.table || '')));
+        const dots = tables.map(t => {
+            const occupied = pendingNums.has(String(t.number || t.id || ''));
+            return `<div class="table-dot ${occupied ? 'occupied' : 'free'}" title="Tisch ${t.number || t.id} · ${t.capacity} P.">${t.number || t.id}</div>`;
+        }).join('');
+        const free = tables.filter(t => !pendingNums.has(String(t.number || t.id || ''))).length;
+        return `<div class="stat-widget full-height">
+            <div class="widget-header"><h3>Tischübersicht</h3><i class="fas fa-chair"></i></div>
+            <div class="table-dots-grid">${dots}</div>
+            <p style="margin-top:10px;">${free} / ${tables.length} frei</p>
+        </div>`;
+    },
 };
 
 function getVacationStatus(vac) {
@@ -197,9 +295,9 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
     window.dispatchDragStart   = handlePointerDown;
     window.dispatchResizeStart = handleResizeStart;
 
-    const [menu, orders, reservations, home, branding, settings] = await Promise.all([
+    const [menu, orders, reservations, home, branding, settings, tables] = await Promise.all([
         apiGet('menu'), apiGet('orders').catch(() => []), apiGet('reservations'),
-        apiGet('homepage'), apiGet('branding'), apiGet('settings')
+        apiGet('homepage'), apiGet('branding'), apiGet('settings'), apiGet('tables').catch(() => [])
     ]);
 
     const config = isSortMode ? localDashboardConfig : (settings?.dashboardConfig || DEFAULT_WIDGETS);
@@ -208,6 +306,10 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
     const ohToday = oh[day] || { closed: true };
 
     const safeMenu = Array.isArray(menu) ? menu : [];
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const safeTables = Array.isArray(tables) ? tables : [];
+    const safeReservations = Array.isArray(reservations) ? reservations : [];
+
     const catMap   = {};
     safeMenu.forEach(m => {
         const label = m.cat && typeof m.cat === 'object' ? (m.cat.label || m.cat.id || 'Unsortiert') : (m.cat || 'Unsortiert');
@@ -217,13 +319,25 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
         .map(([label, count]) => ({ label, count }))
         .sort((a, b) => b.count - a.count);
 
+    const todayStr = new Date().toLocaleDateString('de-DE');
+    const tomorrowStr = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('de-DE'); })();
+    const todayOrders  = safeOrders.filter(o => new Date(o.timestamp || o.createdAt).toLocaleDateString('de-DE') === todayStr);
+    const pendingOrders = safeOrders.filter(o => ['pending', 'preparing'].includes(o.status));
+    const revenueToday  = todayOrders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+    const upcomingRes   = safeReservations.filter(r => (r.date === todayStr || r.date === tomorrowStr) && r.status === 'Confirmed');
+
     const d = {
         menu: safeMenu,
-        reservations,
+        reservations: safeReservations,
+        tables: safeTables,
         home,
         branding,
         l: settings?.license || {},
         catStats,
+        todayOrders,
+        pendingOrders,
+        revenueToday,
+        upcomingRes,
         ohText: ohToday.closed ? 'Heute geschlossen' : `${ohToday.open} - ${ohToday.close}`
     };
 

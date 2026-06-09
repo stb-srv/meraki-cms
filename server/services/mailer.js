@@ -5,7 +5,7 @@
  */
 
 const nodemailer = require('nodemailer');
-const CONFIG = require('../config.js');
+const CONFIG = require('../../config.js');
 
 /**
  * Erstellt einen frischen SMTP-Transporter (async).

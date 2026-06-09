@@ -12,10 +12,10 @@
 
 const express = require('express');
 const crypto  = require('crypto');
-const DB      = require('../db.js');
-const { getCurrentLicense } = require('../license.js');
+const DB      = require('../db');
+const { getCurrentLicense } = require('../services/license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
-const logger  = require('../logger.js');
+const logger  = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { cartOrderSchema } = require('../validation/schemas.js');
 

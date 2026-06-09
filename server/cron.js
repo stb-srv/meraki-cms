@@ -2,9 +2,9 @@
  * Meraki CMS – Background Cron Jobs
  * Trial Expiry & Reservation Reminders
  */
-const DB = require('./db.js');
-const Mailer = require('./mailer.js');
-const logger = require('./logger.js');
+const DB = require('./db');
+const Mailer = require('./services/mailer.js');
+const logger = require('./core/logger.js');
 const fs = require('fs');
 const path = require('path');
 const CONFIG = require('../config.js');

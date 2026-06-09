@@ -5,11 +5,11 @@ const path    = require('path');
 const crypto  = require('crypto');
 const bcrypt  = require('bcryptjs');
 const helmet  = require('helmet');
-const logger  = require('./logger.js');
+const logger  = require('./core/logger.js');
 
-const DB      = require('./db.js');
-const { requireAuth: makeRequireAuth, requireLicense, requireRole, generalLimiter } = require('./middleware.js');
-const { PLAN_DEFINITIONS } = require('./license.js');
+const DB      = require('./db');
+const { requireAuth: makeRequireAuth, requireLicense, requireRole, generalLimiter } = require('./core/middleware.js');
+const { PLAN_DEFINITIONS } = require('./services/license.js');
 const { version: APP_VERSION } = require('../package.json');
 
 module.exports = function(CONFIG, io) {

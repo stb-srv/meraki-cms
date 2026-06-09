@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const DB = require('../db.js');
-const logger = require('../logger.js');
+const DB = require('../db');
+const logger = require('../core/logger.js');
 
 const router = express.Router();
 

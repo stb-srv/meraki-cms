@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
-const logger = require('../logger.js');
+const logger = require('../core/logger.js');
 const { fileTypeFromBuffer } = require('file-type');
 
 // Erlaubte Dateierweiterungen (SVG bewusst ausgeschlossen – XSS-Risiko)

@@ -4,12 +4,12 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const DB = require('../db.js');
-const Mailer = require('../mailer.js');
-const logger = require('../logger.js');
+const DB = require('../db');
+const Mailer = require('../services/mailer.js');
+const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { userSchema, anyObjectSchema } = require('../validation/schemas.js');
-const { requireRole } = require('../middleware.js');
+const { requireRole } = require('../core/middleware.js');
 
 module.exports = (requireAuth) => {
     router.get('/', requireAuth, requireRole('admin'), async (req, res) => {

@@ -1,9 +1,9 @@
 const router  = require('express').Router();
-const DB      = require('../db.js');
+const DB      = require('../db');
 const bcrypt  = require('bcryptjs');
 const { sanitizeText } = require('../helpers.js');
 const multer = require('multer');
-const logger = require('../logger.js');
+const logger = require('../core/logger.js');
 const fs = require('fs');
 const path = require('path');
 const CONFIG = require('../../config.js');
@@ -14,7 +14,7 @@ const uploadMiddleware = multer({
 });
 
 const BACKUP_VERSION = 2;
-const { requireRole } = require('../middleware.js');
+const { requireRole } = require('../core/middleware.js');
 
 module.exports = (requireAuth) => {
     // -------------------------------------------------------

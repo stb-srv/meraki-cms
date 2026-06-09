@@ -7,7 +7,7 @@
  */
 
 const jwt    = require('jsonwebtoken');
-const logger = require('./logger.js');
+const logger = require('../core/logger.js');
 
 const MERAKI_PUBLIC_KEY_FALLBACK = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAutES8Xqif1PpLJU9ClMJ

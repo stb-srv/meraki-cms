@@ -2,13 +2,13 @@
  * Routes – Menu, Categories, Allergens, Additives, Import
  */
 const router = require('express').Router();
-const DB = require('../db.js');
-const { getCurrentLicense } = require('../license.js');
+const DB = require('../db');
+const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain } = require('../helpers.js');
-const logger = require('../logger.js');
+const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { menuItemSchema, menuReorderSchema, categorySchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
-const { requireRole } = require('../middleware.js');
+const { requireRole } = require('../core/middleware.js');
 
 async function getMaxDishes(DB, domain) {
     try {

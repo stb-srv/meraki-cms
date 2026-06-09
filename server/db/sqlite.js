@@ -14,7 +14,7 @@ const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
 
 if (dbType === 'mysql' || dbType === 'mariadb') {
     console.log('\uD83D\uDDC3\uFE0F  Datenbank-Adapter: MySQL/MariaDB');
-    module.exports = require('./database-mysql.js');
+    module.exports = require('./mysql.js');
 } else {
     console.log('\uD83D\uDDC3\uFE0F  Datenbank-Adapter: SQLite (Standard)');
 
@@ -22,7 +22,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
     const path = require('path');
     const fs = require('fs');
 
-    const DB_PATH = path.join(__dirname, 'database.sqlite');
+    const DB_PATH = path.join(__dirname, '..', 'database.sqlite');
     const db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');

@@ -16,7 +16,7 @@
 
 const router = require('express').Router();
 const crypto = require('crypto');
-const DB     = require('../db.js');
+const DB     = require('../db');
 
 // Standard-Config – wird beim ersten Aufruf in DB gespeichert
 const DEFAULT_CONFIG = {

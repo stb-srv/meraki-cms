@@ -7,7 +7,7 @@
  * Beim nächsten Login wird eine Passwortänderung erzwungen.
  */
 
-const DB = require('./server/db.js');
+const DB = require('./server/db');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
