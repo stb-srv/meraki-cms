@@ -5,6 +5,7 @@
  *   pickup/delivery:  pending → confirmed → preparing → ready → completed
  */
 const router = require('express').Router();
+const crypto = require('crypto');
 const DB     = require('../db.js');
 const Mailer = require('../mailer.js');
 const { getCurrentLicense } = require('../license.js');
@@ -25,7 +26,7 @@ module.exports = (requireAuth, io) => {
     // GET alle Bestellungen (Admin)
     router.get('/', requireAuth, requireRole('waiter', 'kitchen'), async (req, res) => {
         try { res.json(await DB.getOrders()); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Orders route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // GET /api/orders/export/csv
@@ -52,7 +53,7 @@ module.exports = (requireAuth, io) => {
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', 'attachment; filename="bestellungen.csv"');
             res.send('\uFEFF' + csv);
-        } catch(e) { res.status(500).send(e.message); }
+        } catch(e) { logger.error({ err: e }, 'Export Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // GET /api/orders/export/pdf
@@ -105,7 +106,7 @@ module.exports = (requireAuth, io) => {
             doc.moveDown(2);
             doc.fontSize(12).text(`Gesamtumsatz: ${totalSum.toFixed(2)} EUR`, { align: 'right' });
             doc.end();
-        } catch(e) { res.status(500).send(e.message); }
+        } catch(e) { logger.error({ err: e }, 'Export Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // GET einzelne Bestellung per orderToken (Kunden-Statusseite)
@@ -128,7 +129,7 @@ module.exports = (requireAuth, io) => {
                     customerName: order.customerName || null,
                 }
             });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Orders route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // POST neue Bestellung (Gast)
@@ -142,7 +143,6 @@ module.exports = (requireAuth, io) => {
             if (!license || !license.modules || license.modules.orders_kitchen !== true) {
                 return res.status(403).json({ success: false, message: "Ihr aktueller Plan unterstützt dieses Feature nicht." });
             }
-            const crypto = require('crypto');
             const orderToken = crypto.randomBytes(16).toString('hex');
             const newOrder = {
                 ...req.body,
@@ -160,7 +160,7 @@ module.exports = (requireAuth, io) => {
             io.emit('new_order', newOrder);
             // Dem Gast nur den Token zurückgeben, keine interne ID
             res.json({ success: true, orderToken, orderId: newOrder.id });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Orders route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // PUT Status-Update (Admin)
@@ -194,13 +194,13 @@ module.exports = (requireAuth, io) => {
 
             logger.info({ orderId: updated.id, status }, 'Bestellstatus aktualisiert');
             res.json({ success: true, order: updated });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Orders route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     // DELETE Bestellung (Admin)
     router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try { await DB.deleteOrder(req.params.id); res.json({ success: true }); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Orders route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     return router;

@@ -1,18 +1,24 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const DB = require('../db.js');
+const logger = require('../logger.js');
 
 const router = express.Router();
+
+const _isLocalIp = (ip) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
 
 /**
  * POST /api/v1/setup
  * Einmalige Ersteinrichtung: Admin-Account + Restaurant-Name speichern.
- * Danach wird Setup deaktiviert (isSetupDone = true in settings).
+ * Nur von localhost erlaubt. Danach wird Setup deaktiviert.
  */
 router.post('/', async (req, res) => {
     try {
-        // Prüfen ob Setup schon durchgeführt wurde
-        // Wir nutzen getKV('settings') um den Status zu prüfen
+        const clientIp = req.ip || req.socket?.remoteAddress || '';
+        if (!_isLocalIp(clientIp)) {
+            return res.status(403).json({ success: false, message: 'Setup ist nur von localhost erlaubt.' });
+        }
+
         const settings = await DB.getKV('settings', {});
         if (settings.isSetupDone === true || settings.isSetupDone === 'true') {
             return res.status(403).json({ success: false, message: 'Setup wurde bereits abgeschlossen.' });
@@ -54,8 +60,8 @@ router.post('/', async (req, res) => {
         return res.json({ success: true, message: 'Setup erfolgreich abgeschlossen.' });
 
     } catch (err) {
-        console.error('[setup]', err);
-        return res.status(500).json({ success: false, message: 'Fehler beim Setup: ' + err.message });
+        logger.error({ err }, 'Setup-Fehler');
+        return res.status(500).json({ success: false, message: 'Fehler beim Setup.' });
     }
 });
 

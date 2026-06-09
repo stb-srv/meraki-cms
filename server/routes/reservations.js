@@ -37,10 +37,21 @@ function findReservationByToken(reservations, token) {
     }) || null;
 }
 
+// Per-slot in-memory mutex to prevent double-booking under concurrent requests.
+// Works for single-process deployments; for multi-process use DB-level locking.
+const _slotLocks = new Map();
+async function withSlotLock(key, fn) {
+    while (_slotLocks.has(key)) await _slotLocks.get(key);
+    let release;
+    _slotLocks.set(key, new Promise(r => { release = r; }));
+    try { return await fn(); }
+    finally { _slotLocks.delete(key); release(); }
+}
+
 module.exports = (requireAuth, requireLicense) => {
     router.get('/', requireAuth, requireRole('admin', 'waiter'), async (req, res) => {
         try { res.json(await DB.getReservations()); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/check', reservationLimiter, validate(reservationCheckSchema), async (req, res) => {
@@ -55,7 +66,7 @@ module.exports = (requireAuth, requireLicense) => {
             const { date, time, guests, areaId } = req.body;
             const duration = calculateDuration(guests, settings.reservationConfig);
             res.json(await findAvailableTables(date, time, duration, guests, areaId));
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/availability-grid', reservationLimiter, validate(reservationGridSchema), async (req, res) => {
@@ -75,7 +86,7 @@ module.exports = (requireAuth, requireLicense) => {
                 grid[time] = { available: result.success, reason: result.success ? null : result.reason };
             }
             res.json({ success: true, grid });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/submit', reservationLimiter, requireLicense('reservations'), validate(reservationSubmitSchema), async (req, res) => {
@@ -121,16 +132,19 @@ module.exports = (requireAuth, requireLicense) => {
                 submittedAt: new Date().toISOString(),
                 ip: (req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split('.').slice(0,2).join('.') + '.x.x'
             };
-            // Race Condition Guard: nochmalige Prüfung direkt vor dem Speichern
-            const doubleCheckResult = await findAvailableTables(date, time, duration, guests, areaId);
-            if (!doubleCheckResult.success && !rc.allowInquiry) {
+            // Mutex-guarded final check + insert to prevent TOCTOU double-booking race condition
+            const lockResult = await withSlotLock(`${date}|${time}|${duration}`, async () => {
+                const finalCheck = await findAvailableTables(date, time, duration, guests, areaId);
+                if (!finalCheck.success && !rc.allowInquiry) return 'CONFLICT';
+                await DB.addReservation(newRes);
+                return 'OK';
+            });
+            if (lockResult === 'CONFLICT') {
                 return res.status(409).json({ success: false, reason: 'Dieser Zeitslot wurde soeben von jemand anderem gebucht. Bitte wähle einen anderen.' });
             }
-
-            await DB.addReservation(newRes);
             Mailer.sendConfirmation(newRes, DB).catch(e => logger.error({ err: e }, 'Mailer Fehler'));
             res.json({ success: true, reservation: newRes, isInquiry: !result.success });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.put('/:id', requireAuth, requireRole('admin', 'waiter'), validate(anyObjectSchema), async (req, res) => {
@@ -163,12 +177,12 @@ module.exports = (requireAuth, requireLicense) => {
             if (updated && update.status && update.status !== old.status)
                 Mailer.sendStatusChange(updated, DB).catch(e => logger.error({ err: e }, 'Status Mailer Fehler'));
             res.json({ success: true, reservation: updated });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try { await DB.deleteReservation(req.params.id); res.json({ success: true }); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/', requireAuth, requireRole('admin'), validate(anyArraySchema), async (req, res) => {
@@ -186,7 +200,7 @@ module.exports = (requireAuth, requireLicense) => {
             await DB.saveReservations(req.body);
             res.json({ success: true });
         }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.get('/cancel/:token', async (req, res) => {
@@ -228,7 +242,7 @@ module.exports = (requireAuth, requireLicense) => {
             const updated = await DB.updateReservation(r.id, { status: 'Cancelled' });
             if (updated) Mailer.sendStatusChange(updated, DB).catch(e => logger.error({ err: e }, 'Status Mailer Fehler (API Stornierung)'));
             res.json({ success: true, reservation: updated });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/confirm/:token', reservationLimiter, validate(anyObjectSchema), async (req, res) => {
@@ -246,7 +260,7 @@ module.exports = (requireAuth, requireLicense) => {
             const updated = await DB.updateReservation(r.id, { status: 'Confirmed' });
             if (updated) Mailer.sendStatusChange(updated, DB).catch(e => logger.error({ err: e }, 'Status Mailer Fehler (API Bestätigung)'));
             res.json({ success: true, reservation: updated });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     return router;

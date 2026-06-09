@@ -108,26 +108,32 @@ const findAvailableTables = async (date, startTime, duration, guestCount, areaId
 };
 
 function extractDomain(req) {
-    const forwarded = req.headers['x-forwarded-host'];
-    if (forwarded) return forwarded.split(',')[0].trim().split(':')[0];
-    const origin = req.headers['origin'];
-    if (origin) {
-        try { return new URL(origin).hostname; } catch (_) {}
-    }
-    const host = req.headers.host || 'localhost';
-    return host.split(':')[0];
+    // Use req.hostname (set safely by Express trust proxy) instead of
+    // the spoofable X-Forwarded-Host header.
+    return (req.hostname || 'localhost').toLowerCase();
 }
+
+const _escHtml = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const tokenResponsePage = async (DB, title, message, color, emoji) => {
     const branding = await DB.getKV('branding', {});
-    const restaurantName = branding.name || 'Restaurant';
-    const accentColor = branding.primaryColor || color;
+    const restaurantName = _escHtml(branding.name || 'Restaurant');
+    const safeTitle = _escHtml(title);
+    const safeEmoji = _escHtml(emoji);
+    // accentColor is from branding or a hardcoded default — escape for CSS context
+    const accentColor = _escHtml(branding.primaryColor || color);
+    // message may contain safe HTML (<strong> tags) — passed by internal callers only
     return `<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} – ${restaurantName}</title>
+    <title>${safeTitle} – ${restaurantName}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -144,8 +150,8 @@ const tokenResponsePage = async (DB, title, message, color, emoji) => {
 </head>
 <body>
     <div class="card">
-        <div class="emoji">${emoji}</div>
-        <h1>${title}</h1>
+        <div class="emoji">${safeEmoji}</div>
+        <h1>${safeTitle}</h1>
         <p>${message}</p>
         <div class="restaurant">${restaurantName}</div>
     </div>

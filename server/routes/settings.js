@@ -41,7 +41,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const settings = await DB.getKV('settings', {});
             const homepage = await DB.getKV('homepage', {});
             res.json({ ...homepage, activeModules: settings.activeModules });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.post('/homepage', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
@@ -49,21 +49,21 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const { activeModules, ...homepageData } = req.body;
             await DB.setKV('homepage', homepageData);
             res.json({ success: true });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.get('/branding', async (req, res) => {
         try { res.json(await DB.getKV('branding', {})); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
     router.post('/branding', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try { await DB.setKV('branding', req.body); res.json({ success: true }); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.get('/settings', requireAuth, requireRole('admin'), async (req, res) => {
         try { res.json(await DB.getKV('settings', {})); }
-        catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     /**
@@ -77,7 +77,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const merged   = deepMerge(existing, req.body);
             await DB.setKV('settings', merged);
             res.json({ success: true });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     /**
@@ -110,10 +110,10 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const lic    = await getCurrentLicense(DB, domain);
             const menu   = await DB.getMenu();
             res.json({ ...lic, menu_items_used: (menu || []).length, trialDaysLeft: lic.trialDaysLeft, plans: PLAN_DEFINITIONS });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
-    router.post('/license/validate', validate(anyObjectSchema), async (req, res) => {
+    router.post('/license/validate', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
             const domain = extractDomain(req);
             logger.info({ key: req.body.key, domain }, 'Lizenz-Validierung angefordert');
@@ -219,12 +219,30 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         try {
             const { modules } = req.body;
             if (!modules || typeof modules !== 'object') return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });
+
+            // Validate: only allow enabling modules that are in the current license plan
+            const domain = extractDomain(req);
+            const currentLic = await getCurrentLicense(DB, domain);
+            const allowedByLicense = currentLic.modules || {};
+            const invalidModules = Object.entries(modules)
+                .filter(([key, val]) => val === true && !allowedByLicense[key])
+                .map(([key]) => key);
+            if (invalidModules.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    reason: `Folgende Module sind in Ihrem ${currentLic.label || currentLic.type}-Plan nicht enthalten: ${invalidModules.join(', ')}`
+                });
+            }
+
             const settings = await DB.getKV('settings', {});
             if (!settings.license) settings.license = {};
             settings.license.modules = { ...(settings.license.modules || {}), ...modules };
             await DB.setKV('settings', settings);
             res.json({ success: true, modules: settings.license.modules });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch(e) {
+            logger.error({ err: e }, 'POST /license/modules Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     return router;

@@ -6,7 +6,8 @@
  * Fallback-Key verwendet. LICENSE_PUBLIC_KEY in .env überschreibt beides.
  */
 
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
+const logger = require('./logger.js');
 
 const MERAKI_PUBLIC_KEY_FALLBACK = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAutES8Xqif1PpLJU9ClMJ
@@ -22,10 +23,10 @@ HQIDAQAB
 let MERAKI_PUBLIC_KEY = (process.env.LICENSE_PUBLIC_KEY || '').trim() || null;
 
 if (MERAKI_PUBLIC_KEY) {
-    console.log('✅  RSA Public Key aus LICENSE_PUBLIC_KEY Env-Variable geladen.');
+    logger.info('RSA Public Key aus LICENSE_PUBLIC_KEY Env-Variable geladen.');
 } else {
-    console.log('ℹ️   LICENSE_PUBLIC_KEY nicht gesetzt – Public Key wird beim Start vom Lizenzserver abgerufen.');
-    MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK; // temporärer Fallback bis initPublicKey() läuft
+    logger.info('LICENSE_PUBLIC_KEY nicht gesetzt – Public Key wird beim Start vom Lizenzserver abgerufen.');
+    MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK;
 }
 
 /**
@@ -36,7 +37,7 @@ if (MERAKI_PUBLIC_KEY) {
 const initPublicKey = async (licenseServerUrl) => {
     // Wenn manuell via Env gesetzt → nicht überschreiben
     if ((process.env.LICENSE_PUBLIC_KEY || '').trim()) {
-        console.log('✅  Public Key aus Env – kein automatischer Abruf nötig.');
+        logger.info('Public Key aus Env – kein automatischer Abruf nötig.');
         return true;
     }
 
@@ -50,10 +51,10 @@ const initPublicKey = async (licenseServerUrl) => {
             throw new Error('Antwort enthält keinen gültigen PEM-Key.');
         }
         MERAKI_PUBLIC_KEY = key;
-        console.log('✅  RSA Public Key erfolgreich vom Lizenzserver geladen:', url);
+        logger.info({ url }, 'RSA Public Key erfolgreich vom Lizenzserver geladen.');
         return true;
     } catch (e) {
-        console.warn(`⚠️   Public Key-Abruf fehlgeschlagen (${e.message}) – Fallback-Key aktiv.`);
+        logger.warn({ err: e }, 'Public Key-Abruf fehlgeschlagen – Fallback-Key aktiv.');
         MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK;
         return false;
     }
@@ -138,14 +139,14 @@ const verifyLicenseToken = (token, host = null) => {
             const currentHost  = normalizeHost(host);
             const isLocal = ['localhost', '127.0.0.1', '::1'].includes(currentHost);
             if (!isLocal && tokenDomain !== currentHost) {
-                console.warn(`⚠️  License domain mismatch: token='${tokenDomain}' current='${currentHost}'`);
+                logger.warn({ tokenDomain, currentHost }, 'License domain mismatch');
                 return null;
             }
         }
         return payload;
     } catch (e) {
         if (e.name !== 'JsonWebTokenError' && e.name !== 'TokenExpiredError') {
-            console.error('❌ License token verification error:', e.message);
+            logger.error({ err: e }, 'License token verification error');
         }
         return null;
     }
@@ -160,7 +161,7 @@ const getLastKnownLicense = (lic) => {
     const modules = lic.lastKnownModules || plan.modules;
     const limits  = lic.lastKnownLimits  || { max_dishes: plan.menu_items, max_tables: plan.max_tables };
 
-    console.warn(`⚠️  [Offline-Fallback] Lizenzserver nicht erreichbar – nutze letzten bekannten Plan: ${type} (seit ${lic.lastKnownAt || 'unbekannt'})`);
+    logger.warn({ type, since: lic.lastKnownAt || 'unbekannt' }, '[Offline-Fallback] Lizenzserver nicht erreichbar – nutze letzten bekannten Plan.');
 
     return {
         key:      lic.key,
@@ -181,7 +182,7 @@ const getCurrentLicense = async (DB, host = null) => {
 
     // Gesperrtes CMS: Wenn locked=true, immer FREE zurückgeben
     if (lic.locked) {
-        console.error(`🔒 [LOCKED] CMS ist gesperrt (Grund: ${lic.lockedReason || 'unbekannt'}) – Lizenz deaktiviert.`);
+        logger.error({ reason: lic.lockedReason || 'unbekannt' }, '[LOCKED] CMS ist gesperrt – Lizenz deaktiviert.');
         return FREE_RESULT({ status: 'locked', isExpired: true });
     }
 
@@ -216,7 +217,7 @@ const getCurrentLicense = async (DB, host = null) => {
         const isExpired = expiresAt ? expiresAt < now : false;
 
         if (isExpired) {
-            console.warn(`⚠️  License token expired at ${expiresAt?.toISOString()}`);
+            logger.warn({ expiresAt: expiresAt?.toISOString() }, 'License token expired.');
             const offline = getLastKnownLicense(lic);
             if (offline) return offline;
             return FREE_RESULT({ isExpired: true, status: 'expired', key: payload.license_key || lic.key });
@@ -244,7 +245,7 @@ const getCurrentLicense = async (DB, host = null) => {
     if (lic.key) {
         const offline = getLastKnownLicense(lic);
         if (offline) return offline;
-        console.warn('⚠️  License key present but no valid fallback available – falling back to FREE.');
+        logger.warn('License key present but no valid fallback available – falling back to FREE.');
     }
 
     return FREE_RESULT();

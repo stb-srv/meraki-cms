@@ -8,7 +8,7 @@ const helmet  = require('helmet');
 const logger  = require('./logger.js');
 
 const DB      = require('./db.js');
-const { requireAuth: makeRequireAuth, requireLicense } = require('./middleware.js');
+const { requireAuth: makeRequireAuth, requireLicense, requireRole, generalLimiter } = require('./middleware.js');
 const { PLAN_DEFINITIONS } = require('./license.js');
 const { version: APP_VERSION } = require('../package.json');
 
@@ -59,13 +59,18 @@ module.exports = function(CONFIG, io) {
         },
         credentials: true
     }));
-    app.use(express.json({ limit: '20mb' }));
+    app.use(express.json({ limit: '1mb' }));
+
+    // General rate limiter — 300 req/min per IP across all API routes
+    app.use('/api/', generalLimiter);
 
     app.use((req, res, next) => {
         const start = Date.now();
         res.on('finish', () => {
             const ms = Date.now() - start;
-            logger.info({ method: req.method, url: req.originalUrl, status: res.statusCode, ms, ip: req.ip }, `${req.method} ${req.originalUrl} ${res.statusCode} (${ms}ms)`);
+            // Redact JWT tokens that may appear in ?token= query param
+            const safeUrl = req.originalUrl.replace(/([?&])token=[^&]*/g, '$1token=REDACTED');
+            logger.info({ method: req.method, url: safeUrl, status: res.statusCode, ms, ip: req.ip }, `${req.method} ${safeUrl} ${res.statusCode} (${ms}ms)`);
         });
         next();
     });
@@ -118,7 +123,7 @@ module.exports = function(CONFIG, io) {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
-    app.post('/api/plugins/toggle', requireAuth, async (req, res) => {
+    app.post('/api/plugins/toggle', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             let dbPlugins = await DB.getKV('plugins', []);
             const { id, enabled } = req.body;
@@ -131,6 +136,10 @@ module.exports = function(CONFIG, io) {
 
     app.post('/api/setup', async (req, res) => {
         if (CONFIG.SETUP_COMPLETE) return res.status(403).json({ success: false, reason: 'Already configured' });
+        const _clientIp = req.ip || req.socket?.remoteAddress || '';
+        if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(_clientIp)) {
+            return res.status(403).json({ success: false, reason: 'Setup ist nur von localhost erlaubt.' });
+        }
         try {
             const { restaurantName, licenseServer, adminSecret, smtp, adminUser, adminPass, adminEmail } = req.body;
             if (!adminPass || adminPass.length < 12) return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });

@@ -37,7 +37,7 @@ const reservationCheckSchema = z.object({
 const reservationGridSchema = z.object({
     date: z.string(),
     guests: z.union([z.string(), z.number()]),
-    times: z.array(z.string())
+    times: z.array(z.string()).max(96)
 }).passthrough();
 
 const reservationSubmitSchema = z.object({

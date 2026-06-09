@@ -157,8 +157,15 @@ module.exports = (requireAuth) => {
                         results.errors.push(`kv[${key}]: Nicht erlaubter Key – übersprungen.`);
                         continue;
                     }
-                    try { await DB.setKV(key, value); } 
-                    catch (e) { results.errors.push(`kv[${key}]: ${e.message}`); }
+                    try {
+                        // Strip license from settings — must be re-validated against license server after restore
+                        if (key === 'settings' && value && typeof value === 'object') {
+                            const { license: _stripped, ...safeSettings } = value;
+                            await DB.setKV(key, safeSettings);
+                        } else {
+                            await DB.setKV(key, value);
+                        }
+                    } catch (e) { results.errors.push(`kv[${key}]: ${e.message}`); }
                 }
                 results.restored.kv = Object.keys(data.kv).filter(k => ALLOWED_KV_KEYS.has(k)).length;
             }
@@ -187,14 +194,17 @@ module.exports = (requireAuth) => {
                 catch (e) { results.errors.push(`reservations: ${e.message}`); }
             }
 
-            // 6. Bestellungen wiederherstellen
+            // 6. Bestellungen wiederherstellen (vorhandene IDs überspringen)
             if (Array.isArray(data.orders) && data.orders.length > 0) {
-                try {
-                    for (const order of data.orders) {
-                        await DB.addOrder(order);
-                    }
-                    results.restored.orders = data.orders.length;
-                } catch (e) { results.errors.push(`orders: ${e.message}`); }
+                let ordersRestored = 0;
+                const existingOrders = await DB.getOrders();
+                const existingOrderIds = new Set(existingOrders.map(o => o.id));
+                for (const order of data.orders) {
+                    if (existingOrderIds.has(order.id)) continue;
+                    try { await DB.addOrder(order); ordersRestored++; }
+                    catch (e) { results.errors.push(`order[${order.id}]: ${e.message}`); }
+                }
+                results.restored.orders = ordersRestored;
             }
 
             // 7. Benutzer wiederherstellen (ohne Passwörter)

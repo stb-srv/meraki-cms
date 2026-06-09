@@ -11,9 +11,11 @@
  */
 
 const express = require('express');
+const crypto  = require('crypto');
 const DB      = require('../db.js');
 const { getCurrentLicense } = require('../license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
+const logger  = require('../logger.js');
 const validate = require('../validation/validate.js');
 const { cartOrderSchema } = require('../validation/schemas.js');
 
@@ -195,8 +197,8 @@ module.exports = function cartRoutes(requireLicense, io) {
                 sofortLabel:    orderConfig.sofortLabel  || "So schnell wie möglich (ca. {min} Min.)"
             });
         } catch (e) {
-            console.error('❌ cart/config error:', e.message);
-            res.status(500).json({ success: false, reason: e.message });
+            logger.error({ err: e }, 'GET /cart/config Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
     });
 
@@ -267,7 +269,6 @@ module.exports = function cartRoutes(requireLicense, io) {
 
             const total   = validatedItems.reduce((s, i) => s + i.price * i.quantity, 0);
             const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-            const crypto = require('crypto');
             const orderToken = crypto.randomBytes(16).toString('hex');
             const order = {
                 id:              orderId,
@@ -280,7 +281,9 @@ module.exports = function cartRoutes(requireLicense, io) {
                 customerName:    sanitizeText(customerName || '').slice(0, 80) || null,
                 customerPhone:   sanitizeText(customerPhone || phone || '').slice(0, 30) || null,
                 customerEmail:   sanitizeText(customerEmail || '').slice(0, 120) || null,
-                deliveryAddress: type === 'delivery' ? (deliveryAddress || delivery?.address || null) : null,
+                deliveryAddress: type === 'delivery'
+                    ? sanitizeText(deliveryAddress || delivery?.address || '').slice(0, 300) || null
+                    : null,
                 tableNumber:     type === 'dine_in'  ? (tableNumber || null) : null,
                 pickupTime:      type === 'pickup'   ? (pickupTime  || null) : null,
                 guestNote:       guestNote ? String(guestNote).slice(0, 500) : null,
@@ -288,7 +291,7 @@ module.exports = function cartRoutes(requireLicense, io) {
 
             await DB.addOrder(order);
             if (io) io.emit('new_order', order);
-            console.log(`🛒 Bestellung: ${orderId} | ${type} | ${validatedItems.length} Artikel | ${total.toFixed(2)}€ | Tel: ${maskPhone(order.customerPhone)}${type === 'pickup' ? ` | Abholung: ${pickupTime}` : ''}`);
+            logger.info({ orderId, type, items: validatedItems.length, total: order.total, phone: maskPhone(order.customerPhone) }, 'Neue Bestellung');
 
             res.status(201).json({
                 success: true,
@@ -299,8 +302,8 @@ module.exports = function cartRoutes(requireLicense, io) {
                 message: 'Bestellung wurde erfolgreich übermittelt.'
             });
         } catch (e) {
-            console.error('❌ cart/order error:', e.message);
-            res.status(500).json({ success: false, reason: e.message });
+            logger.error({ err: e }, 'POST /cart/order Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
     });
 

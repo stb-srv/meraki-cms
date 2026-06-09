@@ -104,4 +104,10 @@ const reservationLimiter = rateLimit({
     message: { success: false, reason: 'Zu viele Anfragen. Bitte später erneut versuchen.' }
 });
 
-module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter };
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000, max: 300,
+    standardHeaders: true, legacyHeaders: false,
+    message: { success: false, reason: 'Zu viele Anfragen. Bitte kurz warten.' }
+});
+
+module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter, generalLimiter };
