@@ -7,6 +7,7 @@ const logger = require('./server/core/logger.js');
 const DB = require('./server/db');
 const { requireAuth: makeRequireAuth, requireLicense } = require('./server/core/middleware.js');
 const { startCron } = require('./server/cron.js');
+const LicenseChecker = require('./server/services/license-checker.js');
 const { version: APP_VERSION } = require('./package.json');
 
 const setupSocket = require('./server/socket.js');
@@ -58,6 +59,13 @@ async function start() {
     server.listen(PORT, () => {
         const allowedOrigins = (CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
         logger.info({ version: APP_VERSION, port: PORT, licenseServer: CONFIG.LICENSE_SERVER_URL, cors: allowedOrigins }, 'Meraki CMS gestartet');
+
+        const licenseChecker = new LicenseChecker(
+            DB,
+            CONFIG.LICENSE_SERVER_URL,
+            process.env.HOST || require('os').hostname()
+        );
+        licenseChecker.start();
     });
 }
 

@@ -10,7 +10,7 @@ const { verifyLicenseToken, initPublicKey } = require('./license.js');
 
 const CHECK_INTERVAL_MS         = 72 * 60 * 60 * 1000; // 72h
 const STARTUP_DELAY_MS          = 5 * 1000;             // 5s nach Boot
-const TOKEN_REFRESH_THRESHOLD_H = 78;
+const TOKEN_REFRESH_THRESHOLD_H = 60; // Token-Gültigkeit ist 80h → Refresh wenn <60h übrig
 const MAX_FAILURES              = 3;
 
 class LicenseChecker {

@@ -64,6 +64,15 @@ const initPublicKey = async (licenseServerUrl) => {
  * PLAN_DEFINITIONS
  */
 const PLAN_DEFINITIONS = {
+    TRIAL: {
+        label: 'Trial (30 Tage)', menu_items: 50, max_tables: 8,
+        modules: {
+            menu_edit: true, orders_kitchen: true, reservations: true,
+            custom_design: false, analytics: false, qr_pay: false,
+            online_orders: false
+        },
+        note: 'Kostenloser Testzeitraum'
+    },
     FREE: {
         label: 'Free', menu_items: 30, max_tables: 5,
         modules: {

@@ -50,7 +50,8 @@ router.post('/', async (req, res) => {
         await DB.setKV('branding', branding);
 
         if (licenseKey) {
-            settings.license = { key: licenseKey, status: 'active', type: 'PRO' };
+            // Typ wird beim ersten LicenseChecker-Start vom Server ermittelt
+            settings.license = { key: licenseKey.trim(), status: 'pending_validation' };
         }
 
         // Setup als abgeschlossen markieren
