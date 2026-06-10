@@ -46,7 +46,7 @@ Dies ist der empfohlene Weg für den Produktivbetrieb mit **PM2** als Prozessman
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/stb-srv/Meraki CMS.git /opt/meraki-cms
+git clone https://github.com/stb-srv/Meraki-CMS.git /opt/meraki-cms
 cd /opt/meraki-cms
 
 # 2. Installer starten
