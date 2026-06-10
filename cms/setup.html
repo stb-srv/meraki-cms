@@ -76,14 +76,14 @@
         select option { background: #1e1e2e; }
         .hint { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
         .hint i { color: var(--warning); margin-right: 4px; }
-        .info-box { padding: 14px 16px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; margin-bottom: 20px; border: 1px solid; }
+        .info-box { padding: 14px 16px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; margin-bottom: 20px; border: 1px solid; line-height: 1.55; }
         .info-box.blue  { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
         .info-box.green { background: rgba(34,197,94,0.1);  border-color: rgba(34,197,94,0.3);  color: #86efac; }
         .info-box.warn  { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
-        .lic-status { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; margin-top: 10px; font-size: 0.85rem; font-weight: 600; border: 1.5px solid var(--border); transition: all 0.3s; }
-        .lic-status.checking { border-color: var(--warning); color: var(--warning); }
-        .lic-status.ok       { border-color: var(--success); color: var(--success); background: rgba(34,197,94,0.07); }
-        .lic-status.error    { border-color: var(--danger);  color: var(--danger);  background: rgba(239,68,68,0.07); }
+        .status-badge { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; margin-top: 10px; font-size: 0.85rem; font-weight: 600; border: 1.5px solid var(--border); transition: all 0.3s; }
+        .status-badge.checking { border-color: var(--warning); color: var(--warning); }
+        .status-badge.ok       { border-color: var(--success); color: var(--success); background: rgba(34,197,94,0.07); }
+        .status-badge.error    { border-color: var(--danger);  color: var(--danger);  background: rgba(239,68,68,0.07); }
         .pw-strength { height: 4px; border-radius: 2px; margin-top: 8px; transition: all 0.3s; }
         .input-wrap { position: relative; }
         .input-wrap input { padding-right: 44px; }
@@ -95,10 +95,21 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-ghost { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); flex: 0 0 auto; padding: 13px 24px; }
         .btn-ghost:hover { background: rgba(255,255,255,0.1); }
-        .success-screen { display: none; text-align: center; padding: 20px 0; }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+        .success-screen { display: none; text-align: center; padding: 10px 0; }
         .success-icon { width: 80px; height: 80px; border-radius: 50%; background: rgba(34,197,94,0.15); border: 2px solid var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2rem; color: var(--success); }
         .success-screen h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
-        .success-screen p { color: var(--muted); margin-bottom: 28px; }
+        .success-screen > p { color: var(--muted); margin-bottom: 20px; }
+        .login-info { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 16px 0; text-align: left; font-size: 0.9rem; }
+        .login-info .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--muted); }
+        .login-info .row:last-child { margin-bottom: 0; }
+        .login-info .row span { color: var(--text); font-weight: 700; }
+        .recovery-box { background: rgba(239,68,68,0.06); border: 1.5px solid rgba(239,68,68,0.3); border-radius: 16px; padding: 20px; margin: 16px 0; text-align: left; }
+        .recovery-box h4 { color: #fca5a5; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .recovery-box p { font-size: 0.8rem; color: #fca5a5; margin-bottom: 14px; opacity: 0.85; line-height: 1.55; }
+        .recovery-code { font-family: monospace; font-size: 1rem; letter-spacing: 0.08em; color: var(--text); padding: 9px 12px; background: rgba(0,0,0,0.3); border-radius: 8px; margin: 6px 0; display: flex; align-items: center; justify-content: space-between; }
+        .copy-btn { background: rgba(255,255,255,0.1); border: none; color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.75rem; font-family: inherit; font-weight: 600; transition: all 0.15s; }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); color: var(--text); }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; display: inline-block; }
     </style>
@@ -110,42 +121,51 @@
         <p>Restaurant CMS – Ersteinrichtung</p>
     </div>
     <div class="progress-bar" id="progress-bar">
-        <div class="progress-step active" id="ps1"><div class="step-dot">1</div><span class="step-label">Lizenz</span></div>
+        <div class="progress-step active" id="ps1"><div class="step-dot">1</div><span class="step-label">Zugang</span></div>
         <div class="progress-step" id="ps2"><div class="step-dot">2</div><span class="step-label">Restaurant</span></div>
-        <div class="progress-step" id="ps3"><div class="step-dot">3</div><span class="step-label">Datenbank</span></div>
-        <div class="progress-step" id="ps4"><div class="step-dot">4</div><span class="step-label">Abschluss</span></div>
+        <div class="progress-step" id="ps3"><div class="step-dot">3</div><span class="step-label">System</span></div>
+        <div class="progress-step" id="ps4"><div class="step-dot">4</div><span class="step-label">E-Mail</span></div>
     </div>
+
     <div class="card">
-        <!-- Step 1: Lizenz -->
+
+        <!-- ═══ Step 1: Zugang ═══ -->
         <div class="step active" id="step1">
-            <div class="card-title">🔑 Lizenz & Verbindung</div>
-            <div class="card-subtitle">Verbinde das CMS mit dem Lizenzserver und gib deinen Lizenzschlüssel ein.</div>
-            <div class="form-group">
-                <label>Lizenzserver URL</label>
-                <input type="url" id="licenseUrl" value="https://licens-prod.stb-srv.de" placeholder="https://licens-prod.stb-srv.de">
-                <div class="hint"><i class="fas fa-circle-info"></i> Trailing Slash wird automatisch entfernt</div>
+            <div class="card-title">🔐 Zugang einrichten</div>
+            <div class="card-subtitle">Setup-Token bestätigen und Admin-Konto anlegen.</div>
+
+            <div class="info-box blue">
+                <i class="fas fa-terminal"></i>&nbsp;
+                Den <strong>Setup-Token</strong> findest du in der Kommandozeile, wo du <code>npm start</code> ausgeführt hast.
             </div>
+
             <div class="form-group">
-                <label>Lizenzschlüssel</label>
+                <label>Setup-Token</label>
                 <div class="input-wrap">
-                    <input type="text" id="licenseKey" placeholder="MERAKI-PRO-XXXX-2026" autocomplete="off" style="font-family:monospace;letter-spacing:0.05em">
+                    <input type="text" id="setupToken" placeholder="Token aus der Konsole eingeben"
+                           style="font-family:monospace;letter-spacing:0.06em" autocomplete="off" spellcheck="false">
                 </div>
-                <div id="lic-status" class="lic-status" style="display:none"></div>
-                <div class="hint">Schlüssel leer lassen = 30 Tage Trial (FREE-Plan)</div>
+                <div id="token-status" class="status-badge" style="display:none"></div>
             </div>
-            <div class="form-group">
-                <label>Admin Secret <span style="opacity:.6;font-weight:400;text-transform:none">(JWT-Schlüssel)</span></label>
-                <div class="input-wrap">
-                    <input type="password" id="adminSecret" placeholder="Sicherer zufälliger Schlüssel">
-                    <button class="toggle-pw" type="button" onclick="togglePw('adminSecret',this)"><i class="fas fa-eye"></i></button>
+
+            <hr class="divider">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Dein Name</label>
+                    <input type="text" id="adminName" placeholder="Max Mustermann" autocomplete="name">
                 </div>
-                <div class="hint"><i class="fas fa-triangle-exclamation"></i> Niemals teilen. Wird für Session-Tokens genutzt.</div>
+                <div class="form-group">
+                    <label>E-Mail-Adresse</label>
+                    <input type="email" id="adminEmail" placeholder="admin@meinrestaurant.de" autocomplete="email">
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Admin-Passwort</label>
                     <div class="input-wrap">
-                        <input type="password" id="adminPass" placeholder="Mindestens 12 Zeichen" oninput="checkPwStrength(this.value)">
+                        <input type="password" id="adminPass" placeholder="Mindestens 12 Zeichen"
+                               oninput="checkPwStrength(this.value)" autocomplete="new-password">
                         <button class="toggle-pw" type="button" onclick="togglePw('adminPass',this)"><i class="fas fa-eye"></i></button>
                     </div>
                     <div id="pw-strength" class="pw-strength" style="display:none"></div>
@@ -154,103 +174,225 @@
                 <div class="form-group">
                     <label>Passwort bestätigen</label>
                     <div class="input-wrap">
-                        <input type="password" id="adminPassConfirm" placeholder="Passwort wiederholen">
+                        <input type="password" id="adminPassConfirm" placeholder="Passwort wiederholen" autocomplete="new-password">
                         <button class="toggle-pw" type="button" onclick="togglePw('adminPassConfirm',this)"><i class="fas fa-eye"></i></button>
                     </div>
                     <div id="pw-confirm-hint" class="hint"></div>
                 </div>
             </div>
-            <div id="setup-step1-error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:8px"></div>
+
+            <div id="step1-error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:8px;font-weight:600"></div>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="validateLicenseAndNext()">Weiter <i class="fas fa-arrow-right"></i></button>
+                <button class="btn btn-primary" onclick="verifyTokenAndNext()">Weiter <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
-        <!-- Step 2: Restaurant -->
+
+        <!-- ═══ Step 2: Restaurant ═══ -->
         <div class="step" id="step2">
             <div class="card-title">🍽️ Restaurant-Profil</div>
             <div class="card-subtitle">Grundlegende Informationen zu deinem Restaurant.</div>
+
             <div class="form-row">
-                <div class="form-group"><label>Restaurantname</label><input type="text" id="restName" placeholder="Santorini Taverna"></div>
-                <div class="form-group"><label>Telefon</label><input type="tel" id="restPhone" placeholder="+49 123 456789"></div>
+                <div class="form-group">
+                    <label>Restaurantname <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="restName" placeholder="Santorini Taverna">
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <input type="tel" id="restPhone" placeholder="+49 123 456789">
+                </div>
             </div>
-            <div class="form-group"><label>Adresse</label><input type="text" id="restAddress" placeholder="Musterstraße 1, 12345 Musterstadt"></div>
+            <div class="form-group">
+                <label>Adresse</label>
+                <input type="text" id="restAddress" placeholder="Musterstraße 1, 12345 Musterstadt">
+            </div>
             <div class="form-row">
-                <div class="form-group"><label>Standard-Sprache</label><select id="restLang"><option value="de">Deutsch</option><option value="en">English</option><option value="el">Ελληνικά</option></select></div>
-                <div class="form-group"><label>Zeitzone</label><select id="restTz"><option value="Europe/Berlin">Europe/Berlin</option><option value="Europe/Vienna">Europe/Vienna</option><option value="Europe/Zurich">Europe/Zurich</option><option value="Europe/Athens">Europe/Athens</option></select></div>
+                <div class="form-group">
+                    <label>Standard-Sprache</label>
+                    <select id="restLang">
+                        <option value="de">Deutsch</option>
+                        <option value="en">English</option>
+                        <option value="el">Ελληνικά</option>
+                        <option value="tr">Türkçe</option>
+                        <option value="it">Italiano</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Zeitzone</label>
+                    <select id="restTz">
+                        <option value="Europe/Berlin">Europe/Berlin</option>
+                        <option value="Europe/Vienna">Europe/Vienna</option>
+                        <option value="Europe/Zurich">Europe/Zurich</option>
+                        <option value="Europe/Athens">Europe/Athens</option>
+                        <option value="Europe/Istanbul">Europe/Istanbul</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group"><label>Website (optional)</label><input type="url" id="restWebsite" placeholder="https://www.meinrestaurant.de"></div>
+            <div class="form-group">
+                <label>Website <span style="opacity:.5;font-weight:400;text-transform:none">(optional)</span></label>
+                <input type="url" id="restWebsite" placeholder="https://www.meinrestaurant.de">
+            </div>
+
+            <div id="step2-error" style="display:none;color:var(--danger);font-size:0.85rem;margin-top:8px;font-weight:600"></div>
             <div class="btn-row">
                 <button class="btn btn-ghost" onclick="goStep(1)"><i class="fas fa-arrow-left"></i> Zurück</button>
-                <button class="btn btn-primary" onclick="goStep(3)">Weiter <i class="fas fa-arrow-right"></i></button>
+                <button class="btn btn-primary" onclick="validateRestaurantAndNext()">Weiter <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
-        <!-- Step 3: Datenbank -->
+
+        <!-- ═══ Step 3: System (Lizenz + DB) ═══ -->
         <div class="step" id="step3">
-            <div class="card-title">🗄️ Datenbank</div>
-            <div class="card-subtitle">Wähle die Datenbankart für das CMS.</div>
+            <div class="card-title">⚙️ Systemkonfiguration</div>
+            <div class="card-subtitle">Lizenz und Datenbankverbindung einrichten.</div>
+
+            <div class="form-group">
+                <label>Lizenzserver URL</label>
+                <input type="url" id="licenseUrl" value="https://licens-prod.stb-srv.de">
+                <div class="hint"><i class="fas fa-circle-info"></i> Standard: offizieller Meraki-Lizenzserver</div>
+            </div>
+            <div class="form-group">
+                <label>Lizenzschlüssel <span style="opacity:.5;font-weight:400;text-transform:none">(optional – leer = 30 Tage Trial)</span></label>
+                <div class="input-wrap">
+                    <input type="text" id="licenseKey" placeholder="MERAKI-PRO-XXXX-2026"
+                           style="font-family:monospace;letter-spacing:0.05em" autocomplete="off">
+                </div>
+                <div id="lic-status" class="status-badge" style="display:none"></div>
+            </div>
+
+            <hr class="divider">
+
             <div class="form-group">
                 <label>Datenbank-Typ</label>
                 <select id="dbType" onchange="onDbTypeChange()">
-                    <option value="sqlite">SQLite – Lokal (empfohlen)</option>
+                    <option value="sqlite">SQLite – Lokal (Empfohlen)</option>
                     <option value="mysql">MySQL / MariaDB</option>
                 </select>
             </div>
-            <div id="sqlite-info" class="info-box blue"><i class="fas fa-circle-info"></i> SQLite speichert alle Daten in einer einzelnen Datei (<code>server/database.sqlite</code>). Keine weitere Konfiguration nötig.</div>
+            <div id="sqlite-info" class="info-box blue">
+                <i class="fas fa-circle-info"></i>
+                SQLite speichert alle Daten in einer einzelnen Datei (<code>server/database.sqlite</code>). Keine weitere Konfiguration nötig – ideal für Einsteiger und kleine Installationen.
+            </div>
             <div id="mysql-fields" style="display:none">
+                <div class="info-box warn">
+                    <i class="fas fa-triangle-exclamation"></i> <strong>Hinweis:</strong>
+                    Datenbank und Benutzer müssen in MySQL bereits existieren.
+                    Nach dem Setup ist ein <strong>Server-Neustart</strong> erforderlich, damit MySQL aktiv wird.
+                </div>
                 <div class="form-row">
                     <div class="form-group"><label>Host</label><input type="text" id="dbHost" value="127.0.0.1"></div>
-                    <div class="form-group" style="flex:0 0 100px"><label>Port</label><input type="number" id="dbPort" value="3306"></div>
+                    <div class="form-group" style="flex:0 0 110px"><label>Port</label><input type="number" id="dbPort" value="3306"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Datenbank</label><input type="text" id="dbName" placeholder="opa_santorini"></div>
-                    <div class="form-group"><label>Benutzer</label><input type="text" id="dbUser" placeholder="root"></div>
+                    <div class="form-group"><label>Datenbank</label><input type="text" id="dbName" placeholder="meraki_cms"></div>
+                    <div class="form-group"><label>Benutzer</label><input type="text" id="dbUser" placeholder="meraki_user"></div>
                 </div>
-                <div class="form-group"><label>Passwort</label><input type="password" id="dbPass" placeholder="••••••••"></div>
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <div class="input-wrap">
+                        <input type="password" id="dbPass" placeholder="••••••••">
+                        <button class="toggle-pw" type="button" onclick="togglePw('dbPass',this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
             </div>
+
             <div class="btn-row">
                 <button class="btn btn-ghost" onclick="goStep(2)"><i class="fas fa-arrow-left"></i> Zurück</button>
                 <button class="btn btn-primary" onclick="goStep(4)">Weiter <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
-        <!-- Step 4: SMTP -->
+
+        <!-- ═══ Step 4: SMTP ═══ -->
         <div class="step" id="step4">
             <div class="card-title">📧 E-Mail Konfiguration</div>
             <div class="card-subtitle">SMTP-Einstellungen für Reservierungsbestätigungen.</div>
-            <div class="info-box warn"><i class="fas fa-triangle-exclamation"></i> E-Mail kann auch später im CMS unter <strong>Einstellungen → SMTP</strong> konfiguriert werden.</div>
+
+            <div class="info-box warn">
+                <i class="fas fa-triangle-exclamation"></i>
+                E-Mail kann auch später im CMS unter <strong>Einstellungen → E-Mail</strong> konfiguriert werden. Dieser Schritt ist optional.
+            </div>
+
             <div class="form-row">
-                <div class="form-group" style="flex:2"><label>SMTP Host</label><input type="text" id="smtpHost" placeholder="smtp.gmail.com"></div>
-                <div class="form-group" style="flex:0 0 100px"><label>Port</label><input type="number" id="smtpPort" value="465"></div>
-                <div class="form-group" style="flex:0 0 120px"><label>Verschlüsselung</label><select id="smtpSecure"><option value="true">SSL/TLS</option><option value="false">STARTTLS</option></select></div>
+                <div class="form-group" style="flex:2">
+                    <label>SMTP Host</label>
+                    <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
+                </div>
+                <div class="form-group" style="flex:0 0 100px">
+                    <label>Port</label>
+                    <input type="number" id="smtpPort" value="465">
+                </div>
+                <div class="form-group" style="flex:0 0 130px">
+                    <label>Verschlüsselung</label>
+                    <select id="smtpSecure">
+                        <option value="true">SSL / TLS</option>
+                        <option value="false">STARTTLS</option>
+                    </select>
+                </div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Benutzername / E-Mail</label><input type="text" id="smtpUser" placeholder="noreply@meinrestaurant.de"></div>
-                <div class="form-group"><label>Passwort</label><div class="input-wrap"><input type="password" id="smtpPass" placeholder="••••••••"><button class="toggle-pw" type="button" onclick="togglePw('smtpPass',this)"><i class="fas fa-eye"></i></button></div></div>
+                <div class="form-group">
+                    <label>Benutzername / E-Mail</label>
+                    <input type="text" id="smtpUser" placeholder="noreply@meinrestaurant.de">
+                </div>
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <div class="input-wrap">
+                        <input type="password" id="smtpPass" placeholder="••••••••">
+                        <button class="toggle-pw" type="button" onclick="togglePw('smtpPass',this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
             </div>
-            <div class="form-group"><label>Absendername</label><input type="text" id="smtpFrom" placeholder="Santorini Taverna"><div class="hint">Wird als Absender in E-Mails angezeigt</div></div>
+            <div class="form-group">
+                <label>Absendername</label>
+                <input type="text" id="smtpFrom" placeholder="Santorini Taverna">
+                <div class="hint">Wird als Absender in E-Mails angezeigt</div>
+            </div>
+
             <div class="btn-row">
                 <button class="btn btn-ghost" onclick="goStep(3)"><i class="fas fa-arrow-left"></i> Zurück</button>
                 <button class="btn btn-primary" id="btn-finish" onclick="finishSetup()">Setup abschließen <i class="fas fa-check"></i></button>
             </div>
         </div>
 
-        <!-- Success -->
+        <!-- ═══ Success Screen ═══ -->
         <div class="success-screen" id="success-screen">
             <div class="success-icon"><i class="fas fa-check"></i></div>
-            <p>Das CMS wurde erfolgreich eingerichtet.<br>Du kannst dich jetzt mit folgenden Daten anmelden:</p>
-            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin:20px 0; font-family:monospace;">
-                Benutzer: <strong>admin</strong><br>
-                Passwort: <strong id="success-pw-display">●●●●●●●●●●●●</strong>
+            <h2>Setup abgeschlossen!</h2>
+            <p>Das CMS wurde erfolgreich eingerichtet.</p>
+
+            <div class="login-info">
+                <div class="row"><i class="fas fa-user" style="width:16px;color:var(--primary)"></i> Benutzername: <span id="success-user">admin</span></div>
+                <div class="row"><i class="fas fa-envelope" style="width:16px;color:var(--primary)"></i> E-Mail: <span id="success-email">–</span></div>
             </div>
-            <button class="btn btn-primary" style="max-width:220px;margin:0 auto" onclick="location.href='/admin'"><i class="fas fa-arrow-right"></i> Zum Dashboard</button>
+
+            <div class="recovery-box">
+                <h4><i class="fas fa-shield-halved"></i>&nbsp; Recovery Codes – Nur einmal angezeigt!</h4>
+                <p>Bewahre diese Codes sicher auf (z.B. in einem Passwort-Manager). Sie ermöglichen den Zugriff, falls du dein Passwort vergisst. Jeder Code kann nur einmal verwendet werden.</p>
+                <div id="recovery-codes-list"></div>
+            </div>
+
+            <div id="restart-note" class="info-box warn" style="display:none;text-align:left;margin-top:4px">
+                <i class="fas fa-rotate-right"></i> <strong>Server-Neustart erforderlich</strong> –
+                Du hast MySQL konfiguriert. Starte den Server neu damit MySQL aktiv wird:
+                <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px">npm start</code>
+            </div>
+
+            <div class="btn-row" style="margin-top:24px;justify-content:center">
+                <button class="btn btn-primary" style="max-width:220px" onclick="location.href='/admin'">
+                    Zum Dashboard <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
         </div>
-    </div>
-</div>
+
+    </div><!-- .card -->
+</div><!-- .wizard -->
+
 <script>
 let currentStep = 1;
 const TOTAL = 4;
-let licenseData = null;
+let verifiedToken = '';
 
-// Trailing Slash immer entfernen
 const cleanUrl = (url) => url.trim().replace(/\/+$/, '');
 
 function goStep(n) {
@@ -264,63 +406,93 @@ function goStep(n) {
 }
 
 function togglePw(id, btn) {
-    const inp = document.getElementById(id);
+    const inp  = document.getElementById(id);
     const icon = btn.querySelector('i');
-    if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
-    else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+    if (inp.type === 'password') { inp.type = 'text';     icon.className = 'fas fa-eye-slash'; }
+    else                         { inp.type = 'password'; icon.className = 'fas fa-eye'; }
 }
 
 function checkPwStrength(pw) {
-    const bar = document.getElementById('pw-strength');
+    const bar  = document.getElementById('pw-strength');
     const hint = document.getElementById('pw-hint');
     bar.style.display = pw.length > 0 ? 'block' : 'none';
     let score = 0;
-    if (pw.length >= 8) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
+    if (pw.length >= 12)          score++;
+    if (/[A-Z]/.test(pw))         score++;
+    if (/[0-9]/.test(pw))         score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-    const colors = ['#ef4444','#f97316','#eab308','#22c55e'];
-    const labels = ['Schwach','Mittel','Gut','Stark'];
-    bar.style.width = (score * 25) + '%';
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e'];
+    const labels = ['Schwach', 'Mittel', 'Gut', 'Stark'];
+    bar.style.width      = (score * 25) + '%';
     bar.style.background = colors[score - 1] || '#334155';
-    hint.style.color = '';
-    hint.textContent = score > 0 ? 'Passwortstärke: ' + (labels[score - 1] || '') : 'Mind. 12 Zeichen, Groß-/Kleinbuchstaben, Zahlen';
+    hint.style.color     = '';
+    hint.textContent     = score > 0 ? 'Passwortstärke: ' + (labels[score - 1] || '') : 'Mind. 12 Zeichen, Groß-/Kleinbuchstaben, Zahlen';
     document.getElementById('pw-confirm-hint').textContent = '';
 }
 
-async function validateLicenseAndNext() {
-    const key = document.getElementById('licenseKey').value.trim();
-    const url = cleanUrl(document.getElementById('licenseUrl').value);
-    // Cleaned URL zurückschreiben
-    document.getElementById('licenseUrl').value = url;
-    const statusEl = document.getElementById('lic-status');
+async function verifyTokenAndNext() {
+    const token            = document.getElementById('setupToken').value.trim();
+    const adminPass        = document.getElementById('adminPass').value;
+    const adminPassConfirm = document.getElementById('adminPassConfirm').value;
+    const errorEl          = document.getElementById('step1-error');
+    const tokenStatus      = document.getElementById('token-status');
 
-    if (!key) { goStep(2); return; }
+    errorEl.style.display = 'none';
 
-    statusEl.style.display = 'flex';
-    statusEl.className = 'lic-status checking';
-    statusEl.innerHTML = '<i class="fas fa-circle-notch spin"></i> Lizenz wird geprüft...';
+    if (!token) {
+        errorEl.textContent   = 'Bitte den Setup-Token eingeben.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (!adminPass || adminPass.length < 12) {
+        const h = document.getElementById('pw-hint');
+        h.textContent = 'Passwort muss mindestens 12 Zeichen lang sein.';
+        h.style.color = 'var(--danger)';
+        return;
+    }
+    if (adminPass !== adminPassConfirm) {
+        const h = document.getElementById('pw-confirm-hint');
+        h.textContent = 'Passwörter stimmen nicht überein.';
+        h.style.color = 'var(--danger)';
+        return;
+    }
+
+    tokenStatus.style.display = 'flex';
+    tokenStatus.className     = 'status-badge checking';
+    tokenStatus.innerHTML     = '<i class="fas fa-circle-notch spin"></i> Token wird geprüft...';
 
     try {
-        const r = await fetch(`${url}/api/v1/validate`, {
+        const r    = await fetch('/api/setup/verify-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ license_key: key, domain: location.hostname })
+            body: JSON.stringify({ token })
         });
         const data = await r.json();
-        if (data.status === 'active') {
-            licenseData = data;
-            statusEl.className = 'lic-status ok';
-            statusEl.innerHTML = `<i class="fas fa-circle-check"></i> ${data.plan_label || data.type} – ${data.customer_name} – gültig bis ${new Date(data.expires_at).toLocaleDateString('de-DE')}`;
-            setTimeout(() => goStep(2), 800);
+        if (data.valid) {
+            verifiedToken         = token;
+            tokenStatus.className = 'status-badge ok';
+            tokenStatus.innerHTML = '<i class="fas fa-circle-check"></i> Token bestätigt';
+            setTimeout(() => goStep(2), 500);
         } else {
-            statusEl.className = 'lic-status error';
-            statusEl.innerHTML = `<i class="fas fa-circle-xmark"></i> Ungültig: ${data.message}`;
+            tokenStatus.className = 'status-badge error';
+            tokenStatus.innerHTML = `<i class="fas fa-circle-xmark"></i> ${data.reason || 'Ungültiger Token'}`;
         }
-    } catch(e) {
-        statusEl.className = 'lic-status error';
-        statusEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Lizenzserver nicht erreichbar. <span style="text-decoration:underline;cursor:pointer" onclick="goStep(2)">Trotzdem weiter (Trial)</span>';
+    } catch (e) {
+        tokenStatus.className = 'status-badge error';
+        tokenStatus.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Verbindungsfehler';
     }
+}
+
+function validateRestaurantAndNext() {
+    const name    = document.getElementById('restName').value.trim();
+    const errorEl = document.getElementById('step2-error');
+    if (!name) {
+        errorEl.textContent   = 'Restaurantname ist erforderlich.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    errorEl.style.display = 'none';
+    goStep(3);
 }
 
 function onDbTypeChange() {
@@ -329,102 +501,110 @@ function onDbTypeChange() {
     document.getElementById('mysql-fields').style.display = t === 'mysql'  ? 'block' : 'none';
 }
 
+function copyCode(code, btn) {
+    navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Kopiert';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+    }).catch(() => {});
+}
+
 async function finishSetup() {
     const btn = document.getElementById('btn-finish');
-    const adminPass = document.getElementById('adminPass').value;
-    const adminPassConfirm = document.getElementById('adminPassConfirm').value;
-
-    if (!adminPass || adminPass.length < 12) {
-        document.getElementById('pw-hint').textContent = 'Passwort muss mindestens 12 Zeichen lang sein.';
-        document.getElementById('pw-hint').style.color = 'var(--danger)';
-        return;
-    }
-    if (adminPass !== adminPassConfirm) {
-        document.getElementById('pw-confirm-hint').textContent = 'Passwörter stimmen nicht überein.';
-        document.getElementById('pw-confirm-hint').style.color = 'var(--danger)';
-        return;
-    }
-
-    btn.disabled = true;
+    btn.disabled  = true;
     btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Wird gespeichert...';
 
-    const dbType = document.getElementById('dbType').value;
+    const dbType    = document.getElementById('dbType').value;
     const dbDetails = dbType === 'mysql' ? {
-        host: document.getElementById('dbHost').value,
-        port: parseInt(document.getElementById('dbPort').value),
+        host:     document.getElementById('dbHost').value,
+        port:     parseInt(document.getElementById('dbPort').value) || 3306,
         database: document.getElementById('dbName').value,
-        user: document.getElementById('dbUser').value,
+        user:     document.getElementById('dbUser').value,
         password: document.getElementById('dbPass').value
     } : {};
 
+    const restName = document.getElementById('restName').value.trim();
+    const smtpUser = document.getElementById('smtpUser').value.trim();
+    const smtpFrom = document.getElementById('smtpFrom').value.trim();
+
     const payload = {
+        setupToken:    verifiedToken,
         licenseServer: cleanUrl(document.getElementById('licenseUrl').value),
         licenseKey:    document.getElementById('licenseKey').value.trim(),
-        adminSecret:   document.getElementById('adminSecret').value,
         dbType, dbDetails,
         smtp: {
-            host:   document.getElementById('smtpHost').value,
+            host:   document.getElementById('smtpHost').value.trim(),
             port:   parseInt(document.getElementById('smtpPort').value) || 465,
             secure: document.getElementById('smtpSecure').value === 'true',
-            user:   document.getElementById('smtpUser').value,
+            user:   smtpUser,
             pass:   document.getElementById('smtpPass').value,
-            from:   `"${document.getElementById('smtpFrom').value || document.getElementById('restName').value}" <${document.getElementById('smtpUser').value}>`
+            from:   smtpUser ? `"${smtpFrom || restName}" <${smtpUser}>` : ''
         },
         restaurant: {
-            name:    document.getElementById('restName').value,
-            phone:   document.getElementById('restPhone').value,
-            address: document.getElementById('restAddress').value,
-            website: document.getElementById('restWebsite').value,
-            lang:    document.getElementById('restLang').value,
+            name:     restName,
+            phone:    document.getElementById('restPhone').value.trim(),
+            address:  document.getElementById('restAddress').value.trim(),
+            website:  document.getElementById('restWebsite').value.trim(),
+            lang:     document.getElementById('restLang').value,
             timezone: document.getElementById('restTz').value
         },
-        adminUser: 'admin',
-        adminEmail: '',
-        adminPass
+        adminUser:  'admin',
+        adminName:  document.getElementById('adminName').value.trim(),
+        adminEmail: document.getElementById('adminEmail').value.trim(),
+        adminPass:  document.getElementById('adminPass').value
     };
 
     try {
-        const res = await fetch('/api/setup', {
+        const res    = await fetch('/api/setup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         const result = await res.json();
+
         if (result.success) {
-            document.getElementById('success-pw-display').textContent = adminPass;
+            document.getElementById('success-user').textContent  = result.adminUser || 'admin';
+            document.getElementById('success-email').textContent = payload.adminEmail || '–';
+
+            const listEl = document.getElementById('recovery-codes-list');
+            if (result.recovery_codes && result.recovery_codes.length) {
+                listEl.innerHTML = result.recovery_codes.map(code =>
+                    `<div class="recovery-code">
+                        <span>${code}</span>
+                        <button class="copy-btn" onclick="copyCode('${code}', this)">Kopieren</button>
+                    </div>`
+                ).join('');
+            }
+
+            if (result.needsRestart) {
+                document.getElementById('restart-note').style.display = 'block';
+            }
+
             for (let i = 1; i <= TOTAL; i++) {
                 document.getElementById(`ps${i}`).classList.remove('active');
                 document.getElementById(`ps${i}`).classList.add('done');
             }
             document.getElementById(`step${currentStep}`).classList.remove('active');
             document.getElementById('success-screen').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
             alert('Fehler: ' + (result.reason || result.message || 'Unbekannter Fehler'));
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check"></i> Setup abschließen';
+            btn.disabled  = false;
+            btn.innerHTML = 'Setup abschließen <i class="fas fa-check"></i>';
         }
-    } catch(e) {
-        alert('Netzwerkfehler beim Speichern. Bitte prüfe ob der Server erreichbar ist.\n\nDetails: ' + e.message);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Setup abschließen';
+    } catch (e) {
+        alert('Netzwerkfehler beim Speichern.\n\nDetails: ' + e.message);
+        btn.disabled  = false;
+        btn.innerHTML = 'Setup abschließen <i class="fas fa-check"></i>';
     }
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    // Prüfe ob Setup bereits abgeschlossen ist – dann weiterleiten
     try {
-        const statusRes = await fetch('/api/setup/status');
-        const statusData = await statusRes.json();
-        if (statusData.setupComplete) {
-            window.location.href = '/admin';
-            return;
-        }
-    } catch (e) {}
-
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
-    let secret = '';
-    for (let i = 0; i < 32; i++) secret += chars[Math.floor(Math.random() * chars.length)];
-    document.getElementById('adminSecret').value = secret;
+        const res  = await fetch('/api/setup/status');
+        const data = await res.json();
+        if (data.setupComplete) { window.location.href = '/admin'; }
+    } catch (_) {}
 });
 </script>
 </body>

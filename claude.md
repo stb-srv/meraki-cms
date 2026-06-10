@@ -19,9 +19,21 @@ Es gibt keine automatisierten Unit-Tests und kein Build-System.
 
 ## Setup-Flow (Erstkonfiguration)
 
-Beim ersten Start ohne `server/config.json` wird jeder Nicht-API-Aufruf auf `/setup` umgeleitet. Der Setup-Wizard (`POST /api/v1/setup`, nur von `localhost` erlaubt) erstellt:
-1. Den ersten Admin-User in der DB
-2. Optional: License-Key im KV-Store (`settings.license`) mit `status: 'pending_validation'`
+Beim ersten Start ohne `server/config.json` wird jeder Nicht-API-Aufruf auf `/setup` umgeleitet.
+
+`server.js` generiert beim Start automatisch einen einmaligen **Setup-Token** (`global._setupToken`) und gibt ihn in der Konsole aus:
+```
+  Öffne:  http://localhost:5000/setup
+  Token:  <32-Zeichen-Hex-Token>
+```
+
+Der Setup-Wizard (`POST /api/setup`) validiert den Token (statt IP-Check) und erstellt:
+1. Den ersten Admin-User in der DB (Recovery-Codes werden generiert, nur einmalig im Browser angezeigt)
+2. `server/config.json` mit `ADMIN_SECRET` (auto-generiert), `DB_TYPE`, `SMTP`, `LICENSE_SERVER_URL`, `SETUP_COMPLETE: true`
+3. Branding-KV mit Restaurantname, Telefon, Adresse, Sprache, Zeitzone
+4. Trial-Lizenz oder validierter Lizenz-Key in `settings.license`
+
+Der ADMIN_SECRET wird **ausschließlich server-seitig** generiert – kein Benutzer-Input nötig.
 
 Der LicenseChecker ermittelt den echten Plan-Typ beim ersten Start automatisch vom Lizenzserver.
 

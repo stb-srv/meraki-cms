@@ -1,6 +1,7 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const CONFIG = require('./config.js');
 const logger = require('./server/core/logger.js');
@@ -15,6 +16,10 @@ const createApp = require('./server/app.js');
 
 const PORT = CONFIG.PORT || 5000;
 const PLUGINS_DIR = path.join(__dirname, 'plugins');
+
+if (!CONFIG.SETUP_COMPLETE) {
+    global._setupToken = crypto.randomBytes(16).toString('hex');
+}
 const requireAuth = makeRequireAuth(CONFIG.ADMIN_SECRET);
 
 startCron();
@@ -59,6 +64,16 @@ async function start() {
     server.listen(PORT, () => {
         const allowedOrigins = (CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
         logger.info({ version: APP_VERSION, port: PORT, licenseServer: CONFIG.LICENSE_SERVER_URL, cors: allowedOrigins }, 'Meraki CMS gestartet');
+
+        if (!CONFIG.SETUP_COMPLETE && global._setupToken) {
+            const border = '═'.repeat(60);
+            console.log(`\n${border}`);
+            console.log('  MERAKI CMS – ERSTEINRICHTUNG ERFORDERLICH');
+            console.log(border);
+            console.log(`  Öffne:  http://localhost:${PORT}/setup`);
+            console.log(`  Token:  ${global._setupToken}`);
+            console.log(`${border}\n`);
+        }
 
         _licenseChecker = new LicenseChecker(
             DB,

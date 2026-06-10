@@ -76,7 +76,7 @@ module.exports = function(CONFIG, io) {
     });
 
     app.use((req, res, next) => {
-        if (CONFIG.SETUP_COMPLETE || req.path === '/api/setup' || req.path === '/api/setup/status' || req.path === '/setup' || req.path.startsWith('/setup-assets')) return next();
+        if (CONFIG.SETUP_COMPLETE || req.path === '/api/setup' || req.path === '/api/setup/status' || req.path === '/api/setup/verify-token' || req.path === '/setup' || req.path.startsWith('/setup-assets')) return next();
         if (req.path.startsWith('/api/')) return res.status(403).json({ success: false, reason: 'SETUP_REQUIRED', message: 'System must be configured first.' });
         res.redirect('/setup');
     });
@@ -134,45 +134,103 @@ module.exports = function(CONFIG, io) {
         } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
     });
 
+    app.post('/api/setup/verify-token', (req, res) => {
+        if (CONFIG.SETUP_COMPLETE) return res.json({ valid: false, reason: 'Already configured' });
+        const { token } = req.body;
+        if (!global._setupToken) return res.json({ valid: false, reason: 'Kein Setup-Token aktiv.' });
+        res.json({ valid: token === global._setupToken });
+    });
+
     app.post('/api/setup', async (req, res) => {
         if (CONFIG.SETUP_COMPLETE) return res.status(403).json({ success: false, reason: 'Already configured' });
-        const _clientIp = req.ip || req.socket?.remoteAddress || '';
-        if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(_clientIp)) {
-            return res.status(403).json({ success: false, reason: 'Setup ist nur von localhost erlaubt.' });
+
+        const { setupToken, restaurantName, licenseKey, licenseServer, dbType, dbDetails, smtp, adminUser, adminPass, adminEmail, adminName, restaurant } = req.body;
+
+        if (!global._setupToken || setupToken !== global._setupToken) {
+            return res.status(403).json({ success: false, reason: 'Ungültiger Setup-Token. Sieh in der Konsole nach.' });
         }
         try {
-            const { restaurantName, licenseServer, adminSecret, smtp, adminUser, adminPass, adminEmail } = req.body;
-            if (!adminPass || adminPass.length < 12) return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });
+            if (!adminPass || adminPass.length < 12) {
+                return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });
+            }
             const licenseServerUrl = (licenseServer || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
             const trialPlan = PLAN_DEFINITIONS['FREE'];
+            const r = restaurant || {};
+            const customerName = r.name || restaurantName || 'Trial';
             const trialLicense = {
                 key: 'MERAKI-TRIAL-' + crypto.randomBytes(4).toString('hex').toUpperCase() + '-' + new Date().getFullYear(),
-                status: 'trial', customer: restaurantName || 'Trial', type: 'FREE', label: trialPlan.label,
+                status: 'trial', customer: customerName, type: 'FREE', label: trialPlan.label,
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 modules: trialPlan.modules, limits: { max_dishes: trialPlan.menu_items, max_tables: trialPlan.max_tables },
                 isTrial: true
             };
-            const newConfig = { LICENSE_SERVER_URL: licenseServerUrl, ADMIN_SECRET: adminSecret || crypto.randomBytes(32).toString('hex'), SMTP: smtp || {}, SETUP_COMPLETE: true };
-            const configPath = path.join(__dirname, '..', 'config.json');
+
+            const selectedDbType = (dbType || 'sqlite').toLowerCase();
+            const newConfig = {
+                LICENSE_SERVER_URL: licenseServerUrl,
+                ADMIN_SECRET: crypto.randomBytes(32).toString('hex'),
+                SMTP: smtp || {},
+                DB_TYPE: selectedDbType,
+                SETUP_COMPLETE: true
+            };
+            if (selectedDbType === 'mysql' && dbDetails) {
+                newConfig.DB_HOST = dbDetails.host || 'localhost';
+                newConfig.DB_PORT = dbDetails.port || 3306;
+                newConfig.DB_NAME = dbDetails.database || '';
+                newConfig.DB_USER = dbDetails.user || '';
+                newConfig.DB_PASS = dbDetails.password || '';
+            }
+
+            const configPath = path.join(__dirname, 'config.json');
             fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 4));
             Object.assign(CONFIG, newConfig);
+
             const settings = await DB.getKV('settings', {});
-            settings.license = trialLicense;
+            if (licenseKey && licenseKey.trim()) {
+                settings.license = { key: licenseKey.trim(), status: 'pending_validation' };
+            } else {
+                settings.license = trialLicense;
+            }
             if (smtp && smtp.host) settings.smtp = smtp;
             await DB.setKV('settings', settings);
-            if (restaurantName) { const b = await DB.getKV('branding', {}); b.name = restaurantName; await DB.setKV('branding', b); }
+
+            const branding = await DB.getKV('branding', {});
+            branding.name = customerName;
+            if (r.phone) branding.phone = r.phone;
+            if (r.address) branding.address = r.address;
+            if (r.website) branding.website = r.website;
+            if (r.lang) branding.lang = r.lang;
+            if (r.timezone) branding.timezone = r.timezone;
+            await DB.setKV('branding', branding);
+
             const finalAdminUser = adminUser || 'admin';
             const hash = await bcrypt.hash(adminPass, 12);
             const plainRecoveryCodes = [], hashedCodes = [];
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             for (let i = 0; i < 3; i++) {
                 let code = 'MERAKI-';
-                for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)]; code += '-';
-                for (let j=0;j<4;j++) code += chars[Math.floor(Math.random()*chars.length)];
-                plainRecoveryCodes.push(code); hashedCodes.push(await bcrypt.hash(code, 12));
+                for (let j = 0; j < 4; j++) code += chars[Math.floor(Math.random() * chars.length)];
+                code += '-';
+                for (let j = 0; j < 4; j++) code += chars[Math.floor(Math.random() * chars.length)];
+                plainRecoveryCodes.push(code);
+                hashedCodes.push(await bcrypt.hash(code, 12));
             }
-            await DB.addUser({ user: finalAdminUser, pass: hash, name: 'Setup', last_name: 'Admin', email: adminEmail || '', role: 'admin', require_password_change: 0, recovery_codes: hashedCodes });
-            res.json({ success: true, trial: trialLicense, message: 'Setup abgeschlossen.', recovery_codes: plainRecoveryCodes });
+            await DB.addUser({
+                user: finalAdminUser, pass: hash,
+                name: adminName || 'Administrator', last_name: '',
+                email: adminEmail || '', role: 'admin',
+                require_password_change: 0, recovery_codes: hashedCodes
+            });
+
+            global._setupToken = null;
+            res.json({
+                success: true,
+                trial: licenseKey ? { key: licenseKey.trim(), status: 'pending_validation' } : trialLicense,
+                message: 'Setup abgeschlossen.',
+                recovery_codes: plainRecoveryCodes,
+                adminUser: finalAdminUser,
+                needsRestart: selectedDbType === 'mysql'
+            });
         } catch (e) {
             logger.error({ err: e }, 'Setup error');
             res.status(500).json({ success: false, reason: e.message });
