@@ -1,0 +1,13 @@
+{
+  "name": "@meraki/plans",
+  "version": "1.0.0",
+  "description": "Shared license plan definitions for Meraki CMS and License Server",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "require": "./index.js",
+      "import": "./index.mjs",
+      "default": "./index.js"
+    }
+  }
+}

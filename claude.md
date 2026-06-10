@@ -75,8 +75,8 @@ Wichtige KV-Keys: `settings`, `branding`, `homepage`, `plugins`
 ### Lizenz-System
 Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRISE`
 
-**Einzige Quelle der Wahrheit**: `@meraki/plans` (lokales Package `../meraki-plans/`).
-**Nie** PLAN_DEFINITIONS direkt im CMS oder Lizenzserver definieren — immer im shared Package bearbeiten.
+**Einzige Quelle der Wahrheit**: `@meraki/plans` (lokales Package `packages/meraki-plans/` im Repo-Root).
+**Nie** PLAN_DEFINITIONS direkt im CMS oder Lizenzserver definieren — immer in `packages/meraki-plans/index.js` bearbeiten.
 
 - Trial: In KV `settings.license.isTrial = true`, Ablauf via Cron geprüft
 - Vollizenz: RSA-signiertes JWT (`licenseToken`), Public Key beim Start vom Lizenzserver geladen

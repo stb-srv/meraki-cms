@@ -38,6 +38,8 @@
   - Ubuntu/Debian: `sudo apt install -y build-essential python3`
   - macOS: `xcode-select --install`
 
+> Das Paket `@meraki/plans` ist direkt im Repo unter `packages/meraki-plans/` enthalten – kein separates Repository nötig.
+
 ---
 
 ## 🚀 Linux Server Setup (Empfohlen)
