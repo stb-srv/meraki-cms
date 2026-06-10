@@ -91,14 +91,29 @@ Meraki CMS verfügt über ein integriertes Warenkorb-System für Gäste.
 
 ## 🧙 Erster Start: Setup-Wizard
 
-Beim ersten Aufruf wird automatisch auf `/setup` weitergeleitet. Der **Setup-Wizard**:
+Beim ersten Start erscheint in der Konsole ein **Setup-Token** – den brauchst du im ersten Wizard-Schritt:
 
-1. Legt **Restaurantname** & Branding fest
-2. Erstellt das **Admin-Konto** (Benutzername + Passwort, min. 12 Zeichen)
-3. Generiert **Recovery-Codes** (sicher aufbewahren!)
-4. Schreibt `server/config.json` – diese Datei niemals committen oder löschen
+```
+════════════════════════════════════════════════════════════
+  MERAKI CMS – ERSTEINRICHTUNG ERFORDERLICH
+════════════════════════════════════════════════════════════
+  Öffne:  http://localhost:5000/setup
+  Token:  a3f7b9c2d1e4f6a8b0c2d3e5f7a9b1c3
+════════════════════════════════════════════════════════════
+```
 
-> ⚠️ Der Setup-Endpunkt ist aus Sicherheitsgründen nur von `localhost` erreichbar.
+Öffne die angezeigte URL im Browser und folge den 4 Schritten:
+
+| Schritt | Inhalt |
+|---------|--------|
+| **1 – Zugang** | Setup-Token aus der Konsole · Admin-Name · E-Mail · Passwort (min. 12 Zeichen) |
+| **2 – Restaurant** | Name · Telefon · Adresse · Sprache · Zeitzone · Website |
+| **3 – System** | Lizenzschlüssel (optional) · Datenbanktyp (SQLite empfohlen) |
+| **4 – E-Mail** | SMTP-Daten für Bestätigungs-Mails (optional, auch später einstellbar) |
+
+Am Ende werden **Recovery-Codes** angezeigt – **unbedingt sicher aufbewahren**, da sie nur einmalig sichtbar sind.
+
+Der Wizard schreibt automatisch `server/config.json` inkl. eines zufälligen `ADMIN_SECRET` – **kein manuelles Setzen in `.env` nötig**. Diese Datei niemals committen.
 
 ---
 
@@ -107,7 +122,7 @@ Beim ersten Aufruf wird automatisch auf `/setup` weitergeleitet. Der **Setup-Wiz
 | Variable | Beschreibung | Standard |
 |---|---|---|
 | `PORT` | Port des Express-Servers | `5000` |
-| `ADMIN_SECRET` | JWT Signing Key (lang & zufällig, Pflicht nach Setup) | – |
+| `ADMIN_SECRET` | JWT Signing Key – wird automatisch vom Setup-Wizard gesetzt | – |
 | `CORS_ORIGINS` | Erlaubte Frontend-Domains, kommagetrennt | `localhost` |
 | `DB_TYPE` | `sqlite` oder `mysql` | `sqlite` |
 | `DB_HOST` | Hostname der MySQL DB | `localhost` |
