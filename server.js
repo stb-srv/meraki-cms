@@ -60,14 +60,29 @@ async function start() {
         const allowedOrigins = (CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
         logger.info({ version: APP_VERSION, port: PORT, licenseServer: CONFIG.LICENSE_SERVER_URL, cors: allowedOrigins }, 'Meraki CMS gestartet');
 
-        const licenseChecker = new LicenseChecker(
+        _licenseChecker = new LicenseChecker(
             DB,
             CONFIG.LICENSE_SERVER_URL,
             process.env.HOST || require('os').hostname()
         );
-        licenseChecker.start();
+        _licenseChecker.start();
     });
 }
+
+let _licenseChecker = null;
+
+function shutdown(signal) {
+    logger.info({ signal }, 'Shutdown eingeleitet...');
+    if (_licenseChecker) _licenseChecker.stop();
+    server.close(() => {
+        logger.info('Server gestoppt.');
+        process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 start().catch(e => {
     logger.fatal({ err: e }, 'Server-Start fehlgeschlagen');

@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Projektübersicht
-OPA-Santorini ist ein modulares Restaurant-CMS. Backend: Node.js/Express. Frontend: Vanilla JS (ES Modules, kein Framework). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
+Meraki CMS ist ein modulares Restaurant-CMS. Backend: Node.js/Express (CommonJS). Frontend: Vanilla JS (ES Modules, kein Framework). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
 
 ## Befehle
 
@@ -12,36 +12,38 @@ npm start            # Produktions-Start (node server.js)
 npm run dev          # Entwicklung mit pino-pretty Log-Formatierung
 npm run reset-admin  # Admin-Passwort zurücksetzen (reset-admin.js)
 npm run update       # git pull + npm install
+node test-integration.js  # Datenvertrag-Test CMS↔Lizenzserver
 ```
 
-Es gibt keine Tests und kein Build-System. Linting muss manuell ausgeführt werden.
+Es gibt keine automatisierten Unit-Tests und kein Build-System.
 
 ## Setup-Flow (Erstkonfiguration)
 
-Beim ersten Start ohne `server/config.json` wird jeder Nicht-API-Aufruf auf `/setup` umgeleitet. Der Setup-Wizard (`POST /api/setup`, nur von `localhost` erlaubt) erstellt:
-1. `server/config.json` mit `ADMIN_SECRET`, `LICENSE_SERVER_URL`, `SMTP`, `SETUP_COMPLETE: true`
-2. Den ersten Admin-User in der DB
-3. Eine 30-Tage-Trial-Lizenz (FREE-Plan) in `kv_store`
+Beim ersten Start ohne `server/config.json` wird jeder Nicht-API-Aufruf auf `/setup` umgeleitet. Der Setup-Wizard (`POST /api/v1/setup`, nur von `localhost` erlaubt) erstellt:
+1. Den ersten Admin-User in der DB
+2. Optional: License-Key im KV-Store (`settings.license`) mit `status: 'pending_validation'`
+
+Der LicenseChecker ermittelt den echten Plan-Typ beim ersten Start automatisch vom Lizenzserver.
 
 Nach dem Setup wird `server/config.json` beim Serverstart geladen und `CONFIG.SETUP_COMPLETE = true`.
 
 ## Architektur
 
 ### Server-Bootstrapping
-`server.js` → `server/app.js` (Express-App + alle Routen) + `server/socket.js` (Socket.IO) + `server/cron.js` (Background-Jobs)
+`server.js` → `server/app.js` (Express-App + alle Routen) + `server/socket.js` (Socket.IO) + `server/cron.js` (Background-Jobs) + `server/services/license-checker.js` (periodischer Token-Refresh)
 
 ### Konfiguration (`config.js`)
 Priorität: `.env/PORT` & `.env/ADMIN_SECRET` > `server/config.json` (Setup-Wizard) > `.env` > Defaults.
 **Nie `server/config.json` committen** – enthält den ADMIN_SECRET. Config-Pfad kann auch `config.json` im Root sein (Legacy-Fallback).
 
 ### Datenbank-Adapter
-`server/db.js` wählt automatisch: `DB_TYPE=mysql` → `server/database-mysql.js`, sonst `server/database.js` (SQLite via `better-sqlite3`). Beide Adapter exportieren **exakt dasselbe Interface**, alle Methoden sind async-kompatibel (SQLite sync, MySQL async – `await` funktioniert mit beiden).
+`server/db/index.js` wählt automatisch: `DB_TYPE=mysql` → `server/db/mysql.js`, sonst `server/db/sqlite.js` (via `better-sqlite3`). Beide Adapter exportieren **exakt dasselbe Interface**, alle Methoden sind async-kompatibel (SQLite sync, MySQL async – `await` funktioniert mit beiden).
 
 **Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.**
 
 **Neue Spalten** als Migration eintragen:
-- SQLite: `migrations`-Array in `database.js`
-- MySQL: `initSchema()`-try-Block mit `SHOW COLUMNS`-Check in `database-mysql.js`
+- SQLite: `migrations`-Array in `server/db/sqlite.js`
+- MySQL: `initSchema()`-try-Block mit `SHOW COLUMNS`-Check in `server/db/mysql.js`
 
 ### KV-Store
 Allgemeine Einstellungen (Settings, License, SMTP, Branding, Homepage, Plugins) werden als JSON in der `kv_store`-Tabelle gespeichert:
@@ -53,19 +55,31 @@ Wichtige KV-Keys: `settings`, `branding`, `homepage`, `plugins`
 
 ### Auth & Rollen
 - JWT via `x-admin-token` Header oder `?token` Query-Param
-- Token wird clientseitig in `sessionStorage` als `opa_admin_token` gespeichert
+- Token wird clientseitig in `sessionStorage` als `meraki_admin_token` gespeichert
 - Auto-Refresh wenn Token < 30 Minuten bis Ablauf (`/api/admin/refresh`)
 - Rollen: `admin`, `waiter`, `kitchen`
 - `requireAuth` prüft Token-Gültigkeit, `requireRole('admin')` / `requireRole('admin', 'waiter')` prüft zusätzlich die Rolle
 
-### Lizenz-System (`server/license.js`)
-Pläne: `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRISE` (definiert in `PLAN_DEFINITIONS`)
+### Lizenz-System
+Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRISE`
+
+**Einzige Quelle der Wahrheit**: `@meraki/plans` (lokales Package `../meraki-plans/`).
+**Nie** PLAN_DEFINITIONS direkt im CMS oder Lizenzserver definieren — immer im shared Package bearbeiten.
+
 - Trial: In KV `settings.license.isTrial = true`, Ablauf via Cron geprüft
-- Vollizenz: RSA-signiertes JWT (`licenseToken`), Public Key vom Lizenzserver bei Start geladen
+- Vollizenz: RSA-signiertes JWT (`licenseToken`), Public Key beim Start vom Lizenzserver geladen
 - Offline-Fallback: letzter bekannter Plan aus `settings.license.lastKnownType`
 - `requireLicense(moduleName)` prüft `modules[moduleName]` im aktuellen Plan
 
-Module-Namen: `menu_edit`, `orders_kitchen`, `reservations`, `custom_design`, `analytics`, `qr_pay`, `online_orders`
+**Modul-Namen** (exakte Strings für `requireLicense()`):
+`menu_edit`, `orders_kitchen`, `reservations`, `custom_design`, `analytics`, `qr_pay`, `online_orders`, `multilanguage`, `seasonal_menu`, `backup`, `image_ai`
+
+### LicenseChecker (`server/services/license-checker.js`)
+- Startet 5s nach Boot, dann alle 72h
+- Lädt RSA Public Key vom Lizenzserver (`/api/v1/public-key`)
+- Refresht Token wenn < 60h Restlaufzeit (Token-Gültigkeit: 80h)
+- Bei 3 aufeinanderfolgenden Fehlern: Offline-Fallback aktiv
+- Wird in `server.js` instanziiert; SIGTERM/SIGINT stoppen ihn sauber
 
 ### Validierung
 Alle Route-Handler nutzen `validate(schema)` Middleware aus `server/validation/validate.js` mit Zod-Schemas aus `server/validation/schemas.js`. `.passthrough()` erlaubt Extra-Felder.
@@ -76,7 +90,7 @@ Alle Route-Handler nutzen `validate(schema)` Middleware aus `server/validation/v
 ### Background-Jobs (`server/cron.js`)
 Stündlich (mit internem Stunden-Filter):
 - **Trial-Expiry**: Prüft ob Trial-Lizenz abgelaufen ist
-- **Reservation-Reminders**: Täglich um **10:00 Uhr Berlin** – sendet E-Mail-Erinnerungen 24h vor Reservierung (nur wenn `status=Confirmed`, `email` vorhanden, `reminderSent=false`)
+- **Reservation-Reminders**: Täglich um **10:00 Uhr Berlin** – E-Mail-Erinnerungen 24h vor Reservierung (nur wenn `status=Confirmed`, `email` vorhanden, `reminderSent=false`)
 - **Backup-Cleanup**: Täglich um **03:00 Uhr Berlin** – löscht alte Backups, behält mindestens `BACKUP_MIN_COUNT` (default: 7)
 
 ### Plugin-System
@@ -86,24 +100,26 @@ Plugins liegen in `plugins/<id>/` mit:
 - `cms.js` (optional) – CMS-Frontend-Erweiterung
 - `website.js` (optional) – Gäste-Frontend-Erweiterung
 
-Plugins werden in KV `plugins` als `[{id, enabled}]` gespeichert und beim Server-Start geladen.
-
 ## Wichtigste Dateien
 
 | Datei | Zweck |
 |---|---|
-| `server.js` | Entry Point, Plugin-Loader, HTTP-Server |
+| `server.js` | Entry Point, Plugin-Loader, HTTP-Server, Graceful Shutdown |
 | `config.js` | Konfiguration (Prio: config.json > .env) |
 | `server/app.js` | Express-App-Factory, alle Route-Mounts, Helmet/CORS |
-| `server/db.js` | DB-Adapter-Selector |
-| `server/database.js` | SQLite-Adapter |
-| `server/database-mysql.js` | MySQL/MariaDB-Adapter |
-| `server/middleware.js` | `requireAuth`, `requireRole`, `requireLicense`, `requireMenuLimit`, Rate-Limiter |
-| `server/license.js` | `PLAN_DEFINITIONS`, `getCurrentLicense`, `verifyLicenseToken` |
+| `server/db/index.js` | DB-Adapter-Selector |
+| `server/db/sqlite.js` | SQLite-Adapter |
+| `server/db/mysql.js` | MySQL/MariaDB-Adapter |
+| `server/core/middleware.js` | `requireAuth`, `requireRole`, `requireLicense`, `requireMenuLimit`, Rate-Limiter |
+| `server/core/logger.js` | Pino-Logger (strukturiertes JSON-Logging) |
+| `server/services/license.js` | `getCurrentLicense`, `verifyLicenseToken`, `getPlan` |
+| `server/services/license-checker.js` | Periodischer Token-Refresh vom Lizenzserver |
+| `server/services/mailer.js` | E-Mail via Nodemailer |
 | `server/cron.js` | Background-Jobs (Trial, Reminders, Backup-Cleanup) |
 | `server/socket.js` | Socket.IO-Setup |
-| `server/mailer.js` | E-Mail via Nodemailer |
 | `server/validation/schemas.js` | Zod-Schemas für alle Routen |
+| `../meraki-plans/index.js` | **Shared** PLAN_DEFINITIONS (CMS + Lizenzserver) |
+| `test-integration.js` | Datenvertrag-Test CMS↔Lizenzserver |
 | `cms/app.js` | Admin-Panel Haupt-JS (ES Modules) |
 | `cms/modules/api.js` | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`) |
 | `menu-app/app.js` | Gäste-Frontend Haupt-JS |
@@ -139,6 +155,7 @@ Plugins werden in KV `plugins` als `[{id, enabled}]` gespeichert und beim Server
 ## Architektur-Regeln (WICHTIG)
 
 - **Kein Framework im Frontend** – nur Vanilla JS mit ES Modules (`import/export`). Kein React, Vue, Angular.
+- **Shared Plans**: Plan-Definitionen IMMER in `../meraki-plans/index.js` bearbeiten. Nie in CMS oder Lizenzserver duplizieren.
 - **Datenbank-Adapter-Interface**: Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.
 - **Migrationen**: Neue Spalten in beiden Adaptern als Migration eintragen (siehe oben).
 - **Auth**: Alle Admin-API-Routen brauchen `requireAuth`. Gäste-Routen (menu-app, cart) sind öffentlich.
@@ -150,16 +167,19 @@ Plugins werden in KV `plugins` als `[{id, enabled}]` gespeichert und beim Server
 
 ```env
 PORT=5000
-ADMIN_SECRET=zufälliger-langer-string   # JWT-Signing-Key (Pflicht nach Setup)
+HOST=meinrestaurant.de          # Hostname für License domain check (optional)
+ADMIN_SECRET=langer-zufälliger-string
 CORS_ORIGINS=https://meinrestaurant.de  # Komma-getrennt; Default: localhost
+LICENSE_SERVER_URL=https://licens-prod.stb-srv.de
+LICENSE_PUBLIC_KEY=             # RSA Public Key Override (optional)
 
 # Datenbank (Standard: SQLite)
-DB_TYPE=mysql
+DB_TYPE=sqlite
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=opa_user
+DB_USER=meraki_user
 DB_PASS=passwort
-DB_NAME=opa_cms
+DB_NAME=meraki_cms
 DB_SSL=false
 
 # Backup
@@ -168,8 +188,8 @@ BACKUP_MAX_AGE_DAYS=30
 BACKUP_MIN_COUNT=7
 
 # Automatische Speisefotos (optional)
-PEXELS_API_KEY=...
-UNSPLASH_ACCESS_KEY=...
+PEXELS_API_KEY=
+UNSPLASH_ACCESS_KEY=
 ```
 
 ## Häufige Fehlerquellen
@@ -178,6 +198,8 @@ UNSPLASH_ACCESS_KEY=...
 - **Neue Spalte nur in einem Adapter** → Funktioniert lokal (SQLite) aber nicht auf Prod (MySQL) oder umgekehrt
 - **`server/config.json` fehlt** → Setup-Wizard startet neu, alle Einstellungen weg
 - **`CORS_ORIGINS` nicht gesetzt** → API-Calls vom Frontend werden in Produktion blockiert
-- **`ADMIN_SECRET` = Default-Wert** → Server verweigert Start nach abgeschlossenem Setup (SEC-04)
+- **`ADMIN_SECRET` = Default-Wert** → Server verweigert Start nach abgeschlossenem Setup
+- **Modul-Name falsch in `requireLicense()`** → Feature immer gesperrt; gültige Namen oben nachschlagen
+- **PLAN_DEFINITIONS direkt im CMS/Lizenzserver geändert** → Änderung wirkt nicht, da `@meraki/plans` die Quelle ist
 - **`JSON_VALID()` in MySQL** → Zum Prüfen invalider JSON-Felder: `SELECT id FROM menu WHERE JSON_VALID(translations) = 0`
-- **License domain mismatch** → Lizenz-Token enthält `domain` – auf localhost wird der Check übersprungen, in Produktion muss der Hostname exakt passen
+- **License domain mismatch** → `HOST` env var setzen; auf localhost wird der Check übersprungen

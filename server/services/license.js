@@ -8,6 +8,7 @@
 
 const jwt    = require('jsonwebtoken');
 const logger = require('../core/logger.js');
+const { PLAN_DEFINITIONS: SHARED_PLANS } = require('@meraki/plans');
 
 const MERAKI_PUBLIC_KEY_FALLBACK = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAutES8Xqif1PpLJU9ClMJ
@@ -61,64 +62,9 @@ const initPublicKey = async (licenseServerUrl) => {
 };
 
 /**
- * PLAN_DEFINITIONS
+ * PLAN_DEFINITIONS — aus @meraki/plans (gemeinsame Quelle mit dem Lizenzserver)
  */
-const PLAN_DEFINITIONS = {
-    TRIAL: {
-        label: 'Trial (30 Tage)', menu_items: 50, max_tables: 8,
-        modules: {
-            menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: false, analytics: false, qr_pay: false,
-            online_orders: false
-        },
-        note: 'Kostenloser Testzeitraum'
-    },
-    FREE: {
-        label: 'Free', menu_items: 30, max_tables: 5,
-        modules: {
-            menu_edit: true, orders_kitchen: false, reservations: false,
-            custom_design: false, analytics: false, qr_pay: false,
-            online_orders: false
-        },
-        note: 'Kostenlos zum Testen'
-    },
-    STARTER: {
-        label: 'Starter', menu_items: 60, max_tables: 10,
-        modules: {
-            menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: false, analytics: false, qr_pay: false,
-            online_orders: false
-        },
-        note: 'Für kleine Cafés & Imbisse'
-    },
-    PRO: {
-        label: 'Pro', menu_items: 150, max_tables: 25,
-        modules: {
-            menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: true, analytics: false, qr_pay: true,
-            online_orders: false
-        },
-        note: 'Für Restaurants'
-    },
-    PRO_PLUS: {
-        label: 'Pro+', menu_items: 300, max_tables: 50,
-        modules: {
-            menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: true, analytics: true, qr_pay: true,
-            online_orders: true
-        },
-        note: 'Für große Restaurants'
-    },
-    ENTERPRISE: {
-        label: 'Enterprise', menu_items: 999, max_tables: 999,
-        modules: {
-            menu_edit: true, orders_kitchen: true, reservations: true,
-            custom_design: true, analytics: true, qr_pay: true,
-            online_orders: true
-        },
-        note: 'Für Ketten & Hotels'
-    }
-};
+const PLAN_DEFINITIONS = SHARED_PLANS;
 
 const getPlan = (type) => {
     if (!type) return PLAN_DEFINITIONS['FREE'];

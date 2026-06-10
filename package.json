@@ -13,6 +13,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@meraki/plans": "file:../meraki-plans",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
     "concurrently": "^8.2.2",
