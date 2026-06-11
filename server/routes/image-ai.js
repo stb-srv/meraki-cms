@@ -19,6 +19,7 @@ module.exports = (requireAuth, DB) => {
                 hasUnsplash: !!keys.unsplashKey,
                 hasPexels: !!keys.pexelsKey,
                 hasGoogleAi: !!keys.googleAiKey,
+                hasPuter: !!keys.puterToken,
                 defaultProvider: keys.defaultProvider || 'none'
             });
         } catch (err) {

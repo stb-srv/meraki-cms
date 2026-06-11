@@ -383,6 +383,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                         <option value="unsplash" ${keys.defaultProvider === 'unsplash' ? 'selected' : ''}>🔍 Unsplash (Suche)</option>
                         <option value="pexels" ${keys.defaultProvider === 'pexels' ? 'selected' : ''}>🔍 Pexels (Suche)</option>
                         <option value="gemini" ${keys.defaultProvider === 'gemini' ? 'selected' : ''}>✨ Google Gemini Imagen (KI-Generierung)</option>
+                        <option value="puter" ${keys.defaultProvider === 'puter' ? 'selected' : ''}>🪐 Puter (KI-Generierung, Browser)</option>
                     </select>
                 </div>
 
@@ -439,6 +440,78 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                         ⚠️ Imagen 3 erfordert einen Google Cloud Billing Account oder ein aktives Google AI Studio Projekt.
                     </p>
                 </div>
+
+                <!-- Puter -->
+                <div class="form-group full">
+                    <label>Puter Token (optional)
+                        <a href="https://puter.com/" target="_blank" rel="noopener" style="font-size:.75rem; color:var(--accent); margin-left:8px;">
+                            <i class="fas fa-external-link-alt"></i> puter.com
+                        </a>
+                    </label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="password" id="img-puter-key" class="input-styled"
+                               placeholder="${keys.puterToken ? '••••••••••••••••' : 'Optional – meist nicht nötig'}"
+                               style="flex:1; font-family:monospace;">
+                        <button class="btn-secondary" id="btn-puter-login" title="Mit Puter anmelden">
+                            <i class="fas fa-right-to-bracket"></i> Login
+                        </button>
+                    </div>
+                    <p style="font-size:.72rem; color:var(--text-muted); margin-top:6px;">
+                        🪐 Puter generiert Bilder <b>clientseitig im Browser</b> (keyless, „User-Pays"). Ein Token ist
+                        normalerweise <b>nicht nötig</b> – beim Start öffnet sich ggf. ein Puter-Login-Popup.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stapel-Generator: Bilder für Gerichte ohne Bild -->
+            <div style="background:rgba(16,185,129,.05); border:1px solid rgba(16,185,129,.2); border-radius:12px; padding:24px; margin-top:28px;">
+                <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+                    <div style="width:42px;height:42px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;flex-shrink:0;">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0;">Stapel-Bildgenerierung</h4>
+                        <p style="color:var(--text-muted); font-size:.82rem; margin:2px 0 0;">
+                            Erzeugt Bilder für alle Gerichte <b>ohne Bild</b>. Manueller Start –
+                            es geht nichts automatisch los.
+                        </p>
+                    </div>
+                </div>
+
+                <p style="font-size:.85rem; margin:0 0 16px;">
+                    Gerichte ohne Bild: <b id="batch-without-count" style="color:var(--primary);">…</b>
+                </p>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select id="batch-provider" class="input-styled">
+                            <option value="puter">🪐 Puter (Browser)</option>
+                            <option value="gemini">✨ Google Gemini (Server-Key)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Anzahl Bilder (max.)</label>
+                        <input type="number" id="batch-count" class="input-styled" min="1" step="1" placeholder="z.B. 10">
+                    </div>
+                    <div class="form-group">
+                        <label>Pause pro Bild (Sekunden)</label>
+                        <input type="number" id="batch-delay" class="input-styled" min="0" step="0.5" value="2">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button class="btn-primary" id="batch-start" style="background:#10b981; border-color:#10b981;">
+                        <i class="fas fa-play"></i> Generierung starten
+                    </button>
+                    <button class="btn-secondary" id="batch-stop" style="display:none; color:#dc2626; border-color:rgba(239,68,68,.3);">
+                        <i class="fas fa-stop"></i> Stopp
+                    </button>
+                </div>
+
+                <div id="batch-log" style="display:none; margin-top:16px; padding:14px; max-height:280px; overflow-y:auto;
+                     background:rgba(0,0,0,0.55); color:#fff; border-radius:12px; font-family:monospace;
+                     font-size:.76rem; line-height:1.7; white-space:pre-wrap;"></div>
             </div>
         `;
     }
@@ -766,6 +839,24 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
         container.querySelector('#btn-test-unsplash').onclick = () => testConnection('unsplash');
         container.querySelector('#btn-test-pexels').onclick = () => testConnection('pexels');
         container.querySelector('#btn-test-google-ai').onclick = () => testConnection('google-ai');
+
+        // Puter-Login (öffnet Puter-Popup; danach läuft txt2img im Browser)
+        const puterLoginBtn = container.querySelector('#btn-puter-login');
+        if (puterLoginBtn) puterLoginBtn.onclick = async () => {
+            if (typeof puter === 'undefined' || !puter.auth) {
+                showToast('puter.js nicht geladen – Seite neu laden.', 'error');
+                return;
+            }
+            try {
+                await puter.auth.signIn();
+                showToast('Mit Puter angemeldet ✅');
+            } catch (e) {
+                showToast('Puter-Login abgebrochen.', 'error');
+            }
+        };
+
+        // Stapel-Generator verdrahten
+        if (window.ImageBatch) window.ImageBatch.attach(container);
     }
 
     // --- Allgemeiner Speichern-Button ---
@@ -848,11 +939,13 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 const unsplashInput  = container.querySelector('#img-unsplash-key').value.trim();
                 const pexelsInput    = container.querySelector('#img-pexels-key').value.trim();
                 const googleAiInput  = container.querySelector('#img-google-ai-key').value.trim();
-                
+                const puterInput     = container.querySelector('#img-puter-key')?.value.trim() || '';
+
                 const newKeys = {
                     unsplashKey:     unsplashInput  || existingKeys.unsplashKey  || '',
                     pexelsKey:       pexelsInput    || existingKeys.pexelsKey    || '',
                     googleAiKey:     googleAiInput  || existingKeys.googleAiKey  || '',
+                    puterToken:      puterInput     || existingKeys.puterToken   || '',
                     defaultProvider: container.querySelector('#img-default-provider').value
                 };
                 

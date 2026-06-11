@@ -31,14 +31,14 @@ module.exports = function(CONFIG, io) {
             contentSecurityPolicy: {
                 directives: {
                     defaultSrc:      ["'self'"],
-                    scriptSrc:       ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
+                    scriptSrc:       ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net', 'https://js.puter.com'],
                     scriptSrcAttr:   ["'unsafe-inline'"],
                     styleSrc:        ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
                     styleSrcAttr:    ["'unsafe-inline'"],
                     fontSrc:         ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-                    imgSrc:          ["'self'", 'data:', 'blob:', 'https://maps.gstatic.com', 'https://maps.googleapis.com', 'https://ui-avatars.com', 'https://images.unsplash.com', 'https://images.pexels.com'],
-                    connectSrc:      ["'self'", 'ws:', 'wss:', 'https://cdnjs.cloudflare.com', 'https://api.unsplash.com', 'https://api.pexels.com', 'https://generativelanguage.googleapis.com', 'https://licens-prod.stb-srv.de'],
-                    frameSrc:        ["'self'", 'https://maps.google.com', 'https://maps.googleapis.com', 'https://www.google.com'],
+                    imgSrc:          ["'self'", 'data:', 'blob:', 'https://maps.gstatic.com', 'https://maps.googleapis.com', 'https://ui-avatars.com', 'https://images.unsplash.com', 'https://images.pexels.com', 'https://*.puter.com'],
+                    connectSrc:      ["'self'", 'ws:', 'wss:', 'https://cdnjs.cloudflare.com', 'https://api.unsplash.com', 'https://api.pexels.com', 'https://generativelanguage.googleapis.com', 'https://licens-prod.stb-srv.de', 'https://api.puter.com', 'https://*.puter.com'],
+                    frameSrc:        ["'self'", 'https://maps.google.com', 'https://maps.googleapis.com', 'https://www.google.com', 'https://puter.com', 'https://*.puter.com'],
                     objectSrc:       ["'none'"],
                 }
             },
