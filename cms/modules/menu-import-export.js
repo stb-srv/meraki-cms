@@ -4,6 +4,10 @@ window.MenuImportExport = {
         const exportBtn = container.querySelector('#btn-export-menu');
         if (exportBtn) exportBtn.onclick = async () => {
             const data = await window.MenuCore.api.get('menu/export');
+            if (!data || !data._meta) {
+                window.MenuCore.utils.showToast('Backup fehlgeschlagen.', 'error');
+                return;
+            }
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -45,15 +49,14 @@ window.MenuImportExport = {
         const pdfBtn = container.querySelector('#btn-export-pdf');
         if (pdfBtn) pdfBtn.onclick = async () => {
             window.MenuCore.utils.showToast('PDF wird generiert...');
-            const { menu, categories, allergens } = window.MenuCore.state.cachedMenuData;
-            
+
             try {
-                // We use dynamic import for pdfmake if available, or just use the API
-                // In this project, it's done via backend
+                // PDF wird serverseitig via pdfkit erzeugt (GET /api/menu/export-pdf).
+                // Auth wie im restlichen CMS: x-admin-token aus sessionStorage.
                 const response = await fetch('/api/menu/export-pdf', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+                    headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') }
                 });
-                
+
                 if (response.ok) {
                     const blob = await response.blob();
                     const url = URL.createObjectURL(blob);
@@ -61,9 +64,10 @@ window.MenuImportExport = {
                     a.href = url;
                     a.download = 'Speisekarte.pdf';
                     a.click();
+                    URL.revokeObjectURL(url);
                     window.MenuCore.utils.showToast('PDF bereit! \u2705');
                 } else {
-                    throw new Error('PDF Generation failed');
+                    throw new Error(`PDF Generation failed (${response.status})`);
                 }
             } catch (err) {
                 console.error(err);

@@ -3,12 +3,25 @@
  */
 const router = require('express').Router();
 const DB = require('../db');
+const PDFDocument = require('pdfkit');
 const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain } = require('../helpers.js');
 const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
 const { menuItemSchema, menuReorderSchema, categorySchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
 const { requireRole } = require('../core/middleware.js');
+
+const BACKUP_VERSION = 1;
+
+/**
+ * Formatiert einen Preis robust für die PDF-Ausgabe.
+ * Akzeptiert Zahl oder String, fällt bei Unparsbarem auf den Rohwert zurück.
+ */
+function formatPrice(price) {
+    if (price === null || typeof price === 'undefined' || price === '') return '';
+    const num = typeof price === 'number' ? price : parseFloat(String(price).replace(',', '.'));
+    return Number.isFinite(num) ? `${num.toFixed(2)} €` : String(price);
+}
 
 async function getMaxDishes(DB, domain) {
     try {
@@ -205,9 +218,142 @@ module.exports = (requireAuth, requireLicense) => {
         }
     });
 
+    // --- Export (Backup als JSON) ---
+    router.get('/menu/export', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const [menu, categories, allergens, additives] = await Promise.all([
+                DB.getMenu(),
+                DB.getCategories(),
+                DB.getKV('allergens', {}),
+                DB.getKV('additives', {})
+            ]);
+
+            const backup = {
+                _meta: {
+                    version:   BACKUP_VERSION,
+                    createdAt: new Date().toISOString(),
+                    generator: 'Meraki CMS',
+                    recordCount: {
+                        menu:       Array.isArray(menu) ? menu.length : 0,
+                        categories: Array.isArray(categories) ? categories.length : 0
+                    }
+                },
+                menu:       Array.isArray(menu) ? menu : [],
+                categories: Array.isArray(categories) ? categories : [],
+                allergens:  (allergens && typeof allergens === 'object') ? allergens : {},
+                additives:  (additives && typeof additives === 'object') ? additives : {}
+            };
+
+            const filename = `speisekarte-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.send(JSON.stringify(backup, null, 2));
+        } catch (e) {
+            logger.error({ err: e }, 'GET /menu/export Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
+    });
+
+    // --- Export (Speisekarte als PDF) ---
+    router.get('/menu/export-pdf', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const [menu, categories, branding] = await Promise.all([
+                DB.getMenu(),
+                DB.getCategories(),
+                DB.getKV('branding', {})
+            ]);
+
+            const safeMenu = Array.isArray(menu) ? menu : [];
+            const safeCats = Array.isArray(categories) ? categories : [];
+            const restaurantName = (branding && branding.name) ? String(branding.name) : 'Speisekarte';
+
+            // Kategorien nach sort_order sortieren; Gerichte ihrer cat-Bezeichnung zuordnen
+            const sortedCats = [...safeCats].sort(
+                (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+            );
+            const catLabels = sortedCats.map(c => (c.label || '').trim()).filter(Boolean);
+
+            const groups = new Map();
+            catLabels.forEach(label => groups.set(label, []));
+            const OTHER = 'Weitere';
+            for (const item of safeMenu) {
+                const cat = (item.cat || '').trim();
+                const key = cat && groups.has(cat) ? cat : (cat || OTHER);
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(item);
+            }
+
+            const doc = new PDFDocument({ margin: 50, size: 'A4' });
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="Speisekarte.pdf"');
+            doc.pipe(res);
+
+            // Kopf
+            doc.fontSize(24).font('Helvetica-Bold').text(restaurantName, { align: 'center' });
+            doc.moveDown(0.3);
+            doc.fontSize(12).font('Helvetica').fillColor('#666')
+               .text('Speisekarte', { align: 'center' });
+            doc.fillColor('#000').moveDown(1.5);
+
+            let printedAny = false;
+            for (const [label, items] of groups) {
+                if (!items.length) continue;
+                printedAny = true;
+
+                if (doc.y > 720) doc.addPage();
+                // Kategorie-Überschrift
+                doc.moveDown(0.5);
+                doc.fontSize(15).font('Helvetica-Bold').fillColor('#dc2626').text(label);
+                doc.moveTo(doc.x, doc.y + 2).lineTo(545, doc.y + 2)
+                   .strokeColor('#dc2626').stroke();
+                doc.fillColor('#000').moveDown(0.6);
+
+                for (const item of items) {
+                    if (doc.y > 760) doc.addPage();
+                    const startY = doc.y;
+                    const numberPrefix = item.number ? `${item.number}. ` : '';
+                    const name = `${numberPrefix}${item.name || ''}`.trim();
+                    const price = formatPrice(item.price);
+
+                    // Name links, Preis rechts auf gleicher Höhe
+                    doc.fontSize(11).font('Helvetica-Bold')
+                       .text(name, 50, startY, { width: 410, continued: false });
+                    if (price) {
+                        doc.fontSize(11).font('Helvetica-Bold')
+                           .text(price, 460, startY, { width: 85, align: 'right' });
+                    }
+
+                    if (item.desc) {
+                        doc.fontSize(9.5).font('Helvetica').fillColor('#555')
+                           .text(String(item.desc), 50, doc.y + 1, { width: 410 });
+                        doc.fillColor('#000');
+                    }
+                    doc.moveDown(0.6);
+                }
+            }
+
+            if (!printedAny) {
+                doc.fontSize(12).font('Helvetica').fillColor('#999')
+                   .text('Keine Gerichte vorhanden.', { align: 'center' });
+            }
+
+            doc.end();
+        } catch (e) {
+            logger.error({ err: e }, 'GET /menu/export-pdf Fehler');
+            if (!res.headersSent) {
+                res.status(500).json({ success: false, reason: 'PDF-Erstellung fehlgeschlagen.' });
+            } else {
+                res.end();
+            }
+        }
+    });
+
     // --- Import ---
     router.post('/menu/import', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
+            if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+                return res.status(400).json({ success: false, reason: 'Ungültiges Backup-Format.' });
+            }
             const { menu, categories, allergens, additives } = req.body;
             const domain    = extractDomain(req);
             const maxDishes = await getMaxDishes(DB, domain);
