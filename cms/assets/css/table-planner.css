@@ -7,7 +7,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
     color: #fff;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
 }
 
 .planner-sidebar {
