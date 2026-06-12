@@ -75,8 +75,8 @@ Wichtige KV-Keys: `settings`, `branding`, `homepage`, `plugins`
 ### Lizenz-System
 Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRISE`
 
-**Einzige Quelle der Wahrheit**: `@meraki/plans` (lokales Package `packages/meraki-plans/` im Repo-Root).
-**Nie** PLAN_DEFINITIONS direkt im CMS oder Lizenzserver definieren — immer in `packages/meraki-plans/index.js` bearbeiten.
+**Einzige Quelle der Wahrheit**: `@meraki/plans` — zentrales Repository `github:stb-srv/meraki-plans` (in `package.json` als Dependency referenziert, installiert nach `node_modules/@meraki/plans`). CMS und Lizenzserver nutzen dieselbe Quelle.
+**Nie** PLAN_DEFINITIONS direkt im CMS oder Lizenzserver definieren — immer im Upstream-Repo `stb-srv/meraki-plans` (`index.js`) bearbeiten, dann hier per `npm install` aktualisieren.
 
 - Trial: In KV `settings.license.isTrial = true`, Ablauf via Cron geprüft
 - Vollizenz: RSA-signiertes JWT (`licenseToken`), Public Key beim Start vom Lizenzserver geladen
@@ -130,7 +130,7 @@ Plugins liegen in `plugins/<id>/` mit:
 | `server/cron.js` | Background-Jobs (Trial, Reminders, Backup-Cleanup) |
 | `server/socket.js` | Socket.IO-Setup |
 | `server/validation/schemas.js` | Zod-Schemas für alle Routen |
-| `../meraki-plans/index.js` | **Shared** PLAN_DEFINITIONS (CMS + Lizenzserver) |
+| `@meraki/plans` (github:stb-srv/meraki-plans) | **Shared** PLAN_DEFINITIONS (CMS + Lizenzserver) – Upstream-Repo, nicht im CMS-Repo |
 | `test-integration.js` | Datenvertrag-Test CMS↔Lizenzserver |
 | `cms/app.js` | Admin-Panel Haupt-JS (ES Modules) |
 | `cms/modules/api.js` | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`) |
@@ -167,7 +167,7 @@ Plugins liegen in `plugins/<id>/` mit:
 ## Architektur-Regeln (WICHTIG)
 
 - **Kein Framework im Frontend** – nur Vanilla JS mit ES Modules (`import/export`). Kein React, Vue, Angular.
-- **Shared Plans**: Plan-Definitionen IMMER in `../meraki-plans/index.js` bearbeiten. Nie in CMS oder Lizenzserver duplizieren.
+- **Shared Plans**: Plan-Definitionen IMMER im Upstream-Repo `github:stb-srv/meraki-plans` bearbeiten, dann per `npm install` ziehen. Nie in CMS oder Lizenzserver duplizieren.
 - **Datenbank-Adapter-Interface**: Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.
 - **Migrationen**: Neue Spalten in beiden Adaptern als Migration eintragen (siehe oben).
 - **Auth**: Alle Admin-API-Routen brauchen `requireAuth`. Gäste-Routen (menu-app, cart) sind öffentlich.

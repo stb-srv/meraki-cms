@@ -38,7 +38,7 @@
   - Ubuntu/Debian: `sudo apt install -y build-essential python3`
   - macOS: `xcode-select --install`
 
-> Das Paket `@meraki/plans` ist direkt im Repo unter `packages/meraki-plans/` enthalten – kein separates Repository nötig.
+> Das Paket `@meraki/plans` wird aus dem zentralen Repository `github:stb-srv/meraki-plans` installiert (siehe `package.json`). CMS und Lizenzserver teilen sich damit **eine einzige Quelle** der Plan-Definitionen.
 
 ---
 
