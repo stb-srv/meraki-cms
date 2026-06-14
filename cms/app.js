@@ -21,6 +21,7 @@ import { renderBackup } from './modules/backup.js';
 import { showSetupWizard } from './modules/setup-wizard.js';
 import { initRealtime } from './modules/realtime.js';
 import { renderShiftPlanner } from './modules/shifts.js';
+import { enhanceTables } from './modules/responsive-tables.js';
 
 // One-time migration of legacy storage keys from opa_* → meraki_*
 (function migrateLegacyKeys() {
@@ -766,6 +767,15 @@ sidebarOverlay?.addEventListener('click', () => {
     sidebar?.classList.remove('mobile-open');
     sidebarOverlay?.classList.remove('visible');
 });
+
+// ── Tabellen für mobile Karten-Ansicht vorbereiten ──
+// Beobachtet den Content-Bereich; nach jedem View-Render werden allen
+// .premium-table-Zellen die data-label-Attribute gestempelt (responsive.css).
+if (contentView) {
+    enhanceTables(contentView);
+    const tableObserver = new MutationObserver(() => enhanceTables(contentView));
+    tableObserver.observe(contentView, { childList: true, subtree: true });
+}
 
 // ── Bestellungs-Badge live aktualisieren ──
 async function updateOrderBadge() {

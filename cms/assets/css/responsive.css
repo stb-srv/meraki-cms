@@ -1,0 +1,184 @@
+/* ============================================================
+   responsive.css – Mobile/Tablet-Optimierung des Admin-Panels
+   Wird NACH style.css / table-planner.css / nav.css geladen,
+   damit die Media-Query-Overrides greifen.
+
+   Breakpoints:
+     1024px – Tablet quer
+      768px – Tablet hoch / großes Phone (Sidebar-Drawer aktiv)
+      560px – Phone (Tabellen → Karten, Modals als Full-Screen-Sheet)
+
+   Desktop (≥1025px) bleibt vollständig unverändert.
+   ============================================================ */
+
+/* ── Globale Höhen-Korrektur (Handy-Tastatur) ── */
+@media (max-width: 1024px) {
+    body,
+    .admin-dashboard {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    /* Kein horizontaler Seiten-Scroll */
+    body { overflow-x: hidden; }
+}
+
+/* ════════════════════════════════════════════
+   1024px – Tablet quer
+   ════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    :root {
+        --content-pad-x: 20px;
+        --content-pad-y: 18px;
+    }
+    .content-body { padding: 20px var(--content-pad-x); }
+}
+
+/* ════════════════════════════════════════════
+   768px – Tablet hoch / großes Phone
+   (Sidebar-Drawer-Mechanik kommt aus nav.css)
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Header: Platz für den fixen Hamburger-Button (nav.css) reservieren */
+    .content-header { padding-left: 64px; }
+
+    .content-body { padding: 16px 14px; }
+
+    /* Dashboard-Widgets: volle Breite, feste Höhen aufheben */
+    .stats-grid { gap: 16px; }
+    .span-3, .span-4, .span-6, .span-8, .span-9, .span-12 {
+        grid-column: 1 / -1;
+    }
+    .span-h-1, .span-h-2, .span-h-3 {
+        height: auto;
+        min-height: 150px;
+    }
+
+    /* Formulare einspaltig */
+    .form-grid { grid-template-columns: 1fr; gap: 16px; }
+    .conflict-item {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: center;
+    }
+
+    /* Filter-Toolbar: vertikal, keine erzwungene Mindestbreite */
+    .filter-toolbar { flex-direction: column; align-items: stretch; }
+    .filter-search { min-width: 0; width: 100%; }
+    .filter-select { width: 100% !important; min-width: 0; }
+
+    /* Checkbox-Grid bricht nicht über den Rand */
+    .check-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+
+    /* Tischplaner: feste Maße flexibilisieren */
+    .planner-container { height: auto; min-height: 480px; }
+    .planner-sidebar { width: 100%; }
+}
+
+/* ════════════════════════════════════════════
+   560px – Phone
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .content-body { padding: 14px 12px; }
+
+    /* ── Tabellen → Karten ──
+       data-label wird von modules/responsive-tables.js gesetzt. */
+    .premium-table { border-spacing: 0; }
+    .premium-table thead { display: none; }
+
+    .premium-table tr {
+        display: block;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 12px;
+        padding: 6px 4px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .premium-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+    }
+    .premium-table td:last-child { border-bottom: none; }
+    /* Radius-Sonderregeln der Desktop-Zellen zurücksetzen */
+    .premium-table td:first-child,
+    .premium-table td:last-child { border-radius: 0; }
+
+    .premium-table td::before {
+        content: attr(data-label);
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    /* Zellen ohne Label (z. B. Aktions-Spalte) nehmen volle Breite */
+    .premium-table td[data-label=""]::before { content: none; }
+    .premium-table td[data-label=""] {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* ── Modals als Full-Screen-Sheet ── */
+    .modal.active { padding: 0; }
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        height: 100%;
+        border-radius: 0;
+        padding: 20px 18px;
+    }
+    .modal-overlay { padding: 0; }
+    .modal-glass,
+    .resolver-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0;
+        padding: 20px 18px;
+    }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions > * { width: 100%; justify-content: center; }
+
+    /* ── Touch-Targets vergrößern ── */
+    .btn-icon,
+    .btn-edit,
+    .btn-delete,
+    .action-btn-green,
+    .action-btn-yellow,
+    .action-btn-red {
+        min-height: 40px;
+        padding: 10px 16px;
+    }
+    .btn-primary,
+    .btn-secondary,
+    .btn-premium { min-height: 44px; }
+
+    /* ── Tischplaner: Desktop-Hinweis ── */
+    .planner-container::before {
+        content: "Für die beste Bedienung des Tischplaners bitte Desktop oder Tablet nutzen.";
+        display: block;
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        background: var(--primary-light);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--primary);
+        font-size: .8rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .planner-container { overflow: auto; }
+}
