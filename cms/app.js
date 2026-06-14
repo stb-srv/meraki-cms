@@ -750,7 +750,7 @@ document.addEventListener('keydown', (e) => {
 
 
 // ── Mobile Hamburger ──
-const sidebarToggle  = document.getElementById('sidebar-toggle');
+const sidebarToggle  = document.getElementById('mobile-menu-toggle');
 const sidebarClose   = document.getElementById('sidebar-close');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const sidebar        = document.getElementById('cms-sidebar');

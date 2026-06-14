@@ -182,3 +182,97 @@
     }
     .planner-container { overflow: auto; }
 }
+
+/* ════════════════════════════════════════════
+   LOGIN – mobil
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .login-wrapper { width: 100%; max-width: 100%; }
+    .login-logo-container { top: -64px; width: 180px; }
+    .login-form { padding: 64px 20px 28px; }
+}
+
+/* ── iOS-Zoom-Sperre: Eingabefelder mind. 16px ──
+   Verhindert das automatische Hineinzoomen beim Fokussieren. */
+@media (max-width: 768px) {
+    input, select, textarea,
+    .login-form input, .input-styled {
+        font-size: 16px;
+    }
+}
+
+/* ════════════════════════════════════════════
+   HEADER – mobil: Überlauf verhindern
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .content-header { padding-left: 60px; padding-right: 12px; }
+    .header-right { gap: 8px; }
+    /* "Willkommen, Name" ausblenden – Platz für Buttons */
+    .header-right .user-profile > span { display: none; }
+    #btn-logout { margin-left: 6px !important; }
+    /* Lizenz-Badge: nur Icon behalten, Text + Logo weg */
+    #license-badge { margin-left: 6px !important; padding: 6px 8px !important; }
+    #license-badge-text { display: none; }
+    #cms-header-logo { display: none !important; }
+}
+
+/* ════════════════════════════════════════════
+   SCHICHT 2 – Inline-Style-Breaker zentral neutralisieren
+   Nur im Inhaltsbereich (.content-body); Login/Header/Sidebar
+   bleiben unberührt. Deckt die ~600 Inline-px-Styles in den
+   Modulen ab, ohne sie einzeln zu editieren.
+   ════════════════════════════════════════════ */
+
+/* Breite Daten-Tabellen (Nicht-Karten) horizontal scrollbar machen,
+   statt die Seite zu sprengen – z. B. Schichtplan (min-width:700px). */
+@media (max-width: 768px) {
+    .content-body table:not(.premium-table) {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 560px) {
+    /* Alle Inline-Grids einspaltig (2-/3-Spalten-Formulare, Kartengitter) */
+    .content-body [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Feste Feld-/Container-Breiten → voll (Filter-, Zeit-, Planner-Sidebar).
+       Substring matcht auch min-width:…  → beides wird neutralisiert. */
+    .content-body [style*="width:180px"], .content-body [style*="width: 180px"],
+    .content-body [style*="width:160px"], .content-body [style*="width: 160px"],
+    .content-body [style*="width:140px"], .content-body [style*="width: 140px"],
+    .content-body [style*="width:130px"], .content-body [style*="width: 130px"],
+    .content-body [style*="width:120px"], .content-body [style*="width: 120px"],
+    .content-body [style*="width:105px"], .content-body [style*="width: 105px"],
+    .content-body [style*="width:220px"], .content-body [style*="width: 220px"] {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Inline-Flex-Reihen umbrechen lassen (defensiv) */
+    .content-body [style*="display:flex"],
+    .content-body [style*="display: flex"] {
+        flex-wrap: wrap;
+    }
+}
+
+/* ════════════════════════════════════════════
+   SCHICHT 3 – Tischplaner-Sonderfall
+   Der Planer ist ein Fullscreen-Overlay an <body> (außerhalb
+   .content-body), daher eigene, globale Regeln. Schließen-Button
+   sitzt oben im Overlay-Header und bleibt erreichbar.
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .planner-container { flex-direction: column; }
+    /* Inline width:220px/280px der Sidebar überschreiben */
+    #planner-sidebar,
+    .planner-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 45vh;
+    }
+}
