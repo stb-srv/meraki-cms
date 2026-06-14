@@ -117,6 +117,14 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             estimatedTime TEXT,
             confirmedAt   TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS feedback (
+            id          TEXT PRIMARY KEY,
+            guest_name  TEXT,
+            rating      INTEGER DEFAULT 5,
+            comment     TEXT,
+            created_at  TEXT
+        );
     `);
 
     // --- Migrations (idempotent) ---
@@ -208,6 +216,9 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         addOrder:           db.prepare('INSERT OR REPLACE INTO orders (id, table_id, table_name, orderToken, type, status, timestamp, total, note, items, customerName, customerPhone, customerEmail, deliveryAddress, estimatedTime, confirmedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
         updateOrderStatus:  db.prepare('UPDATE orders SET status = ?, estimatedTime = ?, confirmedAt = ? WHERE id = ?'),
         deleteOrder:        db.prepare('DELETE FROM orders WHERE id = ?'),
+        getFeedback:        db.prepare('SELECT * FROM feedback ORDER BY created_at DESC'),
+        addFeedback:        db.prepare('INSERT INTO feedback (id, guest_name, rating, comment, created_at) VALUES (?, ?, ?, ?, ?)'),
+        deleteFeedback:     db.prepare('DELETE FROM feedback WHERE id = ?'),
     };
 
     const DB = {
@@ -365,6 +376,17 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             return { ...merged, items: safeJsonParse(merged.items, []) };
         },
         deleteOrder: (id) => stmts.deleteOrder.run(id),
+        getFeedback: () => stmts.getFeedback.all(),
+        addFeedback: (f) => {
+            stmts.addFeedback.run(
+                f.id || Date.now().toString(),
+                f.guest_name || null,
+                Math.max(1, Math.min(5, parseInt(f.rating, 10) || 5)),
+                f.comment || null,
+                f.created_at || new Date().toISOString()
+            );
+        },
+        deleteFeedback: (id) => stmts.deleteFeedback.run(id),
     };
 
     module.exports = DB;

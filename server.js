@@ -24,10 +24,14 @@ const requireAuth = makeRequireAuth(CONFIG.ADMIN_SECRET);
 
 startCron();
 
-const server = http.createServer();
-const io = setupSocket(server, DB, CONFIG);
+// Reihenfolge ist wichtig: Express MUSS der Request-Handler des HTTP-Servers sein,
+// BEVOR Socket.IO sich anhängt. Sonst registriert Engine.IO einen zweiten,
+// konkurrierenden 'request'-Listener und der ausgelieferte Client (/socket.io/socket.io.js)
+// kollidiert mit Express → leere Antwort / 502 hinter dem Proxy.
+const io = setupSocket(null, DB, CONFIG);   // io zunächst losgelöst erzeugen
 const app = createApp(CONFIG, io);
-server.on('request', app);
+const server = http.createServer(app);      // Express ist der Basis-Request-Handler
+io.attach(server);                          // Engine.IO übernimmt Express als Fallback-Listener
 
 // Fehlgeschlagene Plugins global verfügbar machen (für /api/health)
 global._failedPlugins = [];

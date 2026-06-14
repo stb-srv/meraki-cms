@@ -779,6 +779,7 @@ if (contentView) {
 
 // ── Bestellungs-Badge live aktualisieren ──
 async function updateOrderBadge() {
+    if (!checkAuth()) return;   // Nur bei aktiver Sitzung – verhindert 401 (Orders-Fetch ohne Token) vor Login
     try {
         const orders = await apiGet('orders');
         const pending = (orders || []).filter(o =>

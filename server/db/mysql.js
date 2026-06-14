@@ -135,6 +135,14 @@ async function initSchema() {
                 estimatedTime VARCHAR(100),
                 confirmedAt   VARCHAR(50)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+            CREATE TABLE IF NOT EXISTS feedback (
+                id         VARCHAR(100) PRIMARY KEY,
+                guest_name VARCHAR(255),
+                rating     INT DEFAULT 5,
+                comment    LONGTEXT,
+                created_at VARCHAR(50)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // --- MIGRATIONEN ---
@@ -444,6 +452,18 @@ const DB = {
         return { ...merged, items: safeJsonParse(merged.items, []) };
     },
     deleteOrder: async (id) => q('DELETE FROM orders WHERE id = ?', [id]),
+    getFeedback: async () => q('SELECT * FROM feedback ORDER BY created_at DESC'),
+    addFeedback: async (f) => q(
+        'INSERT INTO feedback (id, guest_name, rating, comment, created_at) VALUES (?, ?, ?, ?, ?)',
+        [
+            f.id || Date.now().toString(),
+            f.guest_name || null,
+            Math.max(1, Math.min(5, parseInt(f.rating, 10) || 5)),
+            f.comment || null,
+            f.created_at || new Date().toISOString(),
+        ]
+    ),
+    deleteFeedback: async (id) => q('DELETE FROM feedback WHERE id = ?', [id]),
 };
 
 // Schema beim Import initialisieren
