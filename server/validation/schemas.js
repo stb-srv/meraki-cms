@@ -33,6 +33,12 @@ const categorySchema = z.object({
     label: z.string().min(1, "Label ist erforderlich")
 }).passthrough();
 
+const feedbackSchema = z.object({
+    rating: z.union([z.string(), z.number()]),
+    guest_name: z.string().max(255).optional(),
+    comment: z.string().max(2000).optional()
+}).passthrough();
+
 // --- Reservations ---
 const reservationCheckSchema = z.object({
     date: z.string(),
@@ -83,6 +89,7 @@ module.exports = {
     menuReorderSchema,
     menuBulkSchema,
     categorySchema,
+    feedbackSchema,
     reservationCheckSchema,
     reservationGridSchema,
     reservationSubmitSchema,

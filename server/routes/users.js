@@ -31,6 +31,7 @@ module.exports = (requireAuth) => {
             u.require_password_change = 1;
             await DB.addUser(u);
             if (u.email) Mailer.sendUserCredentials(u.email, u.name, u.user, plainPass, DB).catch(e => logger.error({ err: e }, 'Mailer Fehler beim User-Anlegen'));
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'user.create', entity: 'user', entity_id: u.user, detail: { role: u.role } }); } catch (_) {}
             res.json({ success: true });
         } catch(e) { logger.error({ err: e }, 'Users route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
@@ -39,6 +40,7 @@ module.exports = (requireAuth) => {
         try {
             const { pass, recovery_codes, ...safeUpdate } = req.body;
             await DB.updateUser(req.params.user, safeUpdate);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'user.update', entity: 'user', entity_id: req.params.user, detail: { role: safeUpdate.role } }); } catch (_) {}
             res.json({ success: true });
         } catch(e) { logger.error({ err: e }, 'Users route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
@@ -48,6 +50,7 @@ module.exports = (requireAuth) => {
             if (req.params.user === req.admin.user)
                 return res.status(400).json({ success: false, reason: 'Kann sich selbst nicht löschen.' });
             await DB.deleteUser(req.params.user);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'user.delete', entity: 'user', entity_id: req.params.user }); } catch (_) {}
             res.json({ success: true });
         } catch(e) { logger.error({ err: e }, 'Users route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
@@ -62,6 +65,7 @@ module.exports = (requireAuth) => {
             const hashed = await bcrypt.hash(plainPass, 12);
             await DB.setUserPass(target.user, hashed, true);
             Mailer.sendUserCredentials(target.email, target.name, target.user, plainPass, DB).catch(e => logger.error({ err: e }, 'Mailer Fehler beim Passwort-Reset'));
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'user.reset_password', entity: 'user', entity_id: target.user }); } catch (_) {}
             res.json({ success: true });
         } catch(e) { logger.error({ err: e }, 'Users route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });

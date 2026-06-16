@@ -110,4 +110,10 @@ const generalLimiter = rateLimit({
     message: { success: false, reason: 'Zu viele Anfragen. Bitte kurz warten.' }
 });
 
-module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter, generalLimiter };
+// Gäste-Bewertungen: öffentlich, daher Spam-Schutz pro IP
+const feedbackLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, max: 10,
+    message: { success: false, reason: 'Zu viele Bewertungen. Bitte später erneut versuchen.' }
+});
+
+module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter, generalLimiter, feedbackLimiter };

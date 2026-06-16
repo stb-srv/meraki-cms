@@ -16,34 +16,33 @@ export async function renderFeedbackWidget(container) {
     const avg = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
 
     const widget = document.createElement('div');
-    widget.style.cssText = `background:#fff; border-radius:16px; padding:24px 28px;
-        box-shadow:0 4px 24px rgba(0,0,0,.08); margin-bottom:28px;
-        border:1.5px solid #e5e7eb;`;
+    widget.className = 'glass-panel';
+    widget.style.cssText = `padding:24px 28px; margin-bottom:28px;`;
 
     widget.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-            <h3 style="font-size:1rem; font-weight:800; color:#1b3a5c; margin:0;">
+            <h3 style="font-size:1rem; font-weight:800; color:var(--primary); margin:0;">
                 ⭐ Gäste-Bewertungen
             </h3>
-            <div style="background:#fef9c3; color:#92400e; padding:4px 14px;
+            <div style="background:rgba(200,169,110,.15); color:var(--accent); padding:4px 14px;
                         border-radius:20px; font-size:.85rem; font-weight:800;">
                 ⭐ ${avg} / 5.0
             </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto;">
             ${reviews.slice(0, 10).map(r => `
-                <div style="padding:12px 14px; background:#f9fafb; border-radius:10px;
-                            border:1px solid #e5e7eb;">
+                <div style="padding:12px 14px; background:var(--bg-inset); border-radius:10px;
+                            border:1px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                        <span style="font-weight:700; font-size:.88rem; color:#374151;">
+                        <span style="font-weight:700; font-size:.88rem; color:var(--text);">
                             ${r.guest_name || 'Anonymer Gast'}
                         </span>
                         <span style="color:#facc15; font-size:.88rem;">
                             ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}
                         </span>
                     </div>
-                    ${r.comment ? `<p style="font-size:.82rem; color:#6b7280; margin:0;">${r.comment}</p>` : ''}
-                    <div style="font-size:.72rem; color:#9ca3af; margin-top:4px;">
+                    ${r.comment ? `<p style="font-size:.82rem; color:var(--text-muted); margin:0;">${r.comment}</p>` : ''}
+                    <div style="font-size:.72rem; color:var(--text-subtle); margin-top:4px;">
                         ${new Date(r.created_at).toLocaleDateString('de-DE')}
                     </div>
                 </div>

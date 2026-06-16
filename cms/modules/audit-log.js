@@ -10,6 +10,17 @@ const ACTION_META = {
     'menu.bulk.disable':  { icon: 'fa-eye-slash', color: 'var(--text-muted)', label: 'Gerichte deaktiviert' },
     'menu.bulk.delete':   { icon: 'fa-trash',  color: 'var(--widget-danger)', label: 'Gerichte gelöscht' },
     'menu.bulk.set_category': { icon: 'fa-tags', color: 'var(--accent)',    label: 'Kategorie zugewiesen' },
+    'reservation.update': { icon: 'fa-calendar-check', color: 'var(--primary)', label: 'Reservierung geändert' },
+    'reservation.delete': { icon: 'fa-calendar-xmark', color: 'var(--widget-danger)', label: 'Reservierung gelöscht' },
+    'settings.update':    { icon: 'fa-sliders-h', color: 'var(--primary)',  label: 'Einstellungen geändert' },
+    'settings.modules':   { icon: 'fa-toggle-on', color: 'var(--accent)',   label: 'Module geändert' },
+    'branding.update':    { icon: 'fa-palette', color: 'var(--primary)',    label: 'Branding geändert' },
+    'license.activate':   { icon: 'fa-key',    color: 'var(--widget-ok)',   label: 'Lizenz aktiviert' },
+    'user.create':        { icon: 'fa-user-plus', color: 'var(--widget-ok)', label: 'Benutzer angelegt' },
+    'user.update':        { icon: 'fa-user-pen', color: 'var(--primary)',   label: 'Benutzer geändert' },
+    'user.delete':        { icon: 'fa-user-minus', color: 'var(--widget-danger)', label: 'Benutzer gelöscht' },
+    'user.reset_password': { icon: 'fa-lock', color: 'var(--accent)',       label: 'Passwort zurückgesetzt' },
+    'feedback.delete':    { icon: 'fa-star',   color: 'var(--widget-danger)', label: 'Bewertung gelöscht' },
 };
 
 function metaFor(action) {

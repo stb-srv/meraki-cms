@@ -176,12 +176,17 @@ module.exports = (requireAuth, requireLicense) => {
             const updated = await DB.updateReservation(resId, update);
             if (updated && update.status && update.status !== old.status)
                 Mailer.sendStatusChange(updated, DB).catch(e => logger.error({ err: e }, 'Status Mailer Fehler'));
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || req.admin?.name || null, action: 'reservation.update', entity: 'reservation', entity_id: resId, detail: { name: updated?.name, status: updated?.status } }); } catch (_) {}
             res.json({ success: true, reservation: updated });
         } catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
     router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
-        try { await DB.deleteReservation(req.params.id); res.json({ success: true }); }
+        try {
+            await DB.deleteReservation(req.params.id);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || req.admin?.name || null, action: 'reservation.delete', entity: 'reservation', entity_id: req.params.id }); } catch (_) {}
+            res.json({ success: true });
+        }
         catch(e) { logger.error({ err: e }, 'Reservations route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 

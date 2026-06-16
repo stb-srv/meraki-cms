@@ -243,6 +243,16 @@ export const NAV_CONFIG = [
                 group: 'Mein Restaurant',
                 description: 'Feiertage, Sonderöffnungszeiten und Events ankündigen',
                 keywords: ['feiertage', 'feiertag', 'events', 'event', 'ankündigung', 'banner', 'ostern', 'weihnachten', 'silvester', 'sonderöffnung', 'sonderzeiten', 'aktion', 'aktionen', 'ankündigen', 'veranstaltung', 'feier', 'fest', 'saisonal', 'sondertermin', 'ankündigung schalten', 'feiertag eintragen']
+            },
+            {
+                id: 'feedback',
+                label: 'Gäste-Bewertungen',
+                icon: 'fa-star',
+                view: 'feedback',
+                tab: null,
+                group: 'Mein Restaurant',
+                description: 'Gäste-Bewertungen ansehen und moderieren',
+                keywords: ['feedback', 'bewertung', 'bewertungen', 'rezension', 'rezensionen', 'sterne', 'rating', 'gästebewertung', 'gäste-feedback', 'kritik', 'lob', 'review', 'reviews', 'moderation', 'kommentare', 'meinung', 'zufriedenheit']
             }
         ]
     },

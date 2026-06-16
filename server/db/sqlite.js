@@ -144,6 +144,13 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             comment     TEXT,
             created_at  TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            endpoint     TEXT PRIMARY KEY,
+            keys_p256dh  TEXT,
+            keys_auth    TEXT,
+            created_at   TEXT
+        );
     `);
 
     // --- Migrations (idempotent) ---

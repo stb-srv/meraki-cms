@@ -23,6 +23,7 @@ import { initRealtime } from './modules/realtime.js';
 import { renderShiftPlanner } from './modules/shifts.js';
 import { renderKassenbuch } from './modules/kassenbuch.js';
 import { renderAuditLog } from './modules/audit-log.js';
+import { renderFeedback } from './modules/feedback-admin.js';
 import { initPWA } from './modules/pwa.js';
 import { applyTranslations, setLang, getLang } from './modules/i18n.js';
 import { enhanceTables } from './modules/responsive-tables.js';
@@ -422,6 +423,9 @@ async function switchView(view, tab = null) {
             break;
         case 'audit-log':
             await renderAuditLog(contentView, viewTitle);
+            break;
+        case 'feedback':
+            await renderFeedback(contentView, viewTitle);
             break;
         case 'qrcodes': {
             viewTitle.innerHTML = '<i class="fas fa-qrcode"></i> QR-Codes';

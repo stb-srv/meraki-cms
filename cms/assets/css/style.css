@@ -126,6 +126,43 @@ body, .stat-widget, .glass-panel, .modal-content, .sidebar, .content-header,
     transition: background-color .25s ease, border-color .25s ease, color .25s ease;
 }
 
+/* ═══════════════════════════════════════════════════════
+   DARK-MODE-SCHUTZSCHILD für hartkodierte Inline-Styles.
+   Neutralisiert die häufigsten theme-brechenden Inline-Farben
+   (helle Flächen / dunkle Texte / helle Rahmen) zentral, nur im
+   Dark Mode und nur im Inhaltsbereich – statt ~287 Stellen einzeln
+   zu editieren. Status-/Ampelfarben (grün/gelb/rot) bleiben unberührt.
+   ═══════════════════════════════════════════════════════ */
+[data-theme="dark"] .content-body [style*="background:#fff"],
+[data-theme="dark"] .content-body [style*="background: #fff"],
+[data-theme="dark"] .content-body [style*="background:#ffffff"],
+[data-theme="dark"] .content-body [style*="background: #ffffff"],
+[data-theme="dark"] .content-body [style*="background:#fafbfc"],
+[data-theme="dark"] .content-body [style*="background:#f9fafb"],
+[data-theme="dark"] .content-body [style*="background: #f9fafb"],
+[data-theme="dark"] .content-body [style*="background:#f8fafc"],
+[data-theme="dark"] .content-body [style*="background:#f3f4f6"],
+[data-theme="dark"] .content-body [style*="background: #f3f4f6"],
+[data-theme="dark"] .content-body [style*="background:#f0f4f8"] {
+    background: var(--bg-card) !important;
+}
+[data-theme="dark"] .content-body [style*="color:#1b3a5c"],
+[data-theme="dark"] .content-body [style*="color: #1b3a5c"],
+[data-theme="dark"] .content-body [style*="color:#1a202c"],
+[data-theme="dark"] .content-body [style*="color: #1a202c"],
+[data-theme="dark"] .content-body [style*="color:#374151"],
+[data-theme="dark"] .content-body [style*="color: #374151"],
+[data-theme="dark"] .content-body [style*="color:#111827"],
+[data-theme="dark"] .content-body [style*="color:#1f2937"] {
+    color: var(--text) !important;
+}
+[data-theme="dark"] .content-body [style*="border:1px solid #e5e7eb"],
+[data-theme="dark"] .content-body [style*="border: 1px solid #e5e7eb"],
+[data-theme="dark"] .content-body [style*="border:1px solid #e2e8f0"],
+[data-theme="dark"] .content-body [style*="border:1.5px solid #e5e7eb"] {
+    border-color: var(--border) !important;
+}
+
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 /* Display-Font für Überschriften & große Kennzahlen */

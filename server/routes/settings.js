@@ -57,7 +57,11 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
     router.post('/branding', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try { await DB.setKV('branding', req.body); res.json({ success: true }); }
+        try {
+            await DB.setKV('branding', req.body);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'branding.update', entity: 'branding', entity_id: null }); } catch (_) {}
+            res.json({ success: true });
+        }
         catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
@@ -85,6 +89,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const existing = await DB.getKV('settings', {});
             const merged   = deepMerge(existing, req.body);
             await DB.setKV('settings', merged);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'settings.update', entity: 'settings', entity_id: null, detail: { keys: Object.keys(req.body || {}) } }); } catch (_) {}
             res.json({ success: true });
         } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
@@ -185,6 +190,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                 };
                 await DB.setKV('settings', settings);
                 logger.info({ key: req.body.key, type: r.type, domain }, 'Lizenz erfolgreich aktiviert');
+                try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'license.activate', entity: 'license', entity_id: null, detail: { type: r.type, label: settings.license.label } }); } catch (_) {}
                 return res.json({ success: true, license: settings.license });
             }
 
@@ -218,9 +224,10 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             settings.dailySpecialsEnabled = enabledModules.daily_specials;
             
             await DB.setKV('settings', settings);
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'settings.modules', entity: 'settings', entity_id: null, detail: enabledModules }); } catch (_) {}
             res.json({ success: true, enabledModules: settings.enabledModules });
-        } catch(e) { 
-            res.status(500).json({ success: false, reason: e.message }); 
+        } catch(e) {
+            res.status(500).json({ success: false, reason: e.message });
         }
     });
 
