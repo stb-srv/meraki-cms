@@ -6,11 +6,16 @@ window.MenuCore = {
         cmsSearch: '',
         cmsCatFilter: 'All',
         cmsSort: 'name',
+        cmsSortDir: 'asc',
         cmsPage: 1,
         cmsPageSize: 25,
         collapsedCats: new Set(),
-        _renderDebounceTimer: null
+        selectedIds: new Set(),
+        _renderDebounceTimer: null,
+        _dragId: null
     },
+
+    WEEKDAYS: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],  // Index 0=Mo … 6=So
     api: null,
     utils: null,
     isInitialized: false,
@@ -129,17 +134,32 @@ window.MenuCore = {
         this.renderMenu(document.getElementById('content-view'), document.getElementById('view-title'), 'dishes');
     },
 
+    // Sortierbarer Tabellen-Header mit Richtungs-Pfeil
+    sortableTh: function(key, label) {
+        const active = this.state.cmsSort === key;
+        const dirClass = active ? (this.state.cmsSortDir === 'desc' ? 'sort-desc' : 'sort-asc') : '';
+        const icon = !active ? 'fa-sort' : (this.state.cmsSortDir === 'desc' ? 'fa-sort-down' : 'fa-sort-up');
+        return `<th class="sortable ${dirClass}" data-sort="${key}">${label}<span class="sort-ind"><i class="fas ${icon}"></i></span></th>`;
+    },
+
     renderAvailabilityToggle: function(d) {
         const isAvail = d.available !== false;
         return `
             <div class="avail-toggle-wrap" style="display:flex; align-items:center; gap:8px;">
-                <label class="switch-small">
+                <label class="switch switch--sm">
                     <input type="checkbox" ${isAvail ? 'checked' : ''} onchange="window.MenuCore.toggleDishAvailability('${d.id}', this.checked)">
-                    <span class="slider-small round"></span>
+                    <span class="slider"></span>
                 </label>
                 <span style="font-size:0.7rem; opacity:0.6; font-weight:600; min-width:25px;">${isAvail ? 'AN' : 'AUS'}</span>
             </div>
         `;
+    },
+
+    renderWeekdayBadge: function(d) {
+        const days = Array.isArray(d.available_days) ? d.available_days : [];
+        if (days.length === 0 || days.length === 7) return '';
+        const labels = days.slice().sort((a,b)=>a-b).map(i => this.WEEKDAYS[i]).join(' ');
+        return `<div style="font-size:0.6rem; opacity:0.6; margin-top:3px;" title="Nur verfügbar: ${labels}"><i class="fas fa-calendar-day"></i> ${labels}</div>`;
     },
 
     toggleDishAvailability: async function(id, checked) {
@@ -157,26 +177,31 @@ window.MenuCore = {
         const isAvail = d.available !== false;
         const lastUpd = this.formatRelativeTime(d.updated_at);
         const hasImg = d.image && (d.image.startsWith('http') || d.image.startsWith('/'));
-        
+        const manualMode = this.state.cmsSort === 'manual';
+        const isSelected = this.state.selectedIds.has(String(d.id));
+
         return `
-            <tr class="dish-row ${!isAvail ? 'dish-unavailable' : ''}" data-id="${d.id}">
-                <td style="width:50px; font-weight:700; color:var(--text-muted);">${d.number || '-'}</td>
-                <td style="width:60px;">
-                    <div style="width:40px; height:40px; border-radius:8px; overflow:hidden; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.05);">
+            <tr class="dish-row ${!isAvail ? 'dish-unavailable' : ''} ${isSelected ? 'dish-selected' : ''}" data-id="${d.id}" ${manualMode ? 'draggable="true"' : ''}>
+                ${manualMode ? `<td class="col-drag menu-drag-handle" title="Ziehen zum Sortieren"><i class="fas fa-grip-vertical"></i></td>` : ''}
+                <td class="col-select" data-label=""><input type="checkbox" class="row-select" data-id="${d.id}" ${isSelected ? 'checked' : ''}></td>
+                <td data-label="Nr." style="font-weight:700; color:var(--text-muted);">${d.number || '-'}</td>
+                <td data-label="" style="width:60px;">
+                    <div style="width:40px; height:40px; border-radius:8px; overflow:hidden; background:var(--bg-inset); border:1px solid var(--border);">
                         ${hasImg ? `<img src="${d.image}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fas fa-hamburger" style="display:flex; align-items:center; justify-content:center; height:100%; opacity:0.2;"></i>`}
                     </div>
                 </td>
-                <td>
+                <td data-label="Name">
                     <div style="font-weight:700; color:var(--primary); font-size:1.05rem;">${d.name}</div>
                     ${d.desc ? `<div style="font-size:0.8rem; opacity:0.6; line-height:1.2; margin-top:2px;">${d.desc}</div>` : ''}
+                    ${this.renderWeekdayBadge(d)}
                     <div style="font-size:0.65rem; opacity:0.4; margin-top:4px;"><i class="fas fa-clock"></i> ${lastUpd ? lastUpd : 'Neu'}</div>
                 </td>
-                <td style="width:120px;">
-                    ${!useGroupedView ? `<span class="badge" style="background:rgba(0,0,0,0.05); color:var(--text);">${this.getCatLabel(d.cat)}</span>` : ''}
+                <td data-label="Kategorie">
+                    <span class="badge" style="background:var(--bg-inset); color:var(--text);">${this.getCatLabel(d.cat)}</span>
                 </td>
-                <td style="width:100px; font-weight:800; font-family:var(--font-mono); color:var(--accent);">${p}€</td>
-                <td style="width:100px;">${this.renderAvailabilityToggle(d)}</td>
-                <td style="width:130px; text-align:right;">
+                <td data-label="Preis" class="price-cell" data-id="${d.id}" style="font-weight:800; font-family:var(--font-mono); color:var(--accent);">${p}€ <i class="fas fa-clock-rotate-left" style="font-size:.6rem; opacity:.35; margin-left:3px;" title="Preisverlauf"></i></td>
+                <td data-label="Status">${this.renderAvailabilityToggle(d)}</td>
+                <td data-label="" style="text-align:right;">
                     <div style="display:flex; gap:6px; justify-content:flex-end;">
                         <button class="btn-icon" onclick="window.MenuCore.editDish('${d.id}')"><i class="fas fa-pen"></i> Bearbeiten</button>
                         <button class="btn-icon danger" onclick="window.MenuCore.deleteDish('${d.id}')"><i class="fas fa-trash"></i></button>
@@ -207,11 +232,16 @@ window.MenuCore = {
             return matchesSearch && matchesCat;
         });
 
-        if (this.state.cmsSort === 'name')   filtered.sort((a,b) => a.name.localeCompare(b.name));
-        if (this.state.cmsSort === 'price')  filtered.sort((a,b) => a.price - b.price);
-        if (this.state.cmsSort === 'nr')     filtered.sort((a,b) => (parseInt(a.number)||0) - (parseInt(b.number)||0));
+        const dir = this.state.cmsSortDir === 'desc' ? -1 : 1;
+        if (this.state.cmsSort === 'name')   filtered.sort((a,b) => dir * a.name.localeCompare(b.name));
+        if (this.state.cmsSort === 'price')  filtered.sort((a,b) => dir * ((a.price||0) - (b.price||0)));
+        if (this.state.cmsSort === 'nr')     filtered.sort((a,b) => dir * ((parseInt(a.number)||0) - (parseInt(b.number)||0)));
+        if (this.state.cmsSort === 'cat')    filtered.sort((a,b) => dir * this.getCatLabel(a.cat).localeCompare(this.getCatLabel(b.cat)));
+        if (this.state.cmsSort === 'manual') filtered.sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
 
-        const useGroupedView = this.state.cmsCatFilter === 'All' && !this.state.cmsSearch;
+        const manualMode = this.state.cmsSort === 'manual';
+        // In Manuell-Modus immer flache, ziehbare Liste (keine Gruppierung)
+        const useGroupedView = !manualMode && this.state.cmsCatFilter === 'All' && !this.state.cmsSearch;
         const totalItems = filtered.length;
 
         // In grouped view show all dishes; pagination only applies to flat (search/filter) view
@@ -229,12 +259,14 @@ window.MenuCore = {
                     <option value="All">Alle Kategorien</option>
                     ${categories.map(c => `<option value="${c.id}" ${this.state.cmsCatFilter === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
                 </select>
-                <select class="input-styled" id="dish-sort" style="width:150px;">
+                <select class="input-styled" id="dish-sort" style="width:170px;">
                     <option value="name" ${this.state.cmsSort === 'name' ? 'selected' : ''}>Name A-Z</option>
                     <option value="nr" ${this.state.cmsSort === 'nr' ? 'selected' : ''}>Nr.</option>
                     <option value="price" ${this.state.cmsSort === 'price' ? 'selected' : ''}>Preis</option>
+                    <option value="cat" ${this.state.cmsSort === 'cat' ? 'selected' : ''}>Kategorie</option>
+                    <option value="manual" ${this.state.cmsSort === 'manual' ? 'selected' : ''}>Manuelle Reihenfolge</option>
                 </select>
-                <button class="btn-primary" id="btn-add-dish" style="background:var(--accent);"><i class="fas fa-plus"></i> Neues Gericht</button>
+                <button class="btn-accent" id="btn-add-dish"><i class="fas fa-plus"></i> Neues Gericht</button>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                     <button class="btn-secondary" id="btn-export-menu" title="Backup als JSON-Datei herunterladen" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-download"></i> Backup</button>
                     <button class="btn-secondary" id="btn-import-menu" title="Backup wiederherstellen (JSON)" style="font-size:0.8rem; padding:8px 12px;"><i class="fas fa-upload"></i> Wiederherstellen</button>
@@ -293,6 +325,15 @@ window.MenuCore = {
                         <div id="df-img-preview" style="margin-top:10px; height:130px; border-radius:12px; background:rgba(0,0,0,0.04); border:1px dashed rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; overflow:hidden;">
                             <i class="fas fa-image fa-2x" style="opacity:0.1;"></i>
                         </div>
+                        <div style="margin-top:14px;">
+                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+                                Verfügbarkeit nach Wochentag
+                                <span style="font-size:0.7rem; opacity:0.5; font-weight:400;">(keine Auswahl = immer verfügbar)</span>
+                            </label>
+                            <div class="weekday-chips" id="df-weekdays">
+                                ${this.WEEKDAYS.map((wd, i) => `<span class="weekday-chip" data-day="${i}">${wd}</span>`).join('')}
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Sektion 3: Deklaration -->
@@ -349,11 +390,13 @@ window.MenuCore = {
                 <table class="cms-table">
                     <thead>
                         <tr>
-                            <th>Nr.</th>
+                            ${manualMode ? '<th class="col-drag"></th>' : ''}
+                            <th class="col-select"><input type="checkbox" class="all-select" title="Alle auswählen"></th>
+                            ${this.sortableTh('nr', 'Nr.')}
                             <th>Bild</th>
-                            <th>Name / Beschreibung</th>
-                            <th>${!useGroupedView ? 'Kategorie' : ''}</th>
-                            <th>Preis</th>
+                            ${this.sortableTh('name', 'Name / Beschreibung')}
+                            ${this.sortableTh('cat', 'Kategorie')}
+                            ${this.sortableTh('price', 'Preis')}
                             <th>Status</th>
                             <th style="text-align:right;">Aktionen</th>
                         </tr>
@@ -375,7 +418,7 @@ window.MenuCore = {
                                     const isCollapsed = this.state.collapsedCats.has(cat.id);
                                     return `
                                         <tr class="cat-group-row" onclick="window.MenuCore.toggleCatCollapse('${cat.id}')" style="background:rgba(0,0,0,0.02); cursor:pointer;">
-                                            <td colspan="7" style="padding:12px 20px;">
+                                            <td colspan="8" style="padding:12px 20px;">
                                                 <div style="display:flex; align-items:center; gap:12px;">
                                                     <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}" style="opacity:0.3; width:15px;"></i>
                                                     <span style="font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:1px; font-size:0.8rem;">${cat.label}</span>
@@ -391,7 +434,7 @@ window.MenuCore = {
                                     const isCollapsed = this.state.collapsedCats.has('__uncat__');
                                     catGroups.push(`
                                         <tr class="cat-group-row" onclick="window.MenuCore.toggleCatCollapse('__uncat__')" style="background:rgba(0,0,0,0.02); cursor:pointer;">
-                                            <td colspan="7" style="padding:12px 20px;">
+                                            <td colspan="8" style="padding:12px 20px;">
                                                 <div style="display:flex; align-items:center; gap:12px;">
                                                     <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}" style="opacity:0.3; width:15px;"></i>
                                                     <span style="font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-size:0.8rem;">Unsortiert</span>
@@ -411,6 +454,18 @@ window.MenuCore = {
                 ${totalItems === 0 ? `<div style="padding:60px; text-align:center; opacity:0.3;"><i class="fas fa-search fa-3x" style="margin-bottom:15px;"></i><br>Keine Gerichte gefunden.</div>` : ''}
             </div>
             ${!useGroupedView ? this.renderPagination(totalItems, this.state.cmsPage, this.state.cmsPageSize) : ''}
+            ${manualMode ? `<div style="margin-top:12px; font-size:0.78rem; opacity:0.55; display:flex; align-items:center; gap:8px;"><i class="fas fa-arrows-up-down"></i> Ziehe die Zeilen am Griff, um die Reihenfolge zu ändern – wird automatisch gespeichert.</div>` : ''}
+
+            <div class="bulk-action-bar" id="bulk-action-bar">
+                <span class="bulk-count"><span id="bulk-count-n">0</span> ausgewählt</span>
+                <span class="bulk-sep"></span>
+                <button id="bulk-enable"><i class="fas fa-eye"></i><span>Aktivieren</span></button>
+                <button id="bulk-disable"><i class="fas fa-eye-slash"></i><span>Deaktivieren</span></button>
+                <button id="bulk-category"><i class="fas fa-tags"></i><span>Kategorie</span></button>
+                <button id="bulk-delete" class="danger"><i class="fas fa-trash"></i><span>Löschen</span></button>
+                <span class="bulk-sep"></span>
+                <button id="bulk-clear"><i class="fas fa-times"></i></button>
+            </div>
         `;
     },
 
@@ -441,7 +496,13 @@ window.MenuCore = {
         document.getElementById('df-desc').value = d.desc || '';
         document.getElementById('df-img').value = d.image || '';
         document.getElementById('df-special').checked = !!d.is_daily_special;
-        
+
+        // Wochentag-Verfügbarkeit
+        const availDays = Array.isArray(d.available_days) ? d.available_days.map(Number) : [];
+        document.querySelectorAll('#df-weekdays .weekday-chip').forEach(chip => {
+            chip.classList.toggle('active', availDays.includes(Number(chip.dataset.day)));
+        });
+
         // Preview
         const preview = document.getElementById('df-img-preview');
         if (d.image && (d.image.startsWith('http') || d.image.startsWith('/'))) {
@@ -536,6 +597,147 @@ window.MenuCore = {
         }
     },
 
+    // ─── Auswahl / Bulk ────────────────────────────────────────
+    attachSelectionHandlers: function(container) {
+        const allCb = container.querySelector('.all-select');
+        if (allCb) {
+            allCb.onchange = () => {
+                container.querySelectorAll('.row-select').forEach(cb => {
+                    cb.checked = allCb.checked;
+                    const id = String(cb.dataset.id);
+                    if (allCb.checked) this.state.selectedIds.add(id);
+                    else this.state.selectedIds.delete(id);
+                    cb.closest('tr')?.classList.toggle('dish-selected', allCb.checked);
+                });
+                this.updateBulkBar();
+            };
+        }
+        container.querySelectorAll('.row-select').forEach(cb => {
+            cb.onchange = () => {
+                const id = String(cb.dataset.id);
+                if (cb.checked) this.state.selectedIds.add(id);
+                else this.state.selectedIds.delete(id);
+                cb.closest('tr')?.classList.toggle('dish-selected', cb.checked);
+                this.updateBulkBar();
+            };
+        });
+    },
+
+    updateBulkBar: function() {
+        const bar = document.getElementById('bulk-action-bar');
+        if (!bar) return;
+        const n = this.state.selectedIds.size;
+        const cnt = document.getElementById('bulk-count-n');
+        if (cnt) cnt.textContent = n;
+        bar.classList.toggle('visible', n > 0);
+        // Indeterminate-Status der "Alle"-Checkbox
+        const allCb = document.querySelector('.all-select');
+        const rowCbs = document.querySelectorAll('.row-select');
+        if (allCb && rowCbs.length) {
+            const checked = [...rowCbs].filter(c => c.checked).length;
+            allCb.indeterminate = checked > 0 && checked < rowCbs.length;
+            allCb.checked = checked === rowCbs.length;
+        }
+    },
+
+    clearSelection: function() {
+        this.state.selectedIds.clear();
+        document.querySelectorAll('.row-select').forEach(cb => { cb.checked = false; cb.closest('tr')?.classList.remove('dish-selected'); });
+        this.updateBulkBar();
+    },
+
+    attachBulkHandlers: function(container) {
+        const ids = () => Array.from(this.state.selectedIds);
+        const run = async (action, extra = {}) => {
+            const selected = ids();
+            if (!selected.length) return;
+            const res = await this.api.post('menu/bulk', { ids: selected, action, ...extra });
+            if (res?.success) {
+                this.state.cachedMenuData = null;
+                this.clearSelection();
+                this.utils.showToast(`${res.affected ?? selected.length} Gericht(e) aktualisiert.`);
+                this.renderMenu(container, document.getElementById('view-title'), 'dishes');
+            } else {
+                this.utils.showToast(res?.reason || 'Bulk-Aktion fehlgeschlagen', 'error');
+            }
+        };
+        const bind = (id, fn) => { const el = container.querySelector('#' + id); if (el) el.onclick = fn; };
+        bind('bulk-enable',  () => run('enable'));
+        bind('bulk-disable', () => run('disable'));
+        bind('bulk-delete',  async () => {
+            if (!await this.utils.showConfirm('Gerichte löschen?', `${this.state.selectedIds.size} Gericht(e) unwiderruflich löschen?`)) return;
+            run('delete');
+        });
+        bind('bulk-clear', () => this.clearSelection());
+        bind('bulk-category', async () => {
+            const cats = this.state.cachedMenuData?.categories || [];
+            const choice = await this.utils.showSelect?.('Kategorie zuweisen', 'Zielkategorie wählen:', cats.map(c => ({ value: c.id, label: c.label })));
+            if (choice) run('set_category', { cat: choice });
+        });
+    },
+
+    // ─── Drag & Drop (nur Manuell-Modus) ───────────────────────
+    attachDragHandlers: function(container) {
+        if (this.state.cmsSort !== 'manual') return;
+        const tbody = container.querySelector('#dishes-table-body');
+        if (!tbody) return;
+        tbody.querySelectorAll('tr.dish-row[draggable="true"]').forEach(row => {
+            row.addEventListener('dragstart', (e) => {
+                this.state._dragId = row.dataset.id;
+                row.classList.add('row-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('row-dragging');
+                tbody.querySelectorAll('.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
+            });
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const dragging = tbody.querySelector('.row-dragging');
+                if (!dragging || dragging === row) return;
+                const rect = row.getBoundingClientRect();
+                const after = (e.clientY - rect.top) > rect.height / 2;
+                tbody.querySelectorAll('.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
+                row.classList.add('row-drop-target');
+                tbody.insertBefore(dragging, after ? row.nextSibling : row);
+            });
+            row.addEventListener('drop', (e) => e.preventDefault());
+        });
+        tbody.addEventListener('drop', async () => {
+            tbody.querySelectorAll('.row-drop-target').forEach(r => r.classList.remove('row-drop-target'));
+            const orderedIds = Array.from(tbody.querySelectorAll('tr.dish-row')).map(r => String(r.dataset.id));
+            const res = await this.api.post('menu/reorder', { ids: orderedIds });
+            if (res?.success) {
+                this.state.cachedMenuData = null;
+                this.utils.showToast('Reihenfolge gespeichert.');
+            } else {
+                this.utils.showToast('Reihenfolge konnte nicht gespeichert werden', 'error');
+                this.renderMenu(container, document.getElementById('view-title'), 'dishes');
+            }
+        });
+    },
+
+    // ─── Preisverlauf-Popover ──────────────────────────────────
+    showPriceHistory: async function(id, anchorEl) {
+        document.querySelectorAll('.price-history-pop').forEach(p => p.remove());
+        const history = await this.api.get(`menu/${id}/price-history`);
+        const pop = document.createElement('div');
+        pop.className = 'price-history-pop';
+        if (!Array.isArray(history) || history.length === 0) {
+            pop.innerHTML = `<div style="font-size:0.78rem; opacity:0.6;">Noch keine Preisänderungen erfasst.</div>`;
+        } else {
+            pop.innerHTML = `<div style="font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; opacity:0.5; margin-bottom:8px;">Preisverlauf</div>` +
+                history.map(h => {
+                    const up = Number(h.new_price) > Number(h.old_price);
+                    const dt = h.changed_at ? new Date(h.changed_at).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '';
+                    return `<div class="ph-row"><span style="opacity:.6;">${dt}</span><span class="${up ? 'ph-up' : 'ph-down'}">${Number(h.old_price).toFixed(2)}€ → ${Number(h.new_price).toFixed(2)}€ <i class="fas fa-arrow-${up ? 'up' : 'down'}"></i></span></div>`;
+                }).join('');
+        }
+        anchorEl.appendChild(pop);
+        const close = (ev) => { if (!pop.contains(ev.target) && ev.target !== anchorEl) { pop.remove(); document.removeEventListener('click', close); } };
+        setTimeout(() => document.addEventListener('click', close), 0);
+    },
+
     attachMenuHandlers: function(container, menu, categories, allergens, additives, currentTab) {
         const searchInp = container.querySelector('#dish-search');
         if (searchInp) {
@@ -564,6 +766,32 @@ window.MenuCore = {
             };
         }
 
+        // Klickbare Sortier-Header
+        container.querySelectorAll('th.sortable').forEach(th => {
+            th.onclick = () => {
+                const key = th.dataset.sort;
+                if (this.state.cmsSort === key) {
+                    this.state.cmsSortDir = this.state.cmsSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.state.cmsSort = key;
+                    this.state.cmsSortDir = 'asc';
+                }
+                this.state.cmsPage = 1;
+                this.renderMenu(container, document.getElementById('view-title'), 'dishes');
+            };
+        });
+
+        // Auswahl (Bulk)
+        this.attachSelectionHandlers(container);
+        this.attachBulkHandlers(container);
+        this.attachDragHandlers(container);
+        this.updateBulkBar();
+
+        // Preisverlauf-Popover
+        container.querySelectorAll('.price-cell').forEach(cell => {
+            cell.onclick = (e) => { e.stopPropagation(); this.showPriceHistory(cell.dataset.id, cell); };
+        });
+
         const addBtn = container.querySelector('#btn-add-dish');
         if (addBtn) {
             addBtn.onclick = () => {
@@ -579,8 +807,14 @@ window.MenuCore = {
                 document.getElementById('df-img-preview').innerHTML = '<i class="fas fa-image fa-2x" style="opacity:0.1;"></i>';
                 document.querySelectorAll('.dish-allergen-cb, .dish-additive-cb').forEach(cb => cb.checked = false);
                 document.querySelectorAll('.trans-name, .trans-desc').forEach(el => el.value = '');
+                document.querySelectorAll('#df-weekdays .weekday-chip').forEach(chip => chip.classList.remove('active'));
             };
         }
+
+        // Wochentag-Chips umschalten
+        container.querySelectorAll('#df-weekdays .weekday-chip').forEach(chip => {
+            chip.onclick = () => chip.classList.toggle('active');
+        });
 
         const saveBtn = container.querySelector('#df-save');
         if (saveBtn) {
@@ -603,6 +837,7 @@ window.MenuCore = {
                     allergens: Array.from(document.querySelectorAll('.dish-allergen-cb:checked')).map(cb => cb.value),
                     additives: Array.from(document.querySelectorAll('.dish-additive-cb:checked')).map(cb => cb.value),
                     available: this.state.editingDishIndex !== -1 ? (this.state.cachedMenuData.menu[this.state.editingDishIndex].available !== false) : true,
+                    available_days: Array.from(document.querySelectorAll('#df-weekdays .weekday-chip.active')).map(c => Number(c.dataset.day)),
                     updated_at: new Date().toISOString()
                 };
 

@@ -9,6 +9,8 @@ import { onRealtime } from './realtime.js';
 import { showToast } from './utils.js';
 
 const DEFAULT_WIDGETS = [
+    { id: 'today_overview',         size: 'span-8' },
+    { id: 'kpi_trends',             size: 'span-4' },
     { id: 'branding',               size: 'span-6' },
     { id: 'dishes',                 size: 'span-3' },
     { id: 'categories',             size: 'span-3' },
@@ -28,6 +30,8 @@ const DEFAULT_WIDGETS = [
 ];
 
 const WIDGET_META = {
+    today_overview:         { label: 'Heute-Übersicht',           icon: 'fa-calendar-day' },
+    kpi_trends:             { label: 'Trend (7 Tage)',            icon: 'fa-chart-line' },
     branding:               { label: 'Restaurant Info',           icon: 'fa-store' },
     dishes:                 { label: 'Gerichte-Zähler',           icon: 'fa-utensils' },
     reservations:           { label: 'Reservierungen',            icon: 'fa-calendar-check' },
@@ -47,6 +51,68 @@ const WIDGET_META = {
 };
 
 const WIDGET_TEMPLATES = {
+    today_overview: (d) => {
+        const res = d.todayRes || [];
+        const open = d.pendingOrders || [];
+        const resRows = res.length
+            ? res.slice(0, 6).map(r => `<div class="widget-list-row">
+                    <span><strong>${r.start_time || r.time || ''}</strong> · ${r.name || 'Gast'}</span>
+                    <span class="widget-badge"><i class="fas fa-user-friends" style="opacity:.6;"></i> ${r.guests || 1}</span>
+                </div>`).join('')
+            : '<div style="opacity:.5;font-size:.82rem;padding:14px 0;text-align:center;">Keine Reservierungen heute</div>';
+        const orderRows = open.length
+            ? open.slice(0, 6).map(o => `<div class="widget-list-row">
+                    <span>${o.table_name || o.tableNumber || o.table || 'Bestellung'}</span>
+                    <span class="widget-badge" style="color:var(--widget-warn);">${parseFloat(o.total || 0).toFixed(2)}€</span>
+                </div>`).join('')
+            : '<div style="opacity:.5;font-size:.82rem;padding:14px 0;text-align:center;">Keine offenen Bestellungen</div>';
+        const today = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' });
+        return `<div class="stat-widget full-height" style="overflow:auto;">
+            <div class="widget-header">
+                <h3><i class="fas fa-calendar-day" style="position:static!important;font-size:.85rem!important;opacity:.6!important;margin-right:6px;"></i> Heute · ${today}</h3>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Reservierungen</span>
+                        <span class="widget-badge">${res.length}</span>
+                    </div>
+                    ${resRows}
+                    ${res.length ? `<button class="widget-link-btn" onclick="window.switchTab('reservations')">Alle anzeigen</button>` : ''}
+                </div>
+                <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Offene Bestellungen</span>
+                        <span class="widget-badge">${open.length}</span>
+                    </div>
+                    ${orderRows}
+                    ${open.length ? `<button class="widget-link-btn" onclick="window.switchTab('orders')">Zur Küche</button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    },
+
+    kpi_trends: (d) => {
+        const w = d.week || { revSeries: [], resSeries: [], revThis: 0, revLast: 0, resThis: 0, resLast: 0 };
+        const panel = (label, icon, cur, prev, series, color, fmt) => `
+            <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);"><i class="fas ${icon}" style="opacity:.5;margin-right:5px;"></i>${label}</span>
+                    ${trendBadge(cur, prev)}
+                </div>
+                <div class="value" style="font-size:1.5rem;">${fmt(cur)}</div>
+                <div style="font-size:.7rem;color:var(--text-subtle);margin-bottom:6px;">Vorwoche: ${fmt(prev)}</div>
+                ${sparkline(series, color)}
+            </div>`;
+        return `<div class="stat-widget full-height">
+            <div class="widget-header"><h3>Trend · letzte 7 Tage</h3><i class="fas fa-chart-line"></i></div>
+            <div style="display:flex;gap:28px;flex-wrap:wrap;">
+                ${panel('Umsatz', 'fa-coins', w.revThis, w.revLast, w.revSeries, 'var(--accent)', v => parseFloat(v || 0).toFixed(0) + '€')}
+                ${panel('Reservierungen', 'fa-calendar-check', w.resThis, w.resLast, w.resSeries, 'var(--primary)', v => String(v || 0))}
+            </div>
+        </div>`;
+    },
+
     branding: (d) => {
         const isTrial = d.l?.isTrial;
         const planLabel = d.l?.label || d.l?.type || 'FREE';
@@ -267,6 +333,39 @@ function getVacationStatus(vac) {
     return { label: 'Inaktiv', color: 'var(--text-muted)', icon: 'fa-plane-departure', subText: 'Kein Zeitplan aktiv', type: 'off' };
 }
 
+// ── Hilfsfunktionen für KPI-Zeitreihen (Phase 4) ──────────────
+function parseFlexibleDate(s) {
+    if (!s) return null;
+    if (s instanceof Date) return isNaN(s) ? null : s;
+    let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/.exec(String(s).trim());
+    if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
+function sameDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function sparkline(values, color) {
+    const w = 100, h = 30, max = Math.max(1, ...values);
+    const n = values.length;
+    const pts = values.map((v, i) => `${n > 1 ? (i / (n - 1)) * w : 0},${(h - (v / max) * h).toFixed(1)}`).join(' ');
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:36px;display:block;">
+        <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+}
+function trendBadge(cur, prev) {
+    if (!prev) {
+        if (cur > 0) return `<span style="color:var(--widget-ok);font-weight:700;font-size:.75rem;"><i class="fas fa-arrow-up"></i> Neu</span>`;
+        return `<span style="color:var(--text-muted);font-size:.75rem;">—</span>`;
+    }
+    const diff = ((cur - prev) / prev) * 100;
+    const up = diff >= 0;
+    const color = up ? 'var(--widget-ok)' : 'var(--widget-danger)';
+    return `<span style="color:${color};font-weight:700;font-size:.75rem;"><i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> ${Math.abs(Math.round(diff))}%</span>`;
+}
+
 let isSortMode = false;
 let localDashboardConfig = null;
 let isResizing = false;
@@ -300,7 +399,13 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
         apiGet('homepage'), apiGet('branding'), apiGet('settings'), apiGet('tables').catch(() => [])
     ]);
 
-    const config = isSortMode ? localDashboardConfig : (settings?.dashboardConfig || DEFAULT_WIDGETS);
+    let config = isSortMode ? localDashboardConfig : (settings?.dashboardConfig || DEFAULT_WIDGETS);
+    // Neue Standard-Widgets in bestehende (gespeicherte) Layouts einmischen, falls noch nicht vorhanden
+    if (!isSortMode && settings?.dashboardConfig) {
+        const present = new Set(config.map(w => w.id));
+        const missing = DEFAULT_WIDGETS.filter(w => !present.has(w.id));
+        if (missing.length) config = [...missing, ...config];
+    }
     const day    = ['So','Mo','Di','Mi','Do','Fr','Sa'][new Date().getDay()];
     const oh     = home?.openingHours || {};
     const ohToday = oh[day] || { closed: true };
@@ -326,6 +431,30 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
     const revenueToday  = todayOrders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
     const upcomingRes   = safeReservations.filter(r => (r.date === todayStr || r.date === tomorrowStr) && r.status === 'Confirmed');
 
+    // Heutige Reservierungen (für „Heute"-Widget) – nach Uhrzeit sortiert
+    const todayDate = new Date();
+    const todayRes = safeReservations
+        .filter(r => { const rd = parseFlexibleDate(r.date); return rd && sameDay(rd, todayDate) && r.status !== 'Cancelled'; })
+        .sort((a, b) => String(a.start_time || a.time || '').localeCompare(String(b.start_time || b.time || '')));
+
+    // KPI-Zeitreihen: rollierende Fenster (letzte 7 Tage vs. die 7 Tage davor)
+    const DAY_MS = 86400000;
+    const days7 = [...Array(7)].map((_, i) => new Date(todayDate.getTime() - (6 - i) * DAY_MS));
+    const inLast7  = (dt) => dt && (todayDate - dt) >= 0 && (todayDate - dt) < 7 * DAY_MS;
+    const inPrev7  = (dt) => dt && (todayDate - dt) >= 7 * DAY_MS && (todayDate - dt) < 14 * DAY_MS;
+
+    const revSeries = days7.map(day => safeOrders
+        .filter(o => sameDay(new Date(o.timestamp || o.createdAt), day))
+        .reduce((s, o) => s + parseFloat(o.total || 0), 0));
+    const revThis = safeOrders.filter(o => inLast7(new Date(o.timestamp || o.createdAt))).reduce((s, o) => s + parseFloat(o.total || 0), 0);
+    const revLast = safeOrders.filter(o => inPrev7(new Date(o.timestamp || o.createdAt))).reduce((s, o) => s + parseFloat(o.total || 0), 0);
+
+    const resSeries = days7.map(day => safeReservations.filter(r => sameDay(parseFlexibleDate(r.date), day)).length);
+    const resThis = safeReservations.filter(r => inLast7(parseFlexibleDate(r.date))).length;
+    const resLast = safeReservations.filter(r => inPrev7(parseFlexibleDate(r.date))).length;
+
+    const week = { revSeries, revThis, revLast, resSeries, resThis, resLast };
+
     const d = {
         menu: safeMenu,
         reservations: safeReservations,
@@ -338,6 +467,8 @@ export async function renderDashboard(container, titleEl, toolbarEl) {
         pendingOrders,
         revenueToday,
         upcomingRes,
+        todayRes,
+        week,
         ohText: ohToday.closed ? 'Heute geschlossen' : `${ohToday.open} - ${ohToday.close}`
     };
 

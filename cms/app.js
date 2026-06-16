@@ -21,6 +21,10 @@ import { renderBackup } from './modules/backup.js';
 import { showSetupWizard } from './modules/setup-wizard.js';
 import { initRealtime } from './modules/realtime.js';
 import { renderShiftPlanner } from './modules/shifts.js';
+import { renderKassenbuch } from './modules/kassenbuch.js';
+import { renderAuditLog } from './modules/audit-log.js';
+import { initPWA } from './modules/pwa.js';
+import { applyTranslations, setLang, getLang } from './modules/i18n.js';
 
 // One-time migration of legacy storage keys from opa_* → meraki_*
 (function migrateLegacyKeys() {
@@ -160,6 +164,52 @@ async function init() {
                 isCollapsed ? 'Ausklappen' : 'Einklappen');
         });
     }
+
+    // ── Dark-Mode-Toggle ──────────────────────────────────
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const metaThemeColor = document.getElementById('meta-theme-color');
+    const applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (metaThemeColor) metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1B3A5C');
+        if (themeToggleBtn) {
+            const icon = themeToggleBtn.querySelector('i');
+            if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            themeToggleBtn.setAttribute('title', theme === 'dark' ? 'Zu Hell wechseln' : 'Zu Dunkel wechseln');
+        }
+    };
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem('meraki_theme', next); } catch (e) {}
+            applyTheme(next);
+        });
+    }
+
+    // ── Mobile-Sidebar (Overlay) ──────────────────────────
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+        // Klick auf Backdrop oder Nav-Eintrag schließt das Overlay
+        document.addEventListener('click', (e) => {
+            if (!document.body.classList.contains('sidebar-open')) return;
+            const inSidebar = e.target.closest('#cms-sidebar');
+            const onToggle  = e.target.closest('#mobile-menu-toggle');
+            if (!inSidebar && !onToggle) document.body.classList.remove('sidebar-open');
+            else if (e.target.closest('.nav-item, .nav-subitem')) document.body.classList.remove('sidebar-open');
+        });
+    }
+
+    // ── Sprache (i18n) ────────────────────────────────────
+    const langSwitch = document.getElementById('lang-switch');
+    if (langSwitch) {
+        langSwitch.value = getLang();
+        langSwitch.onchange = (e) => setLang(e.target.value);
+    }
+    applyTranslations();
+
+    // ── PWA: Service Worker + Benachrichtigungen ──────────
+    initPWA();
 
     applyUserFromToken();
     scheduleTokenExpiryWarning();
@@ -376,6 +426,12 @@ async function switchView(view, tab = null) {
             break;
         case 'backup':
             await renderBackup(contentView, viewTitle);
+            break;
+        case 'kassenbuch':
+            await renderKassenbuch(contentView, viewTitle);
+            break;
+        case 'audit-log':
+            await renderAuditLog(contentView, viewTitle);
             break;
         case 'qrcodes': {
             viewTitle.innerHTML = '<i class="fas fa-qrcode"></i> QR-Codes';

@@ -2,6 +2,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const API = '/api';
     let homeData = {};
     let menuItems = [];
+
+    // Wochentag-Verfügbarkeit: leere/volle Liste = immer; sonst nur an gewählten Tagen.
+    // Index 0=Mo … 6=So (JS getDay(): 0=So) → Umrechnung (getDay()+6)%7.
+    const isAvailableToday = (item) => {
+        const days = item && item.available_days;
+        if (!Array.isArray(days) || days.length === 0 || days.length >= 7) return true;
+        const todayIdx = (new Date().getDay() + 6) % 7;
+        return days.map(Number).includes(todayIdx);
+    };
     const SEARCH_ALIASES = {
         'nudeln':      ['penne', 'pasta', 'spaghetti', 'linguine', 'tagliatelle', 'rigatoni'],
         'pasta':       ['penne', 'spaghetti', 'nudeln', 'linguine'],
@@ -431,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Nur Kategorien anzeigen die aktiv sind UND mindestens ein aktives+verfügbares Gericht haben
         const usedCats = new Set(
             menuItems
-                .filter(i => i.active !== false && i.available !== false)
+                .filter(i => i.active !== false && i.available !== false && isAvailableToday(i))
                 .map(i => i.cat)
         );
 
@@ -519,8 +528,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyMenuFilter() {
-        // Nur aktive UND verfügbare Gerichte anzeigen
-        let items = menuItems.filter(i => i.active !== false && i.available !== false);
+        // Nur aktive UND verfügbare Gerichte anzeigen (inkl. Wochentag-Verfügbarkeit)
+        let items = menuItems.filter(i => i.active !== false && i.available !== false && isAvailableToday(i));
         if (activeCat === '__special__') {
             items = items.filter(i => i.is_daily_special);
         } else if (activeCat !== 'all' && activeCat !== '__fav__') {

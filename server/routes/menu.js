@@ -8,7 +8,7 @@ const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain } = require('../helpers.js');
 const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
-const { menuItemSchema, menuReorderSchema, categorySchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
+const { menuItemSchema, menuReorderSchema, menuBulkSchema, categorySchema, anyObjectSchema, anyArraySchema } = require('../validation/schemas.js');
 const { requireRole } = require('../core/middleware.js');
 
 const BACKUP_VERSION = 1;
@@ -94,8 +94,10 @@ module.exports = (requireAuth, requireLicense) => {
             if (typeof body.number === 'undefined' && typeof body.nr !== 'undefined') body.number = body.nr;
             if (typeof body.number === 'string') body.number = body.number.trim() || null;
             if (body.cat) await ensureCategoryExists(body.cat);
+            body._changed_by = req.admin?.user || req.admin?.name || null;
             const updated = await DB.updateMenu(req.params.id, body);
             if (!updated) return res.status(404).json({ success: false, reason: 'Gericht nicht gefunden.' });
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: body._changed_by, action: 'menu.update', entity: 'menu', entity_id: req.params.id, detail: { name: updated.name } }); } catch (_) {}
             res.json({ success: true, item: updated });
         } catch(e) {
             logger.error({ err: e }, 'PUT /menu/:id Fehler');
@@ -118,10 +120,48 @@ module.exports = (requireAuth, requireLicense) => {
             const menu = await DB.getMenu();
             const reordered = ids.map(id => menu.find(d => String(d.id) === String(id))).filter(Boolean);
             menu.forEach(d => { if (!ids.includes(String(d.id))) reordered.push(d); });
+            // sort_order frisch nach neuer Position vergeben (sonst behält saveMenu alte Werte)
+            reordered.forEach((d, i) => { d.sort_order = i; });
             await DB.saveMenu(reordered);
             res.json({ success: true });
         } catch(e) {
             logger.error({ err: e }, 'POST /menu/reorder Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
+    });
+
+    // Bulk-Aktionen: aktivieren / deaktivieren / löschen / Kategorie setzen
+    router.post('/menu/bulk', requireAuth, requireRole('admin'), requireLicense('menu_edit'), validate(menuBulkSchema), async (req, res) => {
+        try {
+            const { ids, action, cat } = req.body;
+            const actor = req.admin?.user || req.admin?.name || null;
+            let affected = 0;
+            if (action === 'delete') {
+                affected = await DB.bulkDeleteMenu(ids);
+            } else if (action === 'enable') {
+                affected = await DB.bulkUpdateMenu(ids, { available: true });
+            } else if (action === 'disable') {
+                affected = await DB.bulkUpdateMenu(ids, { available: false });
+            } else if (action === 'set_category') {
+                if (!cat) return res.status(400).json({ success: false, reason: 'Kategorie fehlt.' });
+                await ensureCategoryExists(cat);
+                affected = await DB.bulkUpdateMenu(ids, { cat });
+            }
+            try { if (DB.addAuditLog) await DB.addAuditLog({ actor, action: 'menu.bulk.' + action, entity: 'menu', entity_id: ids.join(','), detail: { count: ids.length, cat } }); } catch (_) {}
+            res.json({ success: true, affected });
+        } catch(e) {
+            logger.error({ err: e }, 'POST /menu/bulk Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
+    });
+
+    // Preishistorie eines Gerichts
+    router.get('/menu/:id/price-history', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const history = DB.getMenuPriceHistory ? await DB.getMenuPriceHistory(req.params.id) : [];
+            res.json(Array.isArray(history) ? history : []);
+        } catch(e) {
+            logger.error({ err: e }, 'GET /menu/:id/price-history Fehler');
             res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
     });

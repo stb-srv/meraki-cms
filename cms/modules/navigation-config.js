@@ -156,6 +156,17 @@ export const NAV_CONFIG = [
                 htmlId: 'nav-orders'
             },
             {
+                id: 'kassenbuch',
+                label: 'Kassenbuch & Tagesabschluss',
+                icon: 'fa-cash-register',
+                view: 'kassenbuch',
+                tab: null,
+                group: 'Online-Bestellungen',
+                description: 'Tages- und Monatsumsätze, Z-Bon / Tagesabschluss',
+                keywords: ['kassenbuch', 'tagesabschluss', 'z-bon', 'zbon', 'umsatz', 'einnahmen', 'kasse', 'tagesumsatz', 'monatsumsatz', 'bonwert', 'abschluss', 'finanzen', 'buchhaltung', 'erlöse', 'csv', 'report', 'bericht'],
+                htmlId: 'nav-kassenbuch'
+            },
+            {
                 id: 'order-settings',
                 label: 'Bestellungen einrichten',
                 icon: 'fa-sliders-h',
@@ -317,6 +328,16 @@ export const NAV_CONFIG = [
                         group: 'Verwaltung',
                         description: 'Verfügbare Module des aktuellen Plans ein- und ausschalten',
                         keywords: ['module', 'modul', 'aktivieren', 'deaktivieren', 'freischalten', 'plan-module', 'features', 'funktionen', 'einschalten', 'ausschalten', 'toggle', 'anpassen', 'bestellen', 'reservierungen', 'bestellungen', 'tageskarte', 'backup', 'schichtplan', 'module einschalten', 'funktionen aktivieren']
+                    },
+                    {
+                        id: 'audit-log',
+                        label: 'Änderungsprotokoll',
+                        icon: 'fa-clipboard-list',
+                        view: 'audit-log',
+                        tab: null,
+                        group: 'Verwaltung',
+                        description: 'Wer hat wann was geändert – Audit-Log für Mehrbenutzerbetrieb',
+                        keywords: ['audit', 'protokoll', 'änderungsprotokoll', 'log', 'logbuch', 'verlauf', 'historie', 'wer hat', 'nachverfolgung', 'aktivität', 'änderungen', 'sicherheit', 'compliance', 'tracking', 'aktionen', 'benutzer']
                     }
                 ]
             },

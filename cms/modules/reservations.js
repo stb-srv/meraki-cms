@@ -14,6 +14,162 @@ let resSortOrder = 'desc';
 let resPage = 1;
 const RES_PAGE_SIZE = 20;
 
+// Phase 5: Kalenderansicht
+let resViewMode = 'list';            // 'list' | 'month' | 'week' | 'day'
+let resCalCursor = new Date();       // aktuell betrachteter Zeitpunkt
+
+// Reservierungs-Datum robust parsen (de-DE "16.6.2026" oder ISO)
+function parseResDate(str) {
+    if (!str) return null;
+    let m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/.exec(String(str).trim());
+    if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+    m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    const d = new Date(str);
+    return isNaN(d) ? null : d;
+}
+function resSameDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+// Belegung eines Tages: gebuchte Gäste vs. Gesamtkapazität (aktive Tische)
+function dayCapacity(dateObj, resRaw, totalCapacity) {
+    const counted = (resRaw || []).filter(r => {
+        const rd = parseResDate(r.date);
+        return rd && resSameDay(rd, dateObj) && ['Confirmed', 'Pending'].includes(r.status);
+    });
+    const guests = counted.reduce((s, r) => s + (parseInt(r.guests) || 0), 0);
+    const ratio = totalCapacity > 0 ? guests / totalCapacity : 0;
+    let level = 'ok';
+    if (ratio >= 1) level = 'full';
+    else if (ratio >= 0.8) level = 'warn';
+    return { guests, count: counted.length, ratio, level, totalCapacity };
+}
+
+const RES_WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const RES_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const mondayIndex = (d) => (d.getDay() + 6) % 7;  // 0=Mo … 6=So
+
+function resOfDay(dateObj, resRaw) {
+    return (resRaw || [])
+        .filter(r => { const rd = parseResDate(r.date); return rd && resSameDay(rd, dateObj) && !['Cancelled','No-Show'].includes(r.status); })
+        .sort((a,b) => String(a.start_time||a.time||'').localeCompare(String(b.start_time||b.time||'')));
+}
+
+function capLegend(totalCapacity) {
+    return `<div style="display:flex; gap:16px; align-items:center; font-size:.72rem; color:var(--text-muted); flex-wrap:wrap;">
+        <span><span class="rescal-dot rescal-ok"></span> frei</span>
+        <span><span class="rescal-dot rescal-warn"></span> fast voll (≥80%)</span>
+        <span><span class="rescal-dot rescal-full"></span> ausgebucht</span>
+        ${totalCapacity > 0 ? `<span style="margin-left:auto;">Kapazität/Tag: <strong>${totalCapacity}</strong> Plätze</span>` : '<span style="margin-left:auto; color:var(--widget-warn);">Keine Tischkapazität definiert</span>'}
+    </div>`;
+}
+
+function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
+    let title = '';
+    if (mode === 'month') title = `${RES_MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`;
+    else if (mode === 'week') {
+        const start = new Date(cursor); start.setDate(cursor.getDate() - mondayIndex(cursor));
+        const end = new Date(start); end.setDate(start.getDate() + 6);
+        title = `${start.getDate()}. ${RES_MONTHS[start.getMonth()].slice(0,3)} – ${end.getDate()}. ${RES_MONTHS[end.getMonth()].slice(0,3)} ${end.getFullYear()}`;
+    } else {
+        title = cursor.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+    }
+
+    const header = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn-secondary" onclick="window.resCalNav(-1)" style="width:40px; padding:8px 0;"><i class="fas fa-chevron-left"></i></button>
+                <button class="btn-secondary" onclick="window.resCalToday()">Heute</button>
+                <button class="btn-secondary" onclick="window.resCalNav(1)" style="width:40px; padding:8px 0;"><i class="fas fa-chevron-right"></i></button>
+                <h3 style="margin:0 0 0 8px;">${title}</h3>
+            </div>
+        </div>
+        <div style="margin-bottom:14px;">${capLegend(totalCapacity)}</div>
+    `;
+
+    let body = '';
+    const today = new Date();
+
+    if (mode === 'month') {
+        const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+        const offset = mondayIndex(first);
+        const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+        const cells = [];
+        for (let i = 0; i < offset; i++) cells.push('<div class="rescal-cell rescal-empty"></div>');
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dt = new Date(cursor.getFullYear(), cursor.getMonth(), day);
+            const cap = dayCapacity(dt, resRaw, totalCapacity);
+            const items = resOfDay(dt, resRaw);
+            const isToday = resSameDay(dt, today);
+            cells.push(`
+                <div class="rescal-cell rescal-${cap.level} ${isToday ? 'rescal-today' : ''}" onclick="window.resCalPickDay('${isoOf(dt)}')">
+                    <div class="rescal-daynum">${day} ${isToday ? '<span style="font-size:.6rem; color:var(--primary);">heute</span>' : ''}</div>
+                    ${items.length ? `<div class="rescal-count"><i class="fas fa-user-friends"></i> ${cap.guests} P. · ${items.length} Res.</div>` : ''}
+                    ${cap.level !== 'ok' ? `<div class="rescal-flag">${cap.level === 'full' ? 'Ausgebucht' : 'Fast voll'}</div>` : ''}
+                </div>`);
+        }
+        body = `
+            <div class="rescal-grid">
+                ${RES_WD.map(w => `<div class="rescal-wd">${w}</div>`).join('')}
+                ${cells.join('')}
+            </div>`;
+    } else if (mode === 'week') {
+        const start = new Date(cursor); start.setDate(cursor.getDate() - mondayIndex(cursor));
+        const cols = [];
+        for (let i = 0; i < 7; i++) {
+            const dt = new Date(start); dt.setDate(start.getDate() + i);
+            const cap = dayCapacity(dt, resRaw, totalCapacity);
+            const items = resOfDay(dt, resRaw);
+            const isToday = resSameDay(dt, today);
+            cols.push(`
+                <div class="rescal-col">
+                    <div class="rescal-col-head rescal-${cap.level} ${isToday ? 'rescal-today' : ''}" onclick="window.resCalPickDay('${isoOf(dt)}')">
+                        <strong>${RES_WD[i]} ${dt.getDate()}.</strong>
+                        <span>${cap.guests}/${totalCapacity || '∞'} P.</span>
+                    </div>
+                    <div class="rescal-col-body">
+                        ${items.length ? items.map(r => `
+                            <div class="rescal-chip rescal-${(r.status||'').toLowerCase()}" onclick="window.editRes(${r.id})" title="${r.name} · ${r.guests} Gäste · ${r.status}">
+                                <strong>${r.start_time || r.time || ''}</strong> ${r.name || 'Gast'} <span style="opacity:.7;">(${r.guests || 1})</span>
+                            </div>`).join('') : '<div style="opacity:.35; font-size:.72rem; padding:8px; text-align:center;">—</div>'}
+                    </div>
+                </div>`);
+        }
+        body = `<div class="rescal-week">${cols.join('')}</div>`;
+    } else { // day
+        const items = resOfDay(cursor, resRaw);
+        const cap = dayCapacity(cursor, resRaw, totalCapacity);
+        const waitlist = (resRaw || []).filter(r => { const rd = parseResDate(r.date); return rd && resSameDay(rd, cursor) && r.status === 'Waitlist'; });
+        body = `
+            <div class="rescal-day-summary rescal-${cap.level}">
+                <div><span class="value" style="font-size:1.6rem;">${cap.guests}</span> <span style="opacity:.6;">/ ${totalCapacity || '∞'} Plätze belegt</span></div>
+                <div style="font-weight:700;">${cap.level === 'full' ? '⚠ Ausgebucht' : cap.level === 'warn' ? '⚠ Fast voll' : 'Verfügbar'}</div>
+            </div>
+            <table class="cms-table" style="margin-top:14px;">
+                <thead><tr><th>Zeit</th><th>Gast</th><th>Gäste</th><th>Status</th><th>Tische</th></tr></thead>
+                <tbody>
+                    ${items.length ? items.map(r => `
+                        <tr onclick="window.editRes(${r.id})" style="cursor:pointer;">
+                            <td data-label="Zeit"><strong>${r.start_time || r.time || ''}</strong></td>
+                            <td data-label="Gast">${r.name || 'Gast'}<br><small style="opacity:.6;">${r.phone || r.email || ''}</small></td>
+                            <td data-label="Gäste">${r.guests || 1}</td>
+                            <td data-label="Status"><span class="rescal-chip rescal-${(r.status||'').toLowerCase()}">${r.status || 'Pending'}</span></td>
+                            <td data-label="Tische"><small>${(Array.isArray(r.assigned_tables)?r.assigned_tables:[]).join(', ') || '—'}</small></td>
+                        </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; opacity:.5; padding:30px;">Keine Reservierungen an diesem Tag</td></tr>'}
+                </tbody>
+            </table>
+            ${waitlist.length ? `
+                <div style="margin-top:20px;">
+                    <h4 style="margin-bottom:10px;"><i class="fas fa-hourglass-half" style="color:var(--widget-warn);"></i> Warteliste (${waitlist.length})</h4>
+                    ${waitlist.map(r => `<div class="widget-list-row" style="cursor:pointer;" onclick="window.editRes(${r.id})"><span>${r.start_time||''} · ${r.name||'Gast'} (${r.guests||1})</span><button class="btn-edit action-btn-green" onclick="event.stopPropagation(); window.updateResStatus(${r.id}, 'Confirmed')" title="Von Warteliste bestätigen"><i class="fas fa-check"></i></button></div>`).join('')}
+                </div>` : ''}
+        `;
+    }
+
+    return `<div class="rescal-wrap">${header}${body}</div>`;
+}
+
 export async function renderReservations(container, titleEl) {
     titleEl.innerHTML = '<i class="fas fa-calendar-check"></i> Reservierungen';
     const [resRaw, tables] = await Promise.all([apiGet('reservations'), apiGet('tables')]);
@@ -28,15 +184,22 @@ export async function renderReservations(container, titleEl) {
                 </div>
             </div>
             
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
                 <div>
                     <h3 style="margin-bottom:4px;">Aktive Reservierungen</h3>
                     <p style="color:var(--text-muted); font-size:.85rem;">Status und Tischzuweisungen bearbeiten.</p>
                 </div>
-                <button class="btn-premium" id="btn-manual-res"><i class="fas fa-plus"></i> Manuelle Buchung</button>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <div class="res-view-toggle" style="display:inline-flex; background:var(--bg-inset); border:1px solid var(--border); border-radius:var(--radius-pill); padding:3px;">
+                        ${[['list','Liste','fa-list'],['day','Tag','fa-calendar-day'],['week','Woche','fa-calendar-week'],['month','Monat','fa-calendar']].map(([m,lbl,ic]) =>
+                            `<button class="res-view-btn ${resViewMode===m?'active':''}" data-view="${m}" style="border:none; cursor:pointer; padding:7px 14px; border-radius:var(--radius-pill); font-size:.78rem; font-weight:700; background:${resViewMode===m?'var(--primary)':'transparent'}; color:${resViewMode===m?'#fff':'var(--text-muted)'};"><i class="fas ${ic}"></i> <span class="res-view-lbl">${lbl}</span></button>`
+                        ).join('')}
+                    </div>
+                    <button class="btn-premium" id="btn-manual-res"><i class="fas fa-plus"></i> Manuelle Buchung</button>
+                </div>
             </div>
 
-            <div style="display:flex; gap:15px; margin-bottom:30px; flex-wrap:wrap;">
+            <div id="res-filter-bar" style="display:${resViewMode==='list'?'flex':'none'}; gap:15px; margin-bottom:30px; flex-wrap:wrap;">
                 <div style="flex:1; min-width:250px; position:relative;">
                     <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); opacity:.3;"></i>
                     <input type="text" class="input-styled" id="res-search" placeholder="Suchen..." value="${resFilterText}" style="padding-left:45px;">
@@ -45,6 +208,7 @@ export async function renderReservations(container, titleEl) {
                     <option value="All" ${resFilterStatus === 'All' ? 'selected' : ''}>Alle Status</option>
                     <option value="Pending" ${resFilterStatus === 'Pending' ? 'selected' : ''}>Pending</option>
                     <option value="Confirmed" ${resFilterStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                    <option value="Waitlist" ${resFilterStatus === 'Waitlist' ? 'selected' : ''}>Warteliste</option>
                     <option value="Inquiry" ${resFilterStatus === 'Inquiry' ? 'selected' : ''}>Anfrage</option>
                     <option value="Blocked" ${resFilterStatus === 'Blocked' ? 'selected' : ''}>Gesperrt</option>
                     <option value="Cancelled" ${resFilterStatus === 'Cancelled' ? 'selected' : ''}>Storniert</option>
@@ -54,9 +218,46 @@ export async function renderReservations(container, titleEl) {
                 <button class="btn-secondary" id="res-reset-filters" style="width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;"><i class="fas fa-undo"></i></button>
             </div>
 
-            <div id="res-list-container"></div>
+            <div id="res-list-container" style="display:${resViewMode==='list'?'block':'none'};"></div>
+            <div id="res-calendar-container" style="display:${resViewMode==='list'?'none':'block'};"></div>
         </div>
     `;
+
+    // Gesamtkapazität (Summe aktiver Tische) für Belegungs-Warnungen
+    const totalCapacity = (Array.isArray(tables) ? tables : [])
+        .filter(t => t.active !== false)
+        .reduce((s, t) => s + (parseInt(t.capacity) || 0), 0);
+
+    const renderCalendar = () => {
+        const cal = container.querySelector('#res-calendar-container');
+        if (cal) cal.innerHTML = buildResCalendar(resViewMode, resCalCursor, resRaw || [], totalCapacity);
+    };
+
+    // View-Toggle
+    container.querySelectorAll('.res-view-btn').forEach(btn => {
+        btn.onclick = () => {
+            resViewMode = btn.dataset.view;
+            renderReservations(container, titleEl);
+        };
+    });
+    // Kalender-Navigation (delegiert)
+    window.resCalNav = (dir) => {
+        const c = new Date(resCalCursor);
+        if (resViewMode === 'month') c.setMonth(c.getMonth() + dir);
+        else if (resViewMode === 'week') c.setDate(c.getDate() + dir * 7);
+        else c.setDate(c.getDate() + dir);
+        resCalCursor = c;
+        renderCalendar();
+    };
+    window.resCalToday = () => { resCalCursor = new Date(); renderCalendar(); };
+    window.resCalPickDay = (iso) => {
+        // Tag anklicken → in Listenansicht mit Datumsfilter springen
+        resViewMode = 'list';
+        resFilterDate = iso;
+        renderReservations(container, titleEl);
+    };
+
+    if (resViewMode !== 'list') { renderCalendar(); }
 
     const refreshList = () => {
         try {
@@ -167,6 +368,9 @@ export async function renderReservations(container, titleEl) {
                                                 <i class="fas fa-user-slash"></i>
                                             </button>
                                         `}
+                                        ${(r.status !== 'Confirmed' && r.status !== 'Waitlist') ? `
+                                            <button class="btn-edit action-btn-yellow" onclick="window.updateResStatus(${r.id}, 'Waitlist')" title="Auf Warteliste setzen"><i class="fas fa-hourglass-half"></i></button>
+                                        ` : ''}
                                         
                                         ${r.status !== 'Cancelled' ? `
                                             <button class="btn-edit action-btn-yellow" onclick="window.cancelRes(${r.id})" title="Stornieren mit Grund"><i class="fas fa-undo"></i></button>

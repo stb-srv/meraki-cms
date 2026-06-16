@@ -23,6 +23,12 @@ const menuReorderSchema = z.object({
     ids: z.array(z.string())
 }).passthrough();
 
+const menuBulkSchema = z.object({
+    ids: z.array(z.string()).min(1, "Mindestens eine ID erforderlich"),
+    action: z.enum(['enable', 'disable', 'delete', 'set_category']),
+    cat: z.string().optional()
+}).passthrough();
+
 const categorySchema = z.object({
     label: z.string().min(1, "Label ist erforderlich")
 }).passthrough();
@@ -75,6 +81,7 @@ module.exports = {
     changePasswordSchema,
     menuItemSchema,
     menuReorderSchema,
+    menuBulkSchema,
     categorySchema,
     reservationCheckSchema,
     reservationGridSchema,

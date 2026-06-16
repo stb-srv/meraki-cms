@@ -66,6 +66,15 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
 
+    // Audit-Log (wer hat wann was geändert) – nur Admin
+    router.get('/audit-log', requireAuth, requireRole('admin'), async (req, res) => {
+        try {
+            const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+            const log = DB.getAuditLog ? await DB.getAuditLog(limit) : [];
+            res.json(Array.isArray(log) ? log : []);
+        } catch(e) { logger.error({ err: e }, 'Audit-Log route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+    });
+
     /**
      * POST /settings
      * Liest erst den aktuellen Stand aus der DB und merged tief,

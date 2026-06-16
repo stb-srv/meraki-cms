@@ -135,6 +135,25 @@ async function initSchema() {
                 estimatedTime VARCHAR(100),
                 confirmedAt   VARCHAR(50)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+            CREATE TABLE IF NOT EXISTS menu_price_history (
+                id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+                dish_id    VARCHAR(100),
+                old_price  DOUBLE,
+                new_price  DOUBLE,
+                changed_by VARCHAR(255),
+                changed_at VARCHAR(50)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+                actor      VARCHAR(255),
+                action     VARCHAR(100),
+                entity     VARCHAR(100),
+                entity_id  VARCHAR(100),
+                detail     LONGTEXT,
+                ts         VARCHAR(50)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
         // --- MIGRATIONEN ---
@@ -172,6 +191,11 @@ async function initSchema() {
             const [cols6] = await conn.query("SHOW COLUMNS FROM menu LIKE 'updated_at'");
             if (cols6.length === 0) {
                 await conn.query("ALTER TABLE menu ADD COLUMN updated_at VARCHAR(50)");
+            }
+            const [cols8] = await conn.query("SHOW COLUMNS FROM menu LIKE 'available_days'");
+            if (cols8.length === 0) {
+                await conn.query("ALTER TABLE menu ADD COLUMN available_days LONGTEXT DEFAULT ('[]')");
+                console.log('✅ Migration: Spalte available_days zu Tabelle menu hinzugefügt.');
             }
             // Migration: sort_order in categories
             const [colsCat] = await conn.query("SHOW COLUMNS FROM categories LIKE 'sort_order'");
@@ -216,6 +240,8 @@ async function initSchema() {
             `CREATE INDEX IF NOT EXISTS idx_ord_ts     ON orders(timestamp)`,
             `CREATE INDEX IF NOT EXISTS idx_menu_cat   ON menu(cat(100))`,
             `CREATE INDEX IF NOT EXISTS idx_cat_sort   ON categories(sort_order)`,
+            `CREATE INDEX IF NOT EXISTS idx_price_hist_dish ON menu_price_history(dish_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_audit_ts   ON audit_log(ts)`,
         ];
         for (const sql of idxQueries) {
             try { await conn.query(sql); } catch(e) { /* Index existiert bereits */ }
@@ -279,12 +305,13 @@ const DB = {
             available: r.available !== undefined ? Number(r.available) !== 0 : Number(r.active) !== 0,
             allergens: safeJsonParse(r.allergens, []),
             additives: safeJsonParse(r.additives, []),
-            translations: safeJsonParse(r.translations, {})
+            translations: safeJsonParse(r.translations, {}),
+            available_days: safeJsonParse(r.available_days, [])
         }));
     },
     addMenu: async (m) => {
-        await q('INSERT INTO menu (id, number, name, price, cat, `desc`, allergens, additives, image, active, available, is_daily_special, translations, sort_order, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-            [m.id, m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||0, m.updated_at||null]);
+        await q('INSERT INTO menu (id, number, name, price, cat, `desc`, allergens, additives, image, active, available, is_daily_special, translations, sort_order, available_days, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            [m.id, m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||0, JSON.stringify(m.available_days||[]), m.updated_at||null]);
     },
     updateMenu: async (id, update) => {
         const rows = await q('SELECT * FROM menu WHERE id = ?', [id]);
@@ -301,20 +328,43 @@ const DB = {
         const specialVal = update.is_daily_special !== undefined ? (update.is_daily_special ? 1 : 0) : Number(existing.is_daily_special || 0);
         const updatedAt = update.updated_at || existing.updated_at || null;
         const sortOrder = typeof update.sort_order !== 'undefined' ? update.sort_order : (existing.sort_order || 0);
+        const availDays = typeof update.available_days !== 'undefined' ? JSON.stringify(update.available_days||[]) : (existing.available_days || '[]');
 
-        await q('UPDATE menu SET number=?, name=?, price=?, cat=?, `desc`=?, allergens=?, additives=?, image=?, active=?, available=?, is_daily_special=?, translations=?, sort_order=?, updated_at=? WHERE id=?',
-            [merged.number||null, merged.name, merged.price, merged.cat, merged.desc, JSON.stringify(merged.allergens), JSON.stringify(merged.additives), merged.image||null, activeVal, availVal, specialVal, JSON.stringify(merged.translations), sortOrder, updatedAt, id]);
-        return { ...merged, active: activeVal!==0, available: availVal!==0, is_daily_special: specialVal!==0, sort_order: sortOrder, updated_at: updatedAt };
+        if (typeof update.price !== 'undefined' && Number(update.price) !== Number(existing.price)) {
+            try { await q('INSERT INTO menu_price_history (dish_id, old_price, new_price, changed_by, changed_at) VALUES (?,?,?,?,?)', [id, Number(existing.price), Number(update.price), update._changed_by || null, new Date().toISOString()]); } catch (e) {}
+        }
+
+        await q('UPDATE menu SET number=?, name=?, price=?, cat=?, `desc`=?, allergens=?, additives=?, image=?, active=?, available=?, is_daily_special=?, translations=?, sort_order=?, available_days=?, updated_at=? WHERE id=?',
+            [merged.number||null, merged.name, merged.price, merged.cat, merged.desc, JSON.stringify(merged.allergens), JSON.stringify(merged.additives), merged.image||null, activeVal, availVal, specialVal, JSON.stringify(merged.translations), sortOrder, availDays, updatedAt, id]);
+        return { ...merged, active: activeVal!==0, available: availVal!==0, is_daily_special: specialVal!==0, sort_order: sortOrder, available_days: safeJsonParse(availDays, []), updated_at: updatedAt };
     },
     deleteMenu: async (id) => q('DELETE FROM menu WHERE id = ?', [id]),
+    bulkUpdateMenu: async (ids, patch) => {
+        const list = Array.isArray(ids) ? ids : [];
+        for (const id of list) { await DB.updateMenu(id, patch); }
+        return list.length;
+    },
+    bulkDeleteMenu: async (ids) => {
+        const list = Array.isArray(ids) ? ids : [];
+        for (const id of list) { await q('DELETE FROM menu WHERE id = ?', [id]); }
+        return list.length;
+    },
+    getMenuPriceHistory: async (id) => q('SELECT old_price, new_price, changed_by, changed_at FROM menu_price_history WHERE dish_id = ? ORDER BY id DESC LIMIT 20', [id]),
+    addAuditLog: async (entry) => {
+        try { await q('INSERT INTO audit_log (actor, action, entity, entity_id, detail, ts) VALUES (?,?,?,?,?,?)', [entry.actor||null, entry.action||'', entry.entity||'', entry.entity_id||'', entry.detail ? JSON.stringify(entry.detail) : null, new Date().toISOString()]); } catch (e) {}
+    },
+    getAuditLog: async (limit = 100) => {
+        const rows = await q('SELECT actor, action, entity, entity_id, detail, ts FROM audit_log ORDER BY id DESC LIMIT ?', [Number(limit) || 100]);
+        return rows.map(r => ({ ...r, detail: safeJsonParse(r.detail, null) }));
+    },
     saveMenu: async (items) => {
         const conn = await pool.getConnection();
         await conn.beginTransaction();
         try {
             await conn.query('DELETE FROM menu');
             for (const [i, m] of items.entries()) {
-                await conn.query('INSERT INTO menu (id, number, name, price, cat, `desc`, allergens, additives, image, active, available, is_daily_special, translations, sort_order, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                    [m.id||Date.now().toString(), m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||i, m.updated_at||null]);
+                await conn.query('INSERT INTO menu (id, number, name, price, cat, `desc`, allergens, additives, image, active, available, is_daily_special, translations, sort_order, available_days, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    [m.id||Date.now().toString(), m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||i, JSON.stringify(m.available_days||[]), m.updated_at||null]);
             }
             await conn.commit();
         } catch(e) { await conn.rollback(); throw e; } finally { conn.release(); }

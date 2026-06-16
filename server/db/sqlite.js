@@ -117,6 +117,25 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             estimatedTime TEXT,
             confirmedAt   TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS menu_price_history (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            dish_id    TEXT,
+            old_price  REAL,
+            new_price  REAL,
+            changed_by TEXT,
+            changed_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            actor      TEXT,
+            action     TEXT,
+            entity     TEXT,
+            entity_id  TEXT,
+            detail     TEXT,
+            ts         TEXT
+        );
     `);
 
     // --- Migrations (idempotent) ---
@@ -132,6 +151,7 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         "ALTER TABLE menu ADD COLUMN sort_order INTEGER DEFAULT 0",
         "ALTER TABLE menu ADD COLUMN is_daily_special INTEGER DEFAULT 0",
         "ALTER TABLE menu ADD COLUMN translations TEXT DEFAULT '{}'",
+        "ALTER TABLE menu ADD COLUMN available_days TEXT DEFAULT '[]'",
         "ALTER TABLE orders ADD COLUMN table_id TEXT",
         "ALTER TABLE orders ADD COLUMN table_name TEXT",
         "ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'pending'",
@@ -160,6 +180,8 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         "CREATE INDEX IF NOT EXISTS idx_orders_timestamp    ON orders(timestamp)",
         "CREATE INDEX IF NOT EXISTS idx_menu_cat            ON menu(cat)",
         "CREATE INDEX IF NOT EXISTS idx_categories_sort     ON categories(sort_order)",
+        "CREATE INDEX IF NOT EXISTS idx_price_hist_dish     ON menu_price_history(dish_id)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_ts            ON audit_log(ts)",
     ].forEach(sql => { try { db.exec(sql + ';'); } catch (e) {} });
 
     const safeJsonParse = (str, fallback = null) => {
@@ -180,11 +202,15 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
         deleteUser:         db.prepare('DELETE FROM users WHERE user = ?'),
         getMenu:            db.prepare('SELECT * FROM menu ORDER BY cat, COALESCE(sort_order, 0), name'),
         getMenuById:        db.prepare('SELECT * FROM menu WHERE id = ?'),
-        addMenu:            db.prepare('INSERT INTO menu (id, number, name, price, cat, desc, allergens, additives, image, active, available, is_daily_special, translations, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
+        addMenu:            db.prepare('INSERT INTO menu (id, number, name, price, cat, desc, allergens, additives, image, active, available, is_daily_special, translations, sort_order, available_days, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
         deleteMenu:         db.prepare('DELETE FROM menu WHERE id = ?'),
         deleteAllMenu:      db.prepare('DELETE FROM menu'),
-        upsertMenu:         db.prepare('INSERT OR REPLACE INTO menu (id, number, name, price, cat, desc, allergens, additives, image, active, available, is_daily_special, translations, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
-        updateMenuRow:      db.prepare('UPDATE menu SET number = ?, name = ?, price = ?, cat = ?, desc = ?, allergens = ?, additives = ?, image = ?, active = ?, available = ?, is_daily_special = ?, translations = ?, sort_order = ?, updated_at = ? WHERE id = ?'),
+        upsertMenu:         db.prepare('INSERT OR REPLACE INTO menu (id, number, name, price, cat, desc, allergens, additives, image, active, available, is_daily_special, translations, sort_order, available_days, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'),
+        updateMenuRow:      db.prepare('UPDATE menu SET number = ?, name = ?, price = ?, cat = ?, desc = ?, allergens = ?, additives = ?, image = ?, active = ?, available = ?, is_daily_special = ?, translations = ?, sort_order = ?, available_days = ?, updated_at = ? WHERE id = ?'),
+        addPriceHistory:    db.prepare('INSERT INTO menu_price_history (dish_id, old_price, new_price, changed_by, changed_at) VALUES (?, ?, ?, ?, ?)'),
+        getPriceHistory:    db.prepare('SELECT old_price, new_price, changed_by, changed_at FROM menu_price_history WHERE dish_id = ? ORDER BY id DESC LIMIT 20'),
+        addAudit:           db.prepare('INSERT INTO audit_log (actor, action, entity, entity_id, detail, ts) VALUES (?, ?, ?, ?, ?, ?)'),
+        getAudit:           db.prepare('SELECT actor, action, entity, entity_id, detail, ts FROM audit_log ORDER BY id DESC LIMIT ?'),
         getCategories:      db.prepare('SELECT * FROM categories ORDER BY sort_order ASC, label ASC'),
         getCategoryById:    db.prepare('SELECT * FROM categories WHERE id = ?'),
         addCategory:        db.prepare('INSERT INTO categories (id, label, icon, active, sort_order, translations) VALUES (?, ?, ?, ?, ?, ?)'),
@@ -233,11 +259,12 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
                 available: r.available !== undefined ? Number(r.available) !== 0 : Number(r.active) !== 0,
                 allergens: safeJsonParse(r.allergens, []),
                 additives: safeJsonParse(r.additives, []),
-                translations: safeJsonParse(r.translations, {})
+                translations: safeJsonParse(r.translations, {}),
+                available_days: safeJsonParse(r.available_days, [])
             }));
         },
         addMenu: (m) => {
-            stmts.addMenu.run(m.id, m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||0, m.updated_at||null);
+            stmts.addMenu.run(m.id, m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||0, JSON.stringify(m.available_days||[]), m.updated_at||null);
         },
         updateMenu: (id, update) => {
             const existing = stmts.getMenuById.get(id);
@@ -253,15 +280,36 @@ if (dbType === 'mysql' || dbType === 'mariadb') {
             const specialVal = update.is_daily_special !== undefined ? (update.is_daily_special ? 1 : 0) : Number(existing.is_daily_special || 0);
             const updatedAt = update.updated_at || existing.updated_at || null;
             const sortOrder = typeof update.sort_order !== 'undefined' ? update.sort_order : (existing.sort_order || 0);
+            const availDays = typeof update.available_days !== 'undefined' ? JSON.stringify(update.available_days||[]) : (existing.available_days || '[]');
 
-            stmts.updateMenuRow.run(merged.number||null, merged.name, merged.price, merged.cat, merged.desc, JSON.stringify(merged.allergens), JSON.stringify(merged.additives), merged.image||null, activeVal, availVal, specialVal, JSON.stringify(merged.translations), sortOrder, updatedAt, id);
-            return { ...merged, active: activeVal !== 0, available: availVal !== 0, is_daily_special: specialVal !== 0, sort_order: sortOrder, updated_at: updatedAt };
+            // Preishistorie schreiben, falls sich der Preis ändert
+            if (typeof update.price !== 'undefined' && Number(update.price) !== Number(existing.price)) {
+                try { stmts.addPriceHistory.run(id, Number(existing.price), Number(update.price), update._changed_by || null, new Date().toISOString()); } catch (e) {}
+            }
+
+            stmts.updateMenuRow.run(merged.number||null, merged.name, merged.price, merged.cat, merged.desc, JSON.stringify(merged.allergens), JSON.stringify(merged.additives), merged.image||null, activeVal, availVal, specialVal, JSON.stringify(merged.translations), sortOrder, availDays, updatedAt, id);
+            return { ...merged, active: activeVal !== 0, available: availVal !== 0, is_daily_special: specialVal !== 0, sort_order: sortOrder, available_days: safeJsonParse(availDays, []), updated_at: updatedAt };
         },
         deleteMenu: (id) => stmts.deleteMenu.run(id),
+        bulkUpdateMenu: (ids, patch) => {
+            const list = Array.isArray(ids) ? ids : [];
+            db.transaction((arr) => { arr.forEach(id => DB.updateMenu(id, patch)); })(list);
+            return list.length;
+        },
+        bulkDeleteMenu: (ids) => {
+            const list = Array.isArray(ids) ? ids : [];
+            db.transaction((arr) => { arr.forEach(id => stmts.deleteMenu.run(id)); })(list);
+            return list.length;
+        },
+        getMenuPriceHistory: (id) => stmts.getPriceHistory.all(id),
+        addAuditLog: (entry) => {
+            try { stmts.addAudit.run(entry.actor||null, entry.action||'', entry.entity||'', entry.entity_id||'', entry.detail ? JSON.stringify(entry.detail) : null, new Date().toISOString()); } catch (e) {}
+        },
+        getAuditLog: (limit = 100) => stmts.getAudit.all(limit).map(r => ({ ...r, detail: safeJsonParse(r.detail, null) })),
         saveMenu: (items) => {
             db.transaction((list) => {
                 stmts.deleteAllMenu.run();
-                list.forEach((m, i) => stmts.upsertMenu.run(m.id||Date.now().toString(), m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||i, m.updated_at||null));
+                list.forEach((m, i) => stmts.upsertMenu.run(m.id||Date.now().toString(), m.number||null, m.name, m.price, m.cat, m.desc, JSON.stringify(m.allergens||[]), JSON.stringify(m.additives||[]), m.image||null, m.active!==false?1:0, m.available!==false?1:0, m.is_daily_special?1:0, JSON.stringify(m.translations||{}), m.sort_order||i, JSON.stringify(m.available_days||[]), m.updated_at||null));
             })(items);
         },
         getCategories: () => stmts.getCategories.all().map(c => ({

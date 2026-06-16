@@ -1,6 +1,6 @@
 // cms/modules/menu.js
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from './api.js';
-import { showToast, showConfirm, showPrompt, renderHelpIcon } from './utils.js';
+import { showToast, showConfirm, showPrompt, showSelect, renderHelpIcon } from './utils.js';
 
 /**
  * Orchestrator for the Menu module.
@@ -25,11 +25,12 @@ export async function renderMenu(container, titleEl, tab = 'dishes', forceRefres
             del: apiDelete, 
             upload: apiUpload 
         };
-        const utils = { 
-            showToast, 
-            showConfirm, 
-            showPrompt, 
-            renderHelpIcon 
+        const utils = {
+            showToast,
+            showConfirm,
+            showPrompt,
+            showSelect,
+            renderHelpIcon
         };
         
         window.MenuCore.init(api, utils);

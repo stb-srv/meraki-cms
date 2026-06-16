@@ -83,6 +83,28 @@ export const showPrompt = (title, text) => {
     });
 };
 
+export const showSelect = (title, text, options = []) => {
+    return new Promise((resolve) => {
+        const div = document.createElement('div');
+        div.className = 'modal-overlay';
+        div.innerHTML = `
+            <div class="modal-glass">
+                <h3 style="margin-bottom:10px;">${escHtml(title)}</h3>
+                <p style="margin-bottom:16px;opacity:.7;font-size:14px;">${escHtml(text)}</p>
+                <select class="input-styled" id="ms-input" style="margin-bottom:24px;width:100%;">
+                    ${options.map(o => `<option value="${escHtml(String(o.value))}">${escHtml(String(o.label))}</option>`).join('')}
+                </select>
+                <div style="display:flex;justify-content:flex-end;gap:12px;">
+                    <button class="btn-primary" style="background:transparent;color:var(--text);border:1px solid rgba(0,0,0,.1);" id="ms-cancel">Abbrechen</button>
+                    <button class="btn-primary" id="ms-ok">OK</button>
+                </div>
+            </div>`;
+        document.body.appendChild(div);
+        document.getElementById('ms-cancel').onclick = () => { div.remove(); resolve(null); };
+        document.getElementById('ms-ok').onclick = () => { const v = document.getElementById('ms-input').value; div.remove(); resolve(v); };
+    });
+};
+
 const HELP_CONTENT = {
     menu: {
         title: "Speisekarte & Gerichte",

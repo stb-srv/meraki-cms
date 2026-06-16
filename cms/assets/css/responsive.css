@@ -1,0 +1,147 @@
+/* ═══════════════════════════════════════════════════════════════
+   responsive.css – Mobile-Schicht für das Admin-Panel.
+   Lädt NACH style.css. Breakpoints:
+     ≤1024px Tablet · ≤768px Mobile-Sidebar-Overlay · ≤640px Tabellen→Cards
+   Touch-Targets ≥ var(--touch-min) (44px, Apple HIG).
+   ════════════════════════════════════════════════════════════════ */
+
+/* ─── Touch-Targets global anheben (alle Viewports) ─────────────── */
+@media (pointer: coarse) {
+    .nav-item, .nav-subitem,
+    .btn-primary, .btn-accent, .btn-secondary, .btn-premium,
+    .btn-icon, .btn-small, .btn-danger, .km-filter-btn, .theme-toggle {
+        min-height: var(--touch-min);
+    }
+    .btn-icon { padding: 10px 14px; }
+    .nav-subitem { padding-top: 12px; padding-bottom: 12px; }
+}
+
+/* ═══ TABLET (≤1024px) ═══ */
+@media (max-width: 1024px) {
+    :root { --sidebar-width: 200px; }
+    .content-body { padding: 20px 18px; }
+    .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ MOBILE-SIDEBAR als Overlay (≤768px) ═══ */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed; inset: 0 auto 0 0;
+        height: 100dvh; z-index: var(--z-overlay);
+        transform: translateX(-100%);
+        transition: transform .28s cubic-bezier(.4,0,.2,1);
+        box-shadow: 8px 0 40px rgba(0,0,0,.3);
+    }
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    body.sidebar-open::after {
+        content: ''; position: fixed; inset: 0;
+        background: rgba(0,0,0,.5); z-index: calc(var(--z-overlay) - 1);
+        animation: fadeIn .25s ease;
+    }
+    /* Hamburger zum Öffnen muss sichtbar sein */
+    .mobile-menu-toggle { display: inline-flex !important; }
+
+    .content-header { padding: 0 16px; gap: 8px; }
+    .content-header h2 { font-size: .92rem; }
+    .content-body { padding: 16px 14px; }
+    .user-profile span { display: none; }
+
+    /* Toolbars stapeln sauber statt zu brechen */
+    .toolbar-glass, .filter-toolbar {
+        flex-direction: column; align-items: stretch;
+    }
+    .toolbar-glass > *, .filter-toolbar > * { width: 100%; min-width: 0 !important; }
+    .filter-select { width: 100% !important; }
+
+    /* Modals: voller nutzbarer Raum, kein Abschnitt */
+    .modal.active { padding: 10px; align-items: flex-end; }
+    .modal-content { max-height: 92dvh; padding: 22px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .modal-glass { width: 96%; padding: 22px; }
+
+    .stats-grid { gap: 16px; }
+    [class*="span-"] { grid-column: 1 / -1 !important; }
+}
+
+/* ═══ TABELLEN → KARTEN (≤640px) ══════════════════════════════════
+   Reine CSS-Lösung über data-label-Attribute (kein JS nötig).
+   Zeilen-Renderer setzen pro <td data-label="…"> das Spaltenlabel.
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .cms-table thead { display: none; }
+    .cms-table, .cms-table tbody, .cms-table tr, .cms-table td { display: block; width: 100%; }
+    .cms-table tr {
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-card);
+        box-shadow: var(--shadow-card);
+        overflow: hidden;
+    }
+    .cms-table tbody td {
+        display: flex; align-items: center;
+        justify-content: space-between; gap: 14px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        text-align: right;
+    }
+    .cms-table tbody td:last-child { border-bottom: none; }
+    .cms-table tbody td::before {
+        content: attr(data-label);
+        font-size: .68rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .5px; color: var(--text-muted);
+        text-align: left; flex-shrink: 0;
+    }
+    /* Zellen ohne Label (Bild, Aktionen) ohne Pseudo-Label */
+    .cms-table tbody td[data-label=""]::before,
+    .cms-table tbody td:not([data-label])::before { content: none; }
+
+    /* Kategorie-Gruppenzeile bleibt voll breit */
+    .cms-table tr.cat-group-row td { justify-content: flex-start; text-align: left; }
+    .cms-table tr.cat-group-row td::before { content: none; }
+
+    /* Bulk-Bar an Mobile angepasst */
+    .bulk-action-bar { bottom: 12px; gap: 8px; padding: 10px 12px; }
+    .bulk-action-bar button span { display: none; }
+}
+
+/* ═══ Reduced motion respektieren ═══ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DRUCKANSICHT – Küchenbons, Reservierungs- & Speiselisten.
+   Elemente mit .no-print ausblenden, .print-only nur beim Druck.
+   ════════════════════════════════════════════════════════════════ */
+.print-only { display: none; }
+
+@media print {
+    @page { margin: 14mm; }
+    html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+    [data-theme] { color-scheme: light; }
+
+    /* Admin-Chrome ausblenden */
+    .sidebar, .content-header, .toolbar, .breadcrumb-bar, .theme-toggle,
+    .mobile-menu-toggle, .bulk-action-bar, .filter-toolbar, .toolbar-glass,
+    .btn-primary, .btn-accent, .btn-secondary, .btn-icon, .pagination-info,
+    .nav-search-wrap, .col-select, .col-drag, .no-print { display: none !important; }
+
+    .admin-dashboard, .glass-app-shell, .main-content, .content-body {
+        display: block !important; height: auto !important; overflow: visible !important;
+        padding: 0 !important; margin: 0 !important; background: #fff !important;
+    }
+    .print-only { display: block; }
+
+    .glass-panel, .stat-widget {
+        box-shadow: none !important; border: 1px solid #ccc !important;
+        break-inside: avoid; background: #fff !important;
+    }
+    .cms-table { font-size: 11pt; }
+    .cms-table thead th { background: #f0f0f0 !important; color: #000 !important; position: static; }
+    .cms-table td, .cms-table th { color: #000 !important; }
+    .cms-table tbody tr { break-inside: avoid; }
+    a[href]::after { content: ''; }  /* keine URL-Anhänge */
+}
