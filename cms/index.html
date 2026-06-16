@@ -38,7 +38,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="modules/qrcodes.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.3/socket.io.min.js';document.head.appendChild(s);"></script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -317,7 +317,7 @@
             </nav>
 
             <!-- Mobile Hamburger -->
-            <button class="hamburger-btn" id="sidebar-toggle" aria-label="Menü öffnen">
+            <button class="hamburger-btn" id="mobile-menu-toggle" aria-label="Menü öffnen">
               <i class="fas fa-bars"></i>
             </button>
 
@@ -327,10 +327,6 @@
             <section class="main-content">
                 <header class="content-header">
                     <div class="header-left">
-                        <button class="theme-toggle mobile-menu-toggle" id="mobile-menu-toggle"
-                                aria-label="Menü öffnen" title="Menü" style="display:none; margin-right:4px;">
-                            <i class="fas fa-bars"></i>
-                        </button>
                         <img id="cms-header-logo" src="assets/logo.svg" alt="Logo"
                              style="height:28px; width:auto; object-fit:contain; display:none; margin-right:8px;">
                         <h2 id="view-title">Dashboard</h2>

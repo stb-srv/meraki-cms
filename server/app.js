@@ -103,6 +103,7 @@ module.exports = function(CONFIG, io) {
     app.use('/api',              require('./routes/settings.js')(requireAuth, requireLicense, LICENSE_SERVER));
     app.use('/api/upload',       require('./routes/upload.js')(requireAuth, UPLOADS_DIR));
     app.use('/api',              require('./routes/cookie.js')(requireAuth));
+    app.use('/api',              require('./routes/feedback.js')(requireAuth));
     app.use('/api/cart',         require('./routes/cart.js')(requireLicense, io));
     app.use('/api/image-ai',     requireAuth, require('./routes/image-ai.js')(requireAuth, DB));
     app.use('/api/backup',       require('./routes/backup.js')(requireAuth));

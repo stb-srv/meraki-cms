@@ -114,6 +114,17 @@
         .copy-btn:hover { background: rgba(255,255,255,0.2); color: var(--text); }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; display: inline-block; }
+
+        /* ── Mobil ── */
+        @media (max-width: 560px) {
+            body { padding: 12px; align-items: flex-start; }
+            .card { padding: 24px 18px; border-radius: 18px; }
+            .form-row { flex-direction: column; gap: 0; }
+            .logo-area { margin-bottom: 24px; }
+            .step-label { font-size: 0.58rem; }
+            /* iOS-Zoom-Sperre */
+            input, select, textarea { font-size: 16px; }
+        }
     </style>
 </head>
 <body>

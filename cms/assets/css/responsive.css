@@ -1,70 +1,303 @@
-/* ═══════════════════════════════════════════════════════════════
-   responsive.css – Mobile-Schicht für das Admin-Panel.
-   Lädt NACH style.css. Breakpoints:
-     ≤1024px Tablet · ≤768px Mobile-Sidebar-Overlay · ≤640px Tabellen→Cards
-   Touch-Targets ≥ var(--touch-min) (44px, Apple HIG).
-   ════════════════════════════════════════════════════════════════ */
+/* ============================================================
+   responsive.css – Mobile/Tablet-Optimierung des Admin-Panels
+   Wird NACH style.css / table-planner.css / nav.css geladen,
+   damit die Media-Query-Overrides greifen.
 
-/* ─── Touch-Targets global anheben (alle Viewports) ─────────────── */
+   Breakpoints:
+     1024px – Tablet quer
+      768px – Tablet hoch / großes Phone (Sidebar-Drawer aktiv)
+      560px – Phone (Tabellen → Karten, Modals als Full-Screen-Sheet)
+
+   Desktop (≥1025px) bleibt vollständig unverändert.
+
+   Hinweis: Die mobile Sidebar-Drawer-Mechanik (.hamburger-btn /
+   #cms-sidebar.mobile-open / #sidebar-overlay) liegt in nav.css.
+   ============================================================ */
+
+/* ── Globale Höhen-Korrektur (Handy-Tastatur) ── */
+@media (max-width: 1024px) {
+    body,
+    .admin-dashboard {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    /* Kein horizontaler Seiten-Scroll */
+    body { overflow-x: hidden; }
+}
+
+/* ────────────────────────────────────────────
+   Touch-Targets global anheben (Apple HIG 44px)
+   ──────────────────────────────────────────── */
 @media (pointer: coarse) {
     .nav-item, .nav-subitem,
     .btn-primary, .btn-accent, .btn-secondary, .btn-premium,
     .btn-icon, .btn-small, .btn-danger, .km-filter-btn, .theme-toggle {
-        min-height: var(--touch-min);
+        min-height: var(--touch-min, 44px);
     }
-    .btn-icon { padding: 10px 14px; }
     .nav-subitem { padding-top: 12px; padding-bottom: 12px; }
 }
 
-/* ═══ TABLET (≤1024px) ═══ */
+/* ════════════════════════════════════════════
+   1024px – Tablet quer
+   ════════════════════════════════════════════ */
 @media (max-width: 1024px) {
-    :root { --sidebar-width: 200px; }
-    .content-body { padding: 20px 18px; }
-    .form-grid { grid-template-columns: 1fr; }
+    :root {
+        --content-pad-x: 20px;
+        --content-pad-y: 18px;
+    }
+    .content-body { padding: 20px var(--content-pad-x); }
 }
 
-/* ═══ MOBILE-SIDEBAR als Overlay (≤768px) ═══ */
+/* ════════════════════════════════════════════
+   768px – Tablet hoch / großes Phone
+   (Sidebar-Drawer-Mechanik kommt aus nav.css)
+   ════════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .sidebar {
-        position: fixed; inset: 0 auto 0 0;
-        height: 100dvh; z-index: var(--z-overlay);
-        transform: translateX(-100%);
-        transition: transform .28s cubic-bezier(.4,0,.2,1);
-        box-shadow: 8px 0 40px rgba(0,0,0,.3);
-    }
-    body.sidebar-open .sidebar { transform: translateX(0); }
-    body.sidebar-open::after {
-        content: ''; position: fixed; inset: 0;
-        background: rgba(0,0,0,.5); z-index: calc(var(--z-overlay) - 1);
-        animation: fadeIn .25s ease;
-    }
-    /* Hamburger zum Öffnen muss sichtbar sein */
-    .mobile-menu-toggle { display: inline-flex !important; }
+    /* Header: Platz für den fixen Hamburger-Button (nav.css) reservieren */
+    .content-header { padding-left: 64px; }
 
-    .content-header { padding: 0 16px; gap: 8px; }
-    .content-header h2 { font-size: .92rem; }
     .content-body { padding: 16px 14px; }
-    .user-profile span { display: none; }
 
-    /* Toolbars stapeln sauber statt zu brechen */
-    .toolbar-glass, .filter-toolbar {
-        flex-direction: column; align-items: stretch;
-    }
-    .toolbar-glass > *, .filter-toolbar > * { width: 100%; min-width: 0 !important; }
-    .filter-select { width: 100% !important; }
-
-    /* Modals: voller nutzbarer Raum, kein Abschnitt */
-    .modal.active { padding: 10px; align-items: flex-end; }
-    .modal-content { max-height: 92dvh; padding: 22px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
-    .modal-glass { width: 96%; padding: 22px; }
-
+    /* Dashboard-Widgets: volle Breite, feste Höhen aufheben */
     .stats-grid { gap: 16px; }
-    [class*="span-"] { grid-column: 1 / -1 !important; }
+    .span-3, .span-4, .span-6, .span-8, .span-9, .span-12 {
+        grid-column: 1 / -1;
+    }
+    .span-h-1, .span-h-2, .span-h-3 {
+        height: auto;
+        min-height: 150px;
+    }
+
+    /* Formulare einspaltig */
+    .form-grid { grid-template-columns: 1fr; gap: 16px; }
+    .conflict-item {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: center;
+    }
+
+    /* Filter-Toolbar: vertikal, keine erzwungene Mindestbreite */
+    .filter-toolbar, .toolbar-glass { flex-direction: column; align-items: stretch; }
+    .filter-search { min-width: 0; width: 100%; }
+    .filter-select { width: 100% !important; min-width: 0; }
+    .toolbar-glass > *, .filter-toolbar > * { width: 100%; min-width: 0 !important; }
+
+    /* Checkbox-Grid bricht nicht über den Rand */
+    .check-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+
+    /* Tischplaner: feste Maße flexibilisieren */
+    .planner-container { height: auto; min-height: 480px; }
+    .planner-sidebar { width: 100%; }
 }
 
-/* ═══ TABELLEN → KARTEN (≤640px) ══════════════════════════════════
-   Reine CSS-Lösung über data-label-Attribute (kein JS nötig).
-   Zeilen-Renderer setzen pro <td data-label="…"> das Spaltenlabel.
+/* ════════════════════════════════════════════
+   560px – Phone
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .content-body { padding: 14px 12px; }
+
+    /* ── Tabellen → Karten (.premium-table) ──
+       data-label wird von modules/responsive-tables.js gesetzt. */
+    .premium-table { border-spacing: 0; }
+    .premium-table thead { display: none; }
+
+    .premium-table tr {
+        display: block;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 12px;
+        padding: 6px 4px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .premium-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+    }
+    .premium-table td:last-child { border-bottom: none; }
+    /* Radius-Sonderregeln der Desktop-Zellen zurücksetzen */
+    .premium-table td:first-child,
+    .premium-table td:last-child { border-radius: 0; }
+
+    .premium-table td::before {
+        content: attr(data-label);
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    /* Zellen ohne Label (z. B. Aktions-Spalte) nehmen volle Breite */
+    .premium-table td[data-label=""]::before { content: none; }
+    .premium-table td[data-label=""] {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* ── Modals als Full-Screen-Sheet ── */
+    .modal.active { padding: 0; }
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        height: 100%;
+        border-radius: 0;
+        padding: 20px 18px;
+    }
+    .modal-overlay { padding: 0; }
+    .modal-glass,
+    .resolver-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0;
+        padding: 20px 18px;
+    }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions > * { width: 100%; justify-content: center; }
+
+    /* ── Touch-Targets vergrößern ── */
+    .btn-icon,
+    .btn-edit,
+    .btn-delete,
+    .action-btn-green,
+    .action-btn-yellow,
+    .action-btn-red {
+        min-height: 40px;
+        padding: 10px 16px;
+    }
+    .btn-primary,
+    .btn-accent,
+    .btn-secondary,
+    .btn-premium { min-height: 44px; }
+
+    /* ── Tischplaner: Desktop-Hinweis ── */
+    .planner-container::before {
+        content: "Für die beste Bedienung des Tischplaners bitte Desktop oder Tablet nutzen.";
+        display: block;
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        background: var(--primary-light);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--primary);
+        font-size: .8rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .planner-container { overflow: auto; }
+}
+
+/* ════════════════════════════════════════════
+   LOGIN – mobil
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .login-wrapper { width: 100%; max-width: 100%; }
+    .login-logo-container { top: -64px; width: 180px; }
+    .login-form { padding: 64px 20px 28px; }
+}
+
+/* ── iOS-Zoom-Sperre: Eingabefelder mind. 16px ──
+   Verhindert das automatische Hineinzoomen beim Fokussieren. */
+@media (max-width: 768px) {
+    input, select, textarea,
+    .login-form input, .input-styled {
+        font-size: 16px;
+    }
+}
+
+/* ════════════════════════════════════════════
+   HEADER – mobil: Überlauf verhindern
+   ════════════════════════════════════════════ */
+@media (max-width: 560px) {
+    .content-header { padding-left: 60px; padding-right: 12px; }
+    .header-right { gap: 8px; }
+    /* "Willkommen, Name" ausblenden – Platz für Buttons */
+    .header-right .user-profile > span { display: none; }
+    #btn-logout { margin-left: 6px !important; }
+    /* Lizenz-Badge: nur Icon behalten, Text + Logo weg */
+    #license-badge { margin-left: 6px !important; padding: 6px 8px !important; }
+    #license-badge-text { display: none; }
+    #cms-header-logo { display: none !important; }
+}
+
+/* ════════════════════════════════════════════
+   SCHICHT 2 – Inline-Style-Breaker zentral neutralisieren
+   Nur im Inhaltsbereich (.content-body); Login/Header/Sidebar
+   bleiben unberührt. Deckt die ~600 Inline-px-Styles in den
+   Modulen ab, ohne sie einzeln zu editieren.
+   ════════════════════════════════════════════ */
+
+/* Breite Daten-Tabellen (Nicht-Karten) horizontal scrollbar machen,
+   statt die Seite zu sprengen – z. B. Schichtplan (min-width:700px). */
+@media (max-width: 768px) {
+    .content-body table:not(.premium-table):not(.cms-table) {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 560px) {
+    /* Alle Inline-Grids einspaltig (2-/3-Spalten-Formulare, Kartengitter) */
+    .content-body [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Feste Feld-/Container-Breiten → voll (Filter-, Zeit-, Planner-Sidebar).
+       Substring matcht auch min-width:…  → beides wird neutralisiert. */
+    .content-body [style*="width:180px"], .content-body [style*="width: 180px"],
+    .content-body [style*="width:160px"], .content-body [style*="width: 160px"],
+    .content-body [style*="width:140px"], .content-body [style*="width: 140px"],
+    .content-body [style*="width:130px"], .content-body [style*="width: 130px"],
+    .content-body [style*="width:120px"], .content-body [style*="width: 120px"],
+    .content-body [style*="width:105px"], .content-body [style*="width: 105px"],
+    .content-body [style*="width:220px"], .content-body [style*="width: 220px"] {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Inline-Flex-Reihen umbrechen lassen (defensiv) */
+    .content-body [style*="display:flex"],
+    .content-body [style*="display: flex"] {
+        flex-wrap: wrap;
+    }
+}
+
+/* ════════════════════════════════════════════
+   SCHICHT 3 – Tischplaner-Sonderfall
+   Der Planer ist ein Fullscreen-Overlay an <body> (außerhalb
+   .content-body), daher eigene, globale Regeln. Schließen-Button
+   sitzt oben im Overlay-Header und bleibt erreichbar.
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .planner-container { flex-direction: column; }
+    /* Inline width:220px/280px der Sidebar überschreiben */
+    #planner-sidebar,
+    .planner-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 45vh;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TABELLEN → KARTEN für .cms-table (Speisekarte, Kassenbuch,
+   Audit-Log, Reservierungs-Tagesansicht). Rein CSS über data-label,
+   die Zeilen-Renderer setzen <td data-label="…">.
    ════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
     .cms-table thead { display: none; }
@@ -112,9 +345,9 @@
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DRUCKANSICHT – Küchenbons, Reservierungs- & Speiselisten.
-   Elemente mit .no-print ausblenden, .print-only nur beim Druck.
+/* ════════════════════════════════════════════════════════════════
+   DRUCKANSICHT – Küchenbons, Reservierungs- & Speiselisten,
+   Kassenbuch (Z-Bon). .no-print ausblenden, .print-only nur Druck.
    ════════════════════════════════════════════════════════════════ */
 .print-only { display: none; }
 
@@ -124,8 +357,8 @@
     [data-theme] { color-scheme: light; }
 
     /* Admin-Chrome ausblenden */
-    .sidebar, .content-header, .toolbar, .breadcrumb-bar, .theme-toggle,
-    .mobile-menu-toggle, .bulk-action-bar, .filter-toolbar, .toolbar-glass,
+    .sidebar, .hamburger-btn, .sidebar-overlay, .content-header, .toolbar, .breadcrumb-bar,
+    .theme-toggle, .bulk-action-bar, .filter-toolbar, .toolbar-glass,
     .btn-primary, .btn-accent, .btn-secondary, .btn-icon, .pagination-info,
     .nav-search-wrap, .col-select, .col-drag, .no-print { display: none !important; }
 

@@ -25,6 +25,7 @@ import { renderKassenbuch } from './modules/kassenbuch.js';
 import { renderAuditLog } from './modules/audit-log.js';
 import { initPWA } from './modules/pwa.js';
 import { applyTranslations, setLang, getLang } from './modules/i18n.js';
+import { enhanceTables } from './modules/responsive-tables.js';
 
 // One-time migration of legacy storage keys from opa_* → meraki_*
 (function migrateLegacyKeys() {
@@ -186,19 +187,8 @@ async function init() {
         });
     }
 
-    // ── Mobile-Sidebar (Overlay) ──────────────────────────
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    if (mobileMenuToggle) {
-        mobileMenuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-        // Klick auf Backdrop oder Nav-Eintrag schließt das Overlay
-        document.addEventListener('click', (e) => {
-            if (!document.body.classList.contains('sidebar-open')) return;
-            const inSidebar = e.target.closest('#cms-sidebar');
-            const onToggle  = e.target.closest('#mobile-menu-toggle');
-            if (!inSidebar && !onToggle) document.body.classList.remove('sidebar-open');
-            else if (e.target.closest('.nav-item, .nav-subitem')) document.body.classList.remove('sidebar-open');
-        });
-    }
+    // Mobile-Sidebar wird über die GitHub-Mechanik (.hamburger-btn /
+    // #cms-sidebar.mobile-open / #sidebar-overlay) weiter unten gesteuert.
 
     // ── Sprache (i18n) ────────────────────────────────────
     const langSwitch = document.getElementById('lang-switch');
@@ -805,7 +795,7 @@ document.addEventListener('keydown', (e) => {
 
 
 // ── Mobile Hamburger ──
-const sidebarToggle  = document.getElementById('sidebar-toggle');
+const sidebarToggle  = document.getElementById('mobile-menu-toggle');
 const sidebarClose   = document.getElementById('sidebar-close');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const sidebar        = document.getElementById('cms-sidebar');
@@ -823,8 +813,18 @@ sidebarOverlay?.addEventListener('click', () => {
     sidebarOverlay?.classList.remove('visible');
 });
 
+// ── Tabellen für mobile Karten-Ansicht vorbereiten ──
+// Beobachtet den Content-Bereich; nach jedem View-Render werden allen
+// .premium-table-Zellen die data-label-Attribute gestempelt (responsive.css).
+if (contentView) {
+    enhanceTables(contentView);
+    const tableObserver = new MutationObserver(() => enhanceTables(contentView));
+    tableObserver.observe(contentView, { childList: true, subtree: true });
+}
+
 // ── Bestellungs-Badge live aktualisieren ──
 async function updateOrderBadge() {
+    if (!checkAuth()) return;   // Nur bei aktiver Sitzung – verhindert 401 (Orders-Fetch ohne Token) vor Login
     try {
         const orders = await apiGet('orders');
         const pending = (orders || []).filter(o =>
