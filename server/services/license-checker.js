@@ -6,7 +6,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { verifyLicenseToken, initPublicKey } = require('./license.js');
+const { verifyLicenseToken, initPublicKey, initPlans } = require('./license.js');
 
 const CHECK_INTERVAL_MS         = 72 * 60 * 60 * 1000; // 72h
 const STARTUP_DELAY_MS          = 5 * 1000;             // 5s nach Boot
@@ -26,8 +26,11 @@ class LicenseChecker {
 
     start() {
         this.startupTimer = setTimeout(async () => {
-            // 1. Public Key vom Lizenzserver laden (bevor irgendwas verifiziert wird)
-            await initPublicKey(this.licenseServerUrl);
+            // 1. Public Key + Plan-Definitionen vom Lizenzserver laden
+            await Promise.all([
+                initPublicKey(this.licenseServerUrl),
+                initPlans(this.licenseServerUrl),
+            ]);
             // 2. Token-Prüfung
             await this._checkIfTokenNeedsRefresh();
             // 3. Periodischer Check

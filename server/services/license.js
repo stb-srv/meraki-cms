@@ -62,9 +62,47 @@ const initPublicKey = async (licenseServerUrl) => {
 };
 
 /**
- * PLAN_DEFINITIONS — aus @meraki/plans (gemeinsame Quelle mit dem Lizenzserver)
+ * PLAN_DEFINITIONS — startet mit @meraki/plans als Fallback,
+ * wird durch initPlans() mit Live-Daten vom Lizenzserver überschrieben.
  */
-const PLAN_DEFINITIONS = SHARED_PLANS;
+const PLAN_DEFINITIONS = { ...SHARED_PLANS };
+
+/**
+ * Ruft Plan-Definitionen vom Lizenzserver ab und aktualisiert PLAN_DEFINITIONS in-place.
+ * Wird beim Start durch LicenseChecker aufgerufen (nach initPublicKey).
+ * Faellt bei Fehler auf @meraki/plans-Fallback zurueck.
+ */
+const initPlans = async (licenseServerUrl) => {
+    const base = (licenseServerUrl || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
+    const url  = `${base}/api/v1/plans`;
+    try {
+        const res  = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!Array.isArray(data.plans)) throw new Error('Ungueltige Antwort – plans fehlt.');
+
+        let updated = 0;
+        for (const p of data.plans) {
+            if (!p.plan_id || !p.modules) continue;
+            PLAN_DEFINITIONS[p.plan_id] = {
+                label:        p.label        ?? PLAN_DEFINITIONS[p.plan_id]?.label,
+                menu_items:   p.menu_items   ?? PLAN_DEFINITIONS[p.plan_id]?.menu_items,
+                max_tables:   p.max_tables   ?? PLAN_DEFINITIONS[p.plan_id]?.max_tables,
+                expires_days: p.expires_days ?? PLAN_DEFINITIONS[p.plan_id]?.expires_days,
+                modules:      p.modules,
+                price:        p.price,
+                currency:     p.currency ?? 'EUR',
+                features:     p.features ?? [],
+            };
+            updated++;
+        }
+        logger.info({ url, updated }, 'Plan-Definitionen erfolgreich vom Lizenzserver geladen.');
+        return true;
+    } catch (e) {
+        logger.warn({ err: e }, 'Plan-Abruf fehlgeschlagen – @meraki/plans Fallback aktiv.');
+        return false;
+    }
+};
 
 const getPlan = (type) => {
     if (!type) return PLAN_DEFINITIONS['FREE'];
@@ -206,4 +244,4 @@ const getCurrentLicense = async (DB, host = null) => {
     return FREE_RESULT();
 };
 
-module.exports = { PLAN_DEFINITIONS, getPlan, getCurrentLicense, verifyLicenseToken, initPublicKey, MERAKI_PUBLIC_KEY };
+module.exports = { PLAN_DEFINITIONS, getPlan, getCurrentLicense, verifyLicenseToken, initPublicKey, initPlans, MERAKI_PUBLIC_KEY };
