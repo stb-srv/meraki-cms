@@ -307,8 +307,16 @@ window.MenuCore = {
                         <div style="display:grid; grid-template-columns:1fr auto; gap:20px; align-items:start;">
                             <div>
                                 <label style="font-size:0.8rem; font-weight:600; margin-bottom:6px; display:block;">Bild-URL</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input class="input-styled" id="df-img" placeholder="https://..." style="flex:1;">
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <input class="input-styled" id="df-img" placeholder="https://..." style="flex:1; min-width:160px;">
+                                    <input type="file" id="df-img-upload" accept="image/*" style="display:none;">
+                                    <input type="file" id="df-img-capture" accept="image/*" capture="environment" style="display:none;">
+                                    <button class="btn-secondary" id="btn-img-upload" type="button" style="padding:0 12px; height:42px;" title="Bild hochladen">
+                                        <i class="fas fa-upload"></i>
+                                    </button>
+                                    <button class="btn-secondary df-img-camera" id="btn-img-capture" type="button" style="padding:0 12px; height:42px;" title="Foto aufnehmen">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
                                     <div id="ai-image-btn-container" style="display:none;">
                                         <button class="btn-primary" id="btn-ai-image" style="padding:0 12px; height:42px; background:linear-gradient(135deg,#6366f1,#8b5cf6); border:none;" title="KI Bildsuche/Generierung">
                                             <i class="fas fa-magic"></i>
@@ -522,6 +530,33 @@ window.MenuCore = {
         try { trans = typeof d.translations === 'string' ? JSON.parse(d.translations) : (d.translations || {}); } catch(e) {}
         document.querySelectorAll('.trans-name').forEach(el => el.value = trans[el.dataset.lang]?.name || '');
         document.querySelectorAll('.trans-desc').forEach(el => el.value = trans[el.dataset.lang]?.description || '');
+    },
+
+    uploadDishImage: async function(file) {
+        const toast = this.utils && this.utils.showToast;
+        if (!file.type || !file.type.startsWith('image/')) {
+            if (toast) toast('Bitte eine Bilddatei wählen.', 'error');
+            return;
+        }
+        // Kamerafotos sind oft sehr groß → vor dem Upload verkleinern (Fallback: Original)
+        let toUpload = file;
+        try {
+            if (this.utils && this.utils.compressImage) {
+                toUpload = await this.utils.compressImage(file, 1600, 0.85);
+            }
+        } catch (_) { toUpload = file; }
+        if (toast) toast('Bild wird hochgeladen …');
+        const res = await this.api.upload(toUpload);
+        if (res && res.success && res.url) {
+            const imgInp = document.getElementById('df-img');
+            if (imgInp) {
+                imgInp.value = res.url;
+                imgInp.dispatchEvent(new Event('change'));  // aktualisiert die Vorschau
+            }
+            if (toast) toast('Bild hochgeladen.', 'success');
+        } else if (toast) {
+            toast((res && res.reason) || 'Upload fehlgeschlagen.', 'error');
+        }
     },
 
     closeDishForm: function() {
@@ -894,6 +929,21 @@ window.MenuCore = {
                 else preview.innerHTML = '<i class="fas fa-image fa-2x" style="opacity:0.1;"></i>';
             };
         }
+
+        // ── Manuelles Bild-Hochladen / Kamera-Aufnahme ──
+        const fileUpload  = container.querySelector('#df-img-upload');
+        const fileCapture = container.querySelector('#df-img-capture');
+        const btnUpload   = container.querySelector('#btn-img-upload');
+        const btnCapture  = container.querySelector('#btn-img-capture');
+        if (btnUpload && fileUpload)   btnUpload.onclick  = () => fileUpload.click();
+        if (btnCapture && fileCapture) btnCapture.onclick = () => fileCapture.click();
+        const pickImage = async (input) => {
+            const file = input.files && input.files[0];
+            input.value = '';  // gleiche Datei erneut wählbar
+            if (file) await this.uploadDishImage(file);
+        };
+        if (fileUpload)  fileUpload.onchange  = () => pickImage(fileUpload);
+        if (fileCapture) fileCapture.onchange = () => pickImage(fileCapture);
 
         // Escape-Taste schließt offenes Modal
         if (!this._escapeHandlerAttached) {

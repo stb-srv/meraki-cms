@@ -12,6 +12,50 @@ function escHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+/**
+ * Verkleinert/komprimiert ein Bild clientseitig vor dem Upload.
+ * Wichtig für Handy-Kamerafotos (oft 3–12 MB) → hält die 5-MB-Grenze
+ * des Upload-Endpoints ein und spart Speicher/Bandbreite.
+ * Robust: GIFs (Animation) und bereits kleine Bilder werden unverändert
+ * zurückgegeben; bei jedem Fehler fällt die Funktion auf das Original zurück.
+ * @returns {Promise<File>} das (ggf. verkleinerte) File
+ */
+export function compressImage(file, maxEdge = 1600, quality = 0.85) {
+    return new Promise((resolve) => {
+        if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
+            return resolve(file);
+        }
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const { width, height } = img;
+            // Bereits klein genug → Original behalten
+            if (width <= maxEdge && height <= maxEdge && file.size <= 1.5 * 1024 * 1024) {
+                return resolve(file);
+            }
+            const scale = Math.min(1, maxEdge / Math.max(width, height));
+            const w = Math.max(1, Math.round(width * scale));
+            const h = Math.max(1, Math.round(height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(file);
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+                if (!blob) return resolve(file);
+                const baseName = (file.name || 'foto').replace(/\.[^.]+$/, '');
+                const out = new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+                // Nur verwenden, wenn tatsächlich kleiner
+                resolve(out.size < file.size ? out : file);
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+    });
+}
+
 export const showToast = (message, type = 'success') => {
     const d = document.createElement('div');
     d.textContent = message;

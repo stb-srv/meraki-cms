@@ -1,6 +1,6 @@
 // cms/modules/menu.js
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from './api.js';
-import { showToast, showConfirm, showPrompt, showSelect, renderHelpIcon } from './utils.js';
+import { showToast, showConfirm, showPrompt, showSelect, renderHelpIcon, compressImage } from './utils.js';
 
 /**
  * Orchestrator for the Menu module.
@@ -30,7 +30,8 @@ export async function renderMenu(container, titleEl, tab = 'dishes', forceRefres
             showConfirm,
             showPrompt,
             showSelect,
-            renderHelpIcon
+            renderHelpIcon,
+            compressImage
         };
         
         window.MenuCore.init(api, utils);

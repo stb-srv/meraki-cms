@@ -13,7 +13,9 @@ const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
 const logger = require('../core/logger.js');
-const { fileTypeFromBuffer } = require('file-type');
+// file-type@16 exportiert `fromBuffer` (ab v17 hieße es `fileTypeFromBuffer`).
+// Alias, damit der restliche Code unabhängig von der Version bleibt.
+const { fromBuffer: fileTypeFromBuffer } = require('file-type');
 
 // Erlaubte Dateierweiterungen (SVG bewusst ausgeschlossen – XSS-Risiko)
 const ALLOWED_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)$/i;

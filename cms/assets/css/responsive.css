@@ -60,6 +60,14 @@
     .content-body { min-width: 0; }
 }
 
+/* ── Kamera-Aufnahme nur auf Touch-Geräten anbieten ──
+   Desktop bekommt nur den Datei-Upload; der "Foto aufnehmen"-Button
+   (capture) ist dort sinnlos und würde nur einen Datei-Dialog doppeln. */
+.df-img-camera { display: none; }
+@media (pointer: coarse) {
+    .df-img-camera { display: inline-flex; align-items: center; justify-content: center; }
+}
+
 /* ────────────────────────────────────────────
    Touch-Targets global anheben (Apple HIG 44px)
    ──────────────────────────────────────────── */
