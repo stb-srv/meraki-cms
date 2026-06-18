@@ -14,16 +14,37 @@
    #cms-sidebar.mobile-open / #sidebar-overlay) liegt in nav.css.
    ============================================================ */
 
-/* ── Globale Höhen-Korrektur (Handy-Tastatur) ── */
+/* ── Mobile: natürliches Seiten-Scrollen statt interner Scroll-Box ──
+   Desktop nutzt eine fixe 100dvh-App-Shell und scrollt INTERN in
+   .content-body (overflow-y:auto). Auf Mobil soll stattdessen die
+   ganze Seite scrollen.
+
+   WICHTIG: body erbt aus style.css `overflow:hidden` (Kurzform setzt
+   overflow-x UND overflow-y auf hidden). Wird hier nur overflow-x
+   gesetzt, bleibt overflow-y:hidden bestehen und propagiert – da <html>
+   sichtbar ist – auf den Viewport: vertikales Scrollen ist komplett
+   blockiert (Inhalt unterhalb des Folds unerreichbar, Listeneinträge
+   nicht antippbar). Deshalb die Overflow-Kette explizit zurücksetzen. */
 @media (max-width: 1024px) {
-    body,
+    html { overflow-x: hidden; }
+    body {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: auto;        /* vertikales Seiten-Scrollen erlauben */
+    }
     .admin-dashboard {
         height: auto;
         min-height: 100vh;
         min-height: 100dvh;
+        overflow: visible;       /* nicht mehr auf 100dvh clippen */
     }
-    /* Kein horizontaler Seiten-Scroll */
-    body { overflow-x: hidden; }
+    /* Innere App-Shell darf frei wachsen; Inhalt fließt in den
+       Seiten-Scroll statt in eine eigene (jetzt höhenlose) Scrollbox. */
+    .glass-app-shell { height: auto; overflow: visible; }
+    .main-content    { overflow: visible; }
+    .content-body    { overflow: visible; }
 }
 
 /* ── Flexbox-Überlauf-Fix (KERN) ──────────────────────────────
