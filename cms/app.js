@@ -31,11 +31,14 @@ import { enhanceTables } from './modules/responsive-tables.js';
 // One-time migration of legacy storage keys from opa_* → meraki_*
 (function migrateLegacyKeys() {
     const keys = [
-        ['sessionStorage', 'meraki_admin_token', 'meraki_admin_token'],
-        ['localStorage',   'meraki_license_key',  'meraki_license_key'],
+        ['sessionStorage', 'opa_admin_token',  'meraki_admin_token'],
+        ['localStorage',   'opa_license_key',  'meraki_license_key'],
         ['sessionStorage', 'opa_nav_recent',   'meraki_nav_recent'],
     ];
     for (const [store, oldKey, newKey] of keys) {
+        // Identity-Mappings nie verarbeiten – sonst würde der aktive Wert
+        // (z. B. das Admin-Token) bei jedem Laden gelöscht → Auto-Logout.
+        if (oldKey === newKey) continue;
         const s = window[store];
         const val = s.getItem(oldKey);
         if (val && !s.getItem(newKey)) s.setItem(newKey, val);

@@ -285,6 +285,10 @@
     #cms-sidebar.mobile-open {
         transform: translateX(0);
     }
+    /* Hamburger ausblenden, solange der Drawer offen ist – sonst überdeckt
+       der fixe Button den Restaurantnamen im Sidebar-Header. Schließen
+       erfolgt über das X im Drawer oder den Overlay-Klick. */
+    #cms-sidebar.mobile-open ~ .hamburger-btn { display: none; }
 }
 
 /* Suchergebnis-Dropdown */

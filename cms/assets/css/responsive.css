@@ -26,6 +26,19 @@
     body { overflow-x: hidden; }
 }
 
+/* ── Flexbox-Überlauf-Fix (KERN) ──────────────────────────────
+   Flex-Items haben standardmäßig min-width:auto und weigern sich,
+   unter ihre intrinsische min-content-Breite zu schrumpfen. Dadurch
+   wird .main-content breiter als der Viewport und der Inhalt rechts
+   von .content-body (overflow-x:hidden) abgeschnitten. min-width:0
+   erlaubt das Schrumpfen – Voraussetzung dafür, dass die max-width-
+   Regeln weiter unten überhaupt greifen können. */
+@media (max-width: 1024px) {
+    .glass-app-shell,
+    .main-content,
+    .content-body { min-width: 0; }
+}
+
 /* ────────────────────────────────────────────
    Touch-Targets global anheben (Apple HIG 44px)
    ──────────────────────────────────────────── */
@@ -234,10 +247,11 @@
 }
 
 /* ════════════════════════════════════════════
-   SCHICHT 2 – Inline-Style-Breaker zentral neutralisieren
+   SCHICHT 2 – Inline-Style-Breaker generisch neutralisieren
    Nur im Inhaltsbereich (.content-body); Login/Header/Sidebar
-   bleiben unberührt. Deckt die ~600 Inline-px-Styles in den
-   Modulen ab, ohne sie einzeln zu editieren.
+   bleiben unberührt. Statt einzelner Pixelwerte greifen generelle
+   Fluid-Regeln (max-width:100% + min-width:0), die die ~600
+   Inline-px-Styles in den Modulen abdecken, ohne sie zu pflegen.
    ════════════════════════════════════════════ */
 
 /* Breite Daten-Tabellen (Nicht-Karten) horizontal scrollbar machen,
@@ -249,25 +263,31 @@
         max-width: 100%;
         -webkit-overflow-scrolling: touch;
     }
+
+    /* Überlauf strukturell verhindern: kein Kind im Inhalt darf breiter als
+       sein Elternelement werden. max-width:100% schrumpft NUR zu breite
+       Elemente – kleine Icons/Avatare (width:42px o.ä.) bleiben unberührt.
+       Ersetzt die frühere, fehleranfällige Pixel-Aufzählung. */
+    .content-body * { max-width: 100%; }
+
+    /* Erzwungene Inline-Mindestbreiten (min-width:…px) generisch lösen,
+       damit Flex-/Grid-Kinder überhaupt schrumpfen dürfen. Deckt 260px,
+       280px, 220px … ab, ohne einzelne Werte zu pflegen. */
+    .content-body [style*="min-width"] { min-width: 0 !important; }
+
+    /* Eingaben & Medien fließend halten */
+    .content-body input,
+    .content-body select,
+    .content-body textarea,
+    .content-body img,
+    .content-body canvas,
+    .content-body pre { max-width: 100%; }
 }
 
 @media (max-width: 560px) {
     /* Alle Inline-Grids einspaltig (2-/3-Spalten-Formulare, Kartengitter) */
     .content-body [style*="grid-template-columns"] {
         grid-template-columns: 1fr !important;
-    }
-
-    /* Feste Feld-/Container-Breiten → voll (Filter-, Zeit-, Planner-Sidebar).
-       Substring matcht auch min-width:…  → beides wird neutralisiert. */
-    .content-body [style*="width:180px"], .content-body [style*="width: 180px"],
-    .content-body [style*="width:160px"], .content-body [style*="width: 160px"],
-    .content-body [style*="width:140px"], .content-body [style*="width: 140px"],
-    .content-body [style*="width:130px"], .content-body [style*="width: 130px"],
-    .content-body [style*="width:120px"], .content-body [style*="width: 120px"],
-    .content-body [style*="width:105px"], .content-body [style*="width: 105px"],
-    .content-body [style*="width:220px"], .content-body [style*="width: 220px"] {
-        width: 100% !important;
-        min-width: 0 !important;
     }
 
     /* Inline-Flex-Reihen umbrechen lassen (defensiv) */

@@ -12,6 +12,10 @@ config.json
 server/config.json
 .env
 
+# Lokales Test-Setup & Test-Artefakte (nicht committen)
+dev-setup.js
+.playwright-mcp/
+
 # Uploads & Temp
 uploads/
 tmp/
