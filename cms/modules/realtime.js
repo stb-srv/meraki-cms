@@ -16,10 +16,10 @@ export function initRealtime() {
     const token = sessionStorage.getItem('meraki_admin_token');
     socket = io({
         transports: ['websocket', 'polling'],
-        auth: { token: token || '' }
+        auth: { token: token || '' },
     });
 
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
 
@@ -33,30 +33,36 @@ export function initRealtime() {
     });
 
     // Reservierungen
-    socket.on('reservation:new', data => {
+    socket.on('reservation:new', (data) => {
         document.dispatchEvent(new CustomEvent('realtime:reservation:new', { detail: data }));
-        showRealtimeToast(`📅 Neue Reservierung: ${data.name || '–'} (${data.guests} Gäste)`, 'info');
+        showRealtimeToast(
+            `📅 Neue Reservierung: ${data.name || '–'} (${data.guests} Gäste)`,
+            'info'
+        );
     });
-    socket.on('reservation:updated', data => {
+    socket.on('reservation:updated', (data) => {
         document.dispatchEvent(new CustomEvent('realtime:reservation:updated', { detail: data }));
     });
-    socket.on('reservation:cancelled', data => {
+    socket.on('reservation:cancelled', (data) => {
         document.dispatchEvent(new CustomEvent('realtime:reservation:cancelled', { detail: data }));
         showRealtimeToast(`❌ Reservierung storniert: ${data.name || '–'}`, 'warning');
     });
 
     // Bestellungen
-    socket.on('order:new', data => {
+    socket.on('order:new', (data) => {
         document.dispatchEvent(new CustomEvent('realtime:order:new', { detail: data }));
         showRealtimeToast(`🛎️ Neue Bestellung: Tisch ${data.table || '–'}`, 'success');
         playKitchenAlert();
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("Neue Bestellung", { body: `Tisch ${data.table || '–'}`, icon: '/favicon.ico' });
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Neue Bestellung', {
+                body: `Tisch ${data.table || '–'}`,
+                icon: '/favicon.ico',
+            });
         }
     });
 
     // Tischstatus
-    socket.on('table:status', data => {
+    socket.on('table:status', (data) => {
         document.dispatchEvent(new CustomEvent('realtime:table:status', { detail: data }));
         updateTableStatusBadge(data);
     });
@@ -71,7 +77,7 @@ function showRealtimeToast(msg, type = 'info') {
     const t = document.createElement('div');
     t.style.cssText = `
         position:fixed; bottom:24px; right:24px; z-index:9999;
-        background:${type==='success'?'#16a34a':type==='warning'?'#d97706':'#1b3a5c'};
+        background:${type === 'success' ? '#16a34a' : type === 'warning' ? '#d97706' : '#1b3a5c'};
         color:#fff; padding:12px 20px; border-radius:12px;
         font-size:.88rem; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.2);
         animation:slideIn .3s ease; max-width:320px;
@@ -89,7 +95,7 @@ function updateTableStatusBadge(data) {
 }
 
 export function onRealtime(event, callback) {
-    document.addEventListener(`realtime:${event}`, e => callback(e.detail));
+    document.addEventListener(`realtime:${event}`, (e) => callback(e.detail));
 }
 
 export function emitRealtime(event, data) {
@@ -105,14 +111,16 @@ export function playKitchenAlert() {
         const playTone = (time) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
             osc.frequency.value = 880;
             gain.gain.setValueAtTime(0.3, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-            osc.start(time); osc.stop(time + 0.1);
+            osc.start(time);
+            osc.stop(time + 0.1);
         };
         const now = audioCtx.currentTime;
         playTone(now);
         playTone(now + 0.15);
-    } catch(e) {}
+    } catch (e) {}
 }

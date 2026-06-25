@@ -14,54 +14,82 @@
     'use strict';
 
     const STORAGE_KEY = 'meraki_cart';
-    let cartItems    = [];
-    let cartConfig   = {
-        ordersEnabled: false, deliveryEnabled: false, pickupEnabled: false,
-        dineInEnabled: false, isOpenNow: true, closedReason: null, minPickupTime: null
+    let cartItems = [];
+    let cartConfig = {
+        ordersEnabled: false,
+        deliveryEnabled: false,
+        pickupEnabled: false,
+        dineInEnabled: false,
+        isOpenNow: true,
+        closedReason: null,
+        minPickupTime: null,
     };
     let configLoaded = false;
 
     function loadCart() {
-        try { cartItems = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-        catch (_) { cartItems = []; }
+        try {
+            cartItems = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        } catch (_) {
+            cartItems = [];
+        }
     }
 
     function saveCart() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cartItems)); }
-        catch (_) { }
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cartItems));
+        } catch (_) {}
     }
 
     function addItem(item) {
-        const existing = cartItems.find(i => i.id === item.id);
-        if (existing) { existing.quantity += 1; }
-        else { cartItems.push({ ...item, quantity: 1, note: '' }); }
-        saveCart(); render(); animateBadge();
+        const existing = cartItems.find((i) => i.id === item.id);
+        if (existing) {
+            existing.quantity += 1;
+        } else {
+            cartItems.push({ ...item, quantity: 1, note: '' });
+        }
+        saveCart();
+        render();
+        animateBadge();
     }
 
     function removeItem(id) {
-        const idx = cartItems.findIndex(i => i.id === id);
+        const idx = cartItems.findIndex((i) => i.id === id);
         if (idx > -1) {
             cartItems[idx].quantity -= 1;
             if (cartItems[idx].quantity <= 0) cartItems.splice(idx, 1);
         }
-        saveCart(); render();
+        saveCart();
+        render();
     }
 
     function updateNote(id, note) {
-        const item = cartItems.find(i => String(i.id) === String(id));
-        if (item) { item.note = note; saveCart(); }
+        const item = cartItems.find((i) => String(i.id) === String(id));
+        if (item) {
+            item.note = note;
+            saveCart();
+        }
     }
 
-    function clearCart() { cartItems = []; saveCart(); render(); }
-    function totalCount() { return cartItems.reduce((s, i) => s + i.quantity, 0); }
-    function totalPrice() { return cartItems.reduce((s, i) => s + (parseFloat(i.price) || 0) * i.quantity, 0); }
-    function fmt(n) { return n.toFixed(2).replace('.', ',') + ' \u20ac'; }
+    function clearCart() {
+        cartItems = [];
+        saveCart();
+        render();
+    }
+    function totalCount() {
+        return cartItems.reduce((s, i) => s + i.quantity, 0);
+    }
+    function totalPrice() {
+        return cartItems.reduce((s, i) => s + (parseFloat(i.price) || 0) * i.quantity, 0);
+    }
+    function fmt(n) {
+        return n.toFixed(2).replace('.', ',') + ' \u20ac';
+    }
 
     async function loadConfig() {
         try {
             const res = await fetch('/api/cart/config');
             if (res.ok) cartConfig = await res.json();
-        } catch (_) { }
+        } catch (_) {}
         configLoaded = true;
         render();
     }
@@ -106,7 +134,9 @@
         document.body.appendChild(drawer);
 
         document.getElementById('opa-cart-close').addEventListener('click', closeDrawer);
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDrawer();
+        });
     }
 
     function openDrawer() {
@@ -125,8 +155,8 @@
     // Render
     // =========================================================================
     function render() {
-        const badge  = document.getElementById('opa-cart-badge');
-        const body   = document.getElementById('opa-cart-body');
+        const badge = document.getElementById('opa-cart-badge');
+        const body = document.getElementById('opa-cart-body');
         const footer = document.getElementById('opa-cart-footer');
         if (!badge) return;
 
@@ -138,9 +168,12 @@
 
         if (cartItems.length === 0) {
             const mode = window.MERAKI_CART_CLICK_MODE || 'tile';
-            const hint = mode === 'tile' ? 'Tippe auf ein Gericht um es hinzuzuf\u00fcgen.'
-                       : mode === 'both' ? 'Tippe auf ein Gericht oder den + Button.'
-                       : 'Tippe auf <strong>+</strong> bei einem Gericht um es hinzuzuf\u00fcgen.';
+            const hint =
+                mode === 'tile'
+                    ? 'Tippe auf ein Gericht um es hinzuzuf\u00fcgen.'
+                    : mode === 'both'
+                      ? 'Tippe auf ein Gericht oder den + Button.'
+                      : 'Tippe auf <strong>+</strong> bei einem Gericht um es hinzuzuf\u00fcgen.';
             body.innerHTML = `
                 <div class="opa-cart-empty">
                     <div class="opa-cart-empty-icon">\uD83D\uDED2</div>
@@ -153,14 +186,18 @@
 
         // Notiz-Felder zwischenspeichern bevor neu gerendert wird
         const noteValues = {};
-        body.querySelectorAll('.opa-cart-item-note').forEach(inp => {
+        body.querySelectorAll('.opa-cart-item-note').forEach((inp) => {
             noteValues[inp.dataset.id] = inp.value;
         });
 
-        body.innerHTML = cartItems.map(item => {
-            const savedNote = noteValues[String(item.id)] !== undefined ? noteValues[String(item.id)] : (item.note || '');
-            const unitPrice = parseFloat(item.price);
-            return `
+        body.innerHTML = cartItems
+            .map((item) => {
+                const savedNote =
+                    noteValues[String(item.id)] !== undefined
+                        ? noteValues[String(item.id)]
+                        : item.note || '';
+                const unitPrice = parseFloat(item.price);
+                return `
             <div class="opa-cart-item" data-id="${escHtml(String(item.id))}">
 
                 <!-- Zeile 1: Nr. + Name -->
@@ -199,26 +236,37 @@
                 </div>
 
             </div>`;
-        }).join('');
+            })
+            .join('');
 
-        body.querySelectorAll('.opa-cart-qty-btn').forEach(btn => {
+        body.querySelectorAll('.opa-cart-qty-btn').forEach((btn) => {
             btn.addEventListener('click', () => {
-                const id     = btn.dataset.id;
+                const id = btn.dataset.id;
                 const action = btn.dataset.action;
-                const item   = cartItems.find(i => String(i.id) === id);
+                const item = cartItems.find((i) => String(i.id) === id);
                 if (!item) return;
-                if (action === 'add')    addItem({ id: item.id, name: item.name, price: item.price, number: item.number, desc: item.desc });
+                if (action === 'add')
+                    addItem({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        number: item.number,
+                        desc: item.desc,
+                    });
                 if (action === 'remove') removeItem(id);
             });
         });
 
-        body.querySelectorAll('.opa-cart-item-note').forEach(inp => {
+        body.querySelectorAll('.opa-cart-item-note').forEach((inp) => {
             inp.addEventListener('input', () => updateNote(inp.dataset.id, inp.value));
         });
 
-        const isClosed    = configLoaded && !cartConfig.isOpenNow;
-        const ordersReady = configLoaded && cartConfig.ordersEnabled && !isClosed &&
-                            (cartConfig.dineInEnabled || cartConfig.pickupEnabled || cartConfig.deliveryEnabled);
+        const isClosed = configLoaded && !cartConfig.isOpenNow;
+        const ordersReady =
+            configLoaded &&
+            cartConfig.ordersEnabled &&
+            !isClosed &&
+            (cartConfig.dineInEnabled || cartConfig.pickupEnabled || cartConfig.deliveryEnabled);
 
         footer.innerHTML = `
             <div class="opa-cart-total">
@@ -231,12 +279,16 @@
             </div>
             ${!configLoaded ? '<p class="opa-cart-hint">Lade Verf\u00fcgbarkeit\u2026</p>' : ''}
             ${isClosed ? `<p class="opa-cart-hint opa-cart-hint--closed">\uD83D\uDD51 ${escHtml(cartConfig.closedReason || 'Derzeit keine Bestellungen m\u00f6glich.')}</p>` : ''}
-            ${configLoaded && !isClosed && !cartConfig.ordersEnabled ? `
+            ${
+                configLoaded && !isClosed && !cartConfig.ordersEnabled
+                    ? `
 <div class="opa-cart-hint opa-cart-hint--disabled">
     <span style="font-size:1.5rem;">\uD83D\uDEAB</span>
     <strong>Online-Bestellung aktuell nicht m\u00f6glich</strong>
     <p style="margin:4px 0 0;font-size:.85rem;opacity:.85;">Eine Bestellung \u00fcber unsere Website ist derzeit leider nicht verf\u00fcgbar. Bitte bestelle direkt bei unserem Personal vor Ort.</p>
-</div>` : ''}`;
+</div>`
+                    : ''
+            }`;
 
         document.getElementById('opa-clear-btn')?.addEventListener('click', () => {
             const footer = document.getElementById('opa-cart-footer');
@@ -255,8 +307,12 @@
                 </div>`;
             footer.appendChild(confirmEl);
 
-            document.getElementById('opa-confirm-yes').onclick = () => { clearCart(); };
-            document.getElementById('opa-confirm-no').onclick  = () => { confirmEl.remove(); };
+            document.getElementById('opa-confirm-yes').onclick = () => {
+                clearCart();
+            };
+            document.getElementById('opa-confirm-no').onclick = () => {
+                confirmEl.remove();
+            };
         });
         const checkoutTotal = document.getElementById('opa-checkout-total');
         if (checkoutTotal) checkoutTotal.textContent = fmt(totalPrice());
@@ -273,9 +329,16 @@
         }
 
         const modes = [];
-        if (cartConfig.dineInEnabled)   modes.push({ key: 'dine_in',  label: '\uD83C\uDF7D\uFE0F Am Tisch', icon: '\uD83C\uDF7D\uFE0F' });
-        if (cartConfig.pickupEnabled)   modes.push({ key: 'pickup',   label: '\uD83D\uDE97 Abholung', icon: '\uD83D\uDE97' });
-        if (cartConfig.deliveryEnabled) modes.push({ key: 'delivery', label: '\uD83D\uDE9A Lieferung', icon: '\uD83D\uDE9A' });
+        if (cartConfig.dineInEnabled)
+            modes.push({
+                key: 'dine_in',
+                label: '\uD83C\uDF7D\uFE0F Am Tisch',
+                icon: '\uD83C\uDF7D\uFE0F',
+            });
+        if (cartConfig.pickupEnabled)
+            modes.push({ key: 'pickup', label: '\uD83D\uDE97 Abholung', icon: '\uD83D\uDE97' });
+        if (cartConfig.deliveryEnabled)
+            modes.push({ key: 'delivery', label: '\uD83D\uDE9A Lieferung', icon: '\uD83D\uDE9A' });
 
         const modal = document.createElement('div');
         modal.id = 'opa-checkout-modal';
@@ -287,11 +350,15 @@
                     <button class="opa-cart-close" id="opa-checkout-close" aria-label="Schlie\u00dfen">&times;</button>
                 </div>
                 <div class="opa-checkout-modes" id="opa-checkout-modes">
-                    ${modes.map(m => `
+                    ${modes
+                        .map(
+                            (m) => `
                         <button class="opa-mode-tile" data-mode="${m.key}">
                             <span class="opa-mode-icon">${m.icon}</span>
                             <span>${m.label.replace(/^.+?\s/, '')}</span>
-                        </button>`).join('')}
+                        </button>`
+                        )
+                        .join('')}
                 </div>
                 <div id="opa-checkout-form"></div>
                 <div class="opa-checkout-summary">
@@ -303,40 +370,48 @@
             </div>`;
 
         document.body.appendChild(modal);
-        document.getElementById('opa-checkout-close').addEventListener('click', () => modal.classList.remove('is-open'));
+        document
+            .getElementById('opa-checkout-close')
+            .addEventListener('click', () => modal.classList.remove('is-open'));
 
         let selectedMode = null;
-        modal.querySelectorAll('.opa-mode-tile').forEach(tile => {
+        modal.querySelectorAll('.opa-mode-tile').forEach((tile) => {
             tile.addEventListener('click', () => {
-                modal.querySelectorAll('.opa-mode-tile').forEach(t => t.classList.remove('active'));
+                modal
+                    .querySelectorAll('.opa-mode-tile')
+                    .forEach((t) => t.classList.remove('active'));
                 tile.classList.add('active');
                 selectedMode = tile.dataset.mode;
                 renderCheckoutForm(selectedMode);
                 document.getElementById('opa-checkout-submit').disabled = false;
             });
         });
-        document.getElementById('opa-checkout-submit').addEventListener('click', () => submitOrder(selectedMode));
+        document
+            .getElementById('opa-checkout-submit')
+            .addEventListener('click', () => submitOrder(selectedMode));
     }
 
     function generateTimeSlots(cfg) {
-      const step  = cfg.timeSlotStep || 15;
-      const lead  = cfg.timeSlotLead || 20;
-      const [oh, om] = (cfg.openTime  || '11:00').split(':').map(Number);
-      const [ch, cm] = (cfg.closeTime || '22:00').split(':').map(Number);
-      const now = new Date();
-      const earliest = new Date(now.getTime() + lead * 60000);
-      let cursor = new Date(now); cursor.setHours(oh, om, 0, 0);
-      if (cursor < earliest) {
-        cursor = new Date(Math.ceil(earliest.getTime() / (step*60000)) * (step*60000));
-      }
-      const end = new Date(now); end.setHours(ch, cm, 0, 0);
-      const pad = n => String(n).padStart(2, '0');
-      const slots = [];
-      while (cursor <= end) {
-        slots.push(pad(cursor.getHours()) + ':' + pad(cursor.getMinutes()));
-        cursor = new Date(cursor.getTime() + step * 60000);
-      }
-      return slots;
+        const step = cfg.timeSlotStep || 15;
+        const lead = cfg.timeSlotLead || 20;
+        const [oh, om] = (cfg.openTime || '11:00').split(':').map(Number);
+        const [ch, cm] = (cfg.closeTime || '22:00').split(':').map(Number);
+        const now = new Date();
+        const earliest = new Date(now.getTime() + lead * 60000);
+        let cursor = new Date(now);
+        cursor.setHours(oh, om, 0, 0);
+        if (cursor < earliest) {
+            cursor = new Date(Math.ceil(earliest.getTime() / (step * 60000)) * (step * 60000));
+        }
+        const end = new Date(now);
+        end.setHours(ch, cm, 0, 0);
+        const pad = (n) => String(n).padStart(2, '0');
+        const slots = [];
+        while (cursor <= end) {
+            slots.push(pad(cursor.getHours()) + ':' + pad(cursor.getMinutes()));
+            cursor = new Date(cursor.getTime() + step * 60000);
+        }
+        return slots;
     }
 
     function renderCheckoutForm(mode) {
@@ -367,8 +442,10 @@
             if (cartConfig.timeSlotMode !== 'free') {
                 const slots = generateTimeSlots(cartConfig);
                 const sofortEnabled = cartConfig.sofortEnabled !== false;
-                const sofortLabel = (cartConfig.sofortLabel || 'Sofort (ca. {min} Min.)')
-                    .replace('{min}', cartConfig.timeSlotLead || 20);
+                const sofortLabel = (cartConfig.sofortLabel || 'Sofort (ca. {min} Min.)').replace(
+                    '{min}',
+                    cartConfig.timeSlotLead || 20
+                );
 
                 timeInputHtml = `
                     <div class="opa-time-section">
@@ -382,9 +459,15 @@
                             <small>${sofortLabel}</small>
                         </div>
                         <div class="opa-slots-wrap ${sofortEnabled ? 'hidden' : ''}">
-                            ${slots.length > 0
-                                ? slots.map(t => `<button type="button" class="opa-slot-btn" data-time="${t}">${t}</button>`).join('')
-                                : '<p class="opa-no-slots">Heute keine Zeitfenster mehr verfügbar.</p>'
+                            ${
+                                slots.length > 0
+                                    ? slots
+                                          .map(
+                                              (t) =>
+                                                  `<button type="button" class="opa-slot-btn" data-time="${t}">${t}</button>`
+                                          )
+                                          .join('')
+                                    : '<p class="opa-no-slots">Heute keine Zeitfenster mehr verfügbar.</p>'
                             }
                         </div>
                     </div>
@@ -395,10 +478,14 @@
                 <label class="opa-form-label">Name *
                     <input class="opa-form-input" type="text" id="co-name" placeholder="Dein Name" autocomplete="name" required>
                 </label>
-                ${!isPickup ? `
+                ${
+                    !isPickup
+                        ? `
                 <label class="opa-form-label">Lieferadresse *
                     <input class="opa-form-input" type="text" id="co-address" placeholder="Straße, Hausnummer, PLZ" autocomplete="street-address" required>
-                </label>` : ''}
+                </label>`
+                        : ''
+                }
                 <label class="opa-form-label">Telefonnummer * <small style="font-weight:normal;color:#888">(f\u00fcr R\u00fcckfragen)</small>
                     <input class="opa-form-input" type="tel" id="co-phone" placeholder="+49 \u2026" autocomplete="tel" required>
                 </label>
@@ -412,21 +499,31 @@
 
             if (cartConfig.timeSlotMode !== 'free') {
                 // Toggle Sofort / Gewünscht
-                form.querySelectorAll('.opa-toggle-btn').forEach(btn => {
+                form.querySelectorAll('.opa-toggle-btn').forEach((btn) => {
                     btn.addEventListener('click', () => {
-                        form.querySelectorAll('.opa-toggle-btn').forEach(b => b.classList.remove('active'));
+                        form.querySelectorAll('.opa-toggle-btn').forEach((b) =>
+                            b.classList.remove('active')
+                        );
                         btn.classList.add('active');
                         const tmode = btn.dataset.tmode;
-                        form.querySelector('.opa-sofort-box')?.classList.toggle('hidden', tmode !== 'sofort');
-                        form.querySelector('.opa-slots-wrap')?.classList.toggle('hidden', tmode !== 'wished');
+                        form.querySelector('.opa-sofort-box')?.classList.toggle(
+                            'hidden',
+                            tmode !== 'sofort'
+                        );
+                        form.querySelector('.opa-slots-wrap')?.classList.toggle(
+                            'hidden',
+                            tmode !== 'wished'
+                        );
                         if (tmode === 'sofort') document.getElementById('co-time').value = 'sofort';
                         else document.getElementById('co-time').value = '';
                     });
                 });
                 // Slot-Auswahl
-                form.querySelectorAll('.opa-slot-btn').forEach(slot => {
+                form.querySelectorAll('.opa-slot-btn').forEach((slot) => {
                     slot.addEventListener('click', () => {
-                        form.querySelectorAll('.opa-slot-btn').forEach(s => s.classList.remove('selected'));
+                        form.querySelectorAll('.opa-slot-btn').forEach((s) =>
+                            s.classList.remove('selected')
+                        );
                         slot.classList.add('selected');
                         document.getElementById('co-time').value = slot.dataset.time;
                     });
@@ -436,20 +533,23 @@
     }
 
     async function submitOrder(mode) {
-        const msg       = document.getElementById('opa-checkout-msg');
+        const msg = document.getElementById('opa-checkout-msg');
         const submitBtn = document.getElementById('opa-checkout-submit');
-        if (!mode) { showMsg(msg, 'error', 'Bitte w\u00e4hle einen Bestellmodus.'); return; }
+        if (!mode) {
+            showMsg(msg, 'error', 'Bitte w\u00e4hle einen Bestellmodus.');
+            return;
+        }
 
         const payload = {
-            type:  mode,
-            items: cartItems.map(i => ({
-                id:       i.id,
-                name:     i.name,
-                number:   i.number || null,
-                price:    i.price,
+            type: mode,
+            items: cartItems.map((i) => ({
+                id: i.id,
+                name: i.name,
+                number: i.number || null,
+                price: i.price,
                 quantity: i.quantity,
-                note:     i.note || ''
-            }))
+                note: i.note || '',
+            })),
         };
 
         console.log('[Meraki Cart] submitOrder mode:', mode, 'payload.type:', payload.type);
@@ -457,38 +557,64 @@
         if (mode === 'dine_in') {
             const table = document.getElementById('co-table')?.value.trim();
             const phone = document.getElementById('co-phone')?.value.trim();
-            if (!table) { showMsg(msg, 'error', 'Bitte Tischnummer eingeben.'); return; }
-            if (!phone) { showMsg(msg, 'error', 'Bitte Telefonnummer f\u00fcr R\u00fcckfragen angeben.'); return; }
+            if (!table) {
+                showMsg(msg, 'error', 'Bitte Tischnummer eingeben.');
+                return;
+            }
+            if (!phone) {
+                showMsg(msg, 'error', 'Bitte Telefonnummer f\u00fcr R\u00fcckfragen angeben.');
+                return;
+            }
             payload.tableNumber = table;
-            payload.phone       = phone;
-            payload.guestNote   = document.getElementById('co-note')?.value.trim() || null;
+            payload.phone = phone;
+            payload.guestNote = document.getElementById('co-note')?.value.trim() || null;
         } else if (mode === 'pickup' || mode === 'delivery') {
-            const name  = document.getElementById('co-name')?.value.trim();
+            const name = document.getElementById('co-name')?.value.trim();
             const phone = document.getElementById('co-phone')?.value.trim();
             const email = document.getElementById('co-email')?.value.trim();
-            const time  = document.getElementById('co-time')?.value;
-            const note  = document.getElementById('co-note')?.value.trim() || null;
-            const address = (mode === 'delivery') ? document.getElementById('co-address')?.value.trim() : null;
+            const time = document.getElementById('co-time')?.value;
+            const note = document.getElementById('co-note')?.value.trim() || null;
+            const address =
+                mode === 'delivery' ? document.getElementById('co-address')?.value.trim() : null;
 
-            if (!name)  { showMsg(msg, 'error', 'Bitte Name angeben.'); return; }
-            if (mode === 'delivery' && !address) { showMsg(msg, 'error', 'Bitte Lieferadresse angeben.'); return; }
-            if (!phone) { showMsg(msg, 'error', 'Bitte Telefonnummer angeben.'); return; }
-            if (!email) { showMsg(msg, 'error', 'Bitte E-Mail-Adresse angeben.'); return; }
-            if (!time)  { showMsg(msg, 'error', 'Bitte Abholzeit auswählen.'); return; }
+            if (!name) {
+                showMsg(msg, 'error', 'Bitte Name angeben.');
+                return;
+            }
+            if (mode === 'delivery' && !address) {
+                showMsg(msg, 'error', 'Bitte Lieferadresse angeben.');
+                return;
+            }
+            if (!phone) {
+                showMsg(msg, 'error', 'Bitte Telefonnummer angeben.');
+                return;
+            }
+            if (!email) {
+                showMsg(msg, 'error', 'Bitte E-Mail-Adresse angeben.');
+                return;
+            }
+            if (!time) {
+                showMsg(msg, 'error', 'Bitte Abholzeit auswählen.');
+                return;
+            }
 
             // Validierung nur bei freier Eingabe
             if (cartConfig.timeSlotMode === 'free' && time !== 'sofort') {
                 if (cartConfig.minPickupTime && time < cartConfig.minPickupTime) {
-                    showMsg(msg, 'error', `Früheste mögliche Zeit: ${cartConfig.minPickupTime} Uhr.`);
+                    showMsg(
+                        msg,
+                        'error',
+                        `Früheste mögliche Zeit: ${cartConfig.minPickupTime} Uhr.`
+                    );
                     return;
                 }
             }
 
-            payload.customerName  = name;
+            payload.customerName = name;
             payload.customerPhone = phone;
             payload.customerEmail = email;
-            payload.pickupTime    = time;
-            payload.guestNote     = note;
+            payload.pickupTime = time;
+            payload.guestNote = note;
             if (address) payload.deliveryAddress = address;
         }
 
@@ -496,9 +622,10 @@
         submitBtn.textContent = '\u23f3 Wird gesendet\u2026';
 
         try {
-            const res  = await fetch('/api/cart/order', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const res = await fetch('/api/cart/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
             if (res.ok && data.success) {
@@ -522,30 +649,37 @@
 
     function showMsg(el, type, text) {
         el.textContent = text;
-        el.className   = 'opa-checkout-msg opa-checkout-msg--' + type;
+        el.className = 'opa-checkout-msg opa-checkout-msg--' + type;
     }
 
     // =========================================================================
     // Add-Buttons + Kachel-Klick injizieren
     // =========================================================================
     function injectAddButtons() {
-        const mode    = window.MERAKI_CART_CLICK_MODE || 'tile';
-        const showBtn  = (mode === 'button' || mode === 'both');
-        const showTile = (mode === 'tile'   || mode === 'both');
+        const mode = window.MERAKI_CART_CLICK_MODE || 'tile';
+        const showBtn = mode === 'button' || mode === 'both';
+        const showTile = mode === 'tile' || mode === 'both';
 
-        document.querySelectorAll('[data-menu-item]').forEach(card => {
-            const id     = card.dataset.menuItem;
-            const name   = card.dataset.itemName || card.querySelector('[data-item-name]')?.textContent || 'Artikel';
-            const price  = card.dataset.itemPrice || '0';
+        document.querySelectorAll('[data-menu-item]').forEach((card) => {
+            const id = card.dataset.menuItem;
+            const name =
+                card.dataset.itemName ||
+                card.querySelector('[data-item-name]')?.textContent ||
+                'Artikel';
+            const price = card.dataset.itemPrice || '0';
             const number = card.dataset.itemNumber || '';
-            const desc   = card.dataset.itemDesc   || '';
+            const desc = card.dataset.itemDesc || '';
 
             if (showBtn && !card.querySelector('.opa-add-to-cart')) {
                 const btn = document.createElement('button');
                 btn.className = 'opa-add-to-cart';
                 btn.setAttribute('aria-label', `${name} in den Warenkorb`);
-                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-                btn.addEventListener('click', (e) => { e.stopPropagation(); addItem({ id, name, price, number, desc }); });
+                btn.innerHTML =
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addItem({ id, name, price, number, desc });
+                });
                 card.appendChild(btn);
             }
 
@@ -574,16 +708,34 @@
     }
 
     function escHtml(str) {
-        return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        return str.replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+        );
     }
 
     function init() {
-        loadCart(); buildCartDOM(); render(); loadConfig(); injectAddButtons();
+        loadCart();
+        buildCartDOM();
+        render();
+        loadConfig();
+        injectAddButtons();
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
-    else { init(); }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 
-    window.OpaCart = { addItem, removeItem, clearCart, totalCount, totalPrice, open: openDrawer, close: closeDrawer };
-}());
+    window.OpaCart = {
+        addItem,
+        removeItem,
+        clearCart,
+        totalCount,
+        totalPrice,
+        open: openDrawer,
+        close: closeDrawer,
+    };
+})();

@@ -16,18 +16,25 @@ router.post('/', async (req, res) => {
     try {
         const clientIp = req.ip || req.socket?.remoteAddress || '';
         if (!_isLocalIp(clientIp)) {
-            return res.status(403).json({ success: false, message: 'Setup ist nur von localhost erlaubt.' });
+            return res
+                .status(403)
+                .json({ success: false, message: 'Setup ist nur von localhost erlaubt.' });
         }
 
         const settings = await DB.getKV('settings', {});
         if (settings.isSetupDone === true || settings.isSetupDone === 'true') {
-            return res.status(403).json({ success: false, message: 'Setup wurde bereits abgeschlossen.' });
+            return res
+                .status(403)
+                .json({ success: false, message: 'Setup wurde bereits abgeschlossen.' });
         }
 
         const { adminName, adminEmail, adminPassword, restaurantName, licenseKey } = req.body;
 
         if (!adminEmail || !adminPassword || !restaurantName) {
-            return res.status(400).json({ success: false, message: 'adminEmail, adminPassword und restaurantName sind erforderlich.' });
+            return res.status(400).json({
+                success: false,
+                message: 'adminEmail, adminPassword und restaurantName sind erforderlich.',
+            });
         }
 
         // Admin-Passwort hashen
@@ -41,7 +48,7 @@ router.post('/', async (req, res) => {
             name: adminName || 'Administrator',
             email: adminEmail,
             role: 'admin',
-            require_password_change: 0
+            require_password_change: 0,
         });
 
         // Restaurant-Name + LicenseKey speichern (in branding und settings)
@@ -59,7 +66,6 @@ router.post('/', async (req, res) => {
         await DB.setKV('settings', settings);
 
         return res.json({ success: true, message: 'Setup erfolgreich abgeschlossen.' });
-
     } catch (err) {
         logger.error({ err }, 'Setup-Fehler');
         return res.status(500).json({ success: false, message: 'Fehler beim Setup.' });

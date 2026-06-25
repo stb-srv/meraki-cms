@@ -83,17 +83,17 @@ export async function initTrialOnboarding(container, onKeyReceived) {
         </div>
     </div>`;
 
-    const form        = container.querySelector('#trial-form');
-    const btn         = container.querySelector('#trial-btn');
-    const feedback    = container.querySelector('#trial-feedback');
-    const useKeyBtn   = container.querySelector('#trial-use-key');
+    const form = container.querySelector('#trial-form');
+    const btn = container.querySelector('#trial-btn');
+    const feedback = container.querySelector('#trial-feedback');
+    const useKeyBtn = container.querySelector('#trial-use-key');
     const existingKey = container.querySelector('#trial-existing-key');
 
     const showFeedback = (msg, type = 'error') => {
         feedback.style.display = 'block';
         feedback.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
-        feedback.style.color      = type === 'error' ? '#dc2626'  : '#16a34a';
-        feedback.style.border     = `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`;
+        feedback.style.color = type === 'error' ? '#dc2626' : '#16a34a';
+        feedback.style.border = `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`;
         feedback.textContent = msg;
     };
 
@@ -107,11 +107,11 @@ export async function initTrialOnboarding(container, onKeyReceived) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    domain:          window.location.hostname,
-                    contact_email:   container.querySelector('#trial-email').value.trim(),
+                    domain: window.location.hostname,
+                    contact_email: container.querySelector('#trial-email').value.trim(),
                     restaurant_name: container.querySelector('#trial-name').value.trim(),
-                    instance_id:     navigator.userAgent.slice(0, 80)
-                })
+                    instance_id: navigator.userAgent.slice(0, 80),
+                }),
             });
             const data = await res.json();
 
@@ -124,7 +124,9 @@ export async function initTrialOnboarding(container, onKeyReceived) {
                 btn.innerHTML = '🚀 30 Tage kostenlos starten';
             }
         } catch (err) {
-            showFeedback('Verbindung zum Lizenz-Server fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung.');
+            showFeedback(
+                'Verbindung zum Lizenz-Server fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung.'
+            );
             btn.disabled = false;
             btn.innerHTML = '🚀 30 Tage kostenlos starten';
         }
@@ -147,7 +149,7 @@ export function showTrialBanner(daysLeft) {
 
     if (daysLeft > 14) return; // Kein Banner nötig
 
-    const isUrgent  = daysLeft <= 3;
+    const isUrgent = daysLeft <= 3;
     const banner = document.createElement('div');
     banner.id = 'trial-banner';
     banner.style.cssText = `
@@ -220,36 +222,62 @@ export function initUpgradeModal() {
 
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px;">
                 ${[
-                    { name:'STARTER', label:'Starter', price:'29€/Mo', features:['60 Gerichte','10 Tische','Küchensystem'] },
-                    { name:'PRO', label:'Pro', price:'59€/Mo', features:['150 Gerichte','25 Tische','Online-Reservierung','Branding'] },
-                    { name:'PRO_PLUS', label:'Pro+', price:'89€/Mo', features:['300 Gerichte','50 Tische','Analytics','QR-Pay'] },
-                    { name:'ENTERPRISE', label:'Enterprise', price:'Auf Anfrage', features:['Unbegrenzt','API-Zugang','Dedizierter Support'] },
-                ].map(p => `
-                    <div style="border:2px solid ${p.name==='PRO'?'#1b3a5c':'#e5e7eb'};
+                    {
+                        name: 'STARTER',
+                        label: 'Starter',
+                        price: '29€/Mo',
+                        features: ['60 Gerichte', '10 Tische', 'Küchensystem'],
+                    },
+                    {
+                        name: 'PRO',
+                        label: 'Pro',
+                        price: '59€/Mo',
+                        features: ['150 Gerichte', '25 Tische', 'Online-Reservierung', 'Branding'],
+                    },
+                    {
+                        name: 'PRO_PLUS',
+                        label: 'Pro+',
+                        price: '89€/Mo',
+                        features: ['300 Gerichte', '50 Tische', 'Analytics', 'QR-Pay'],
+                    },
+                    {
+                        name: 'ENTERPRISE',
+                        label: 'Enterprise',
+                        price: 'Auf Anfrage',
+                        features: ['Unbegrenzt', 'API-Zugang', 'Dedizierter Support'],
+                    },
+                ]
+                    .map(
+                        (p) => `
+                    <div style="border:2px solid ${p.name === 'PRO' ? '#1b3a5c' : '#e5e7eb'};
                                 border-radius:16px; padding:20px; text-align:center;
-                                background:${p.name==='PRO'?'#f0f4ff':'#fff'};">
-                        ${p.name==='PRO'?'<div style="background:#1b3a5c;color:#fff;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;">EMPFOHLEN</div>':''}
+                                background:${p.name === 'PRO' ? '#f0f4ff' : '#fff'};">
+                        ${p.name === 'PRO' ? '<div style="background:#1b3a5c;color:#fff;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:8px;">EMPFOHLEN</div>' : ''}
                         <div style="font-size:1rem; font-weight:800; color:#1b3a5c;">${p.label}</div>
                         <div style="font-size:1.3rem; font-weight:900; margin:8px 0; color:#374151;">${p.price}</div>
                         <ul style="list-style:none; padding:0; margin:12px 0; font-size:.8rem; color:#6b7280; text-align:left;">
-                            ${p.features.map(f=>`<li style="margin:4px 0;">✓ ${f}</li>`).join('')}
+                            ${p.features.map((f) => `<li style="margin:4px 0;">✓ ${f}</li>`).join('')}
                         </ul>
                         <a href="mailto:sales@opa-santorini.de?subject=Upgrade auf ${p.label}&body=Mein Trial-Key: "
                            style="display:block; margin-top:12px; padding:9px;
-                                  background:${p.name==='PRO'?'#1b3a5c':'#f3f4f6'};
-                                  color:${p.name==='PRO'?'#fff':'#374151'};
+                                  background:${p.name === 'PRO' ? '#1b3a5c' : '#f3f4f6'};
+                                  color:${p.name === 'PRO' ? '#fff' : '#374151'};
                                   border-radius:10px; font-size:.82rem; font-weight:700;
                                   text-decoration:none;">
                             Jetzt wählen
                         </a>
                     </div>
-                `).join('')}
+                `
+                    )
+                    .join('')}
             </div>
         </div>`;
 
         document.body.appendChild(overlay);
         document.getElementById('upgrade-modal-close').onclick = () => overlay.remove();
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        overlay.onclick = (e) => {
+            if (e.target === overlay) overlay.remove();
+        };
     });
 }
 

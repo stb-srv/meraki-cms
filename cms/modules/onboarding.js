@@ -5,17 +5,43 @@
  */
 
 const STEPS = [
-    { id: 'branding',     label: 'Logo & Branding einrichten',    view: 'settings', tab: 'branding',    icon: 'fa-palette' },
-    { id: 'opening',      label: 'Öffnungszeiten setzen',          view: 'opening',  tab: null,          icon: 'fa-clock' },
-    { id: 'first_dish',   label: 'Erstes Gericht anlegen',         view: 'menu',     tab: 'dishes',      icon: 'fa-hamburger' },
-    { id: 'first_table',  label: 'Ersten Tisch anlegen',           view: 'tables',   tab: null,          icon: 'fa-chair' },
-    { id: 'smtp',         label: 'E-Mail / SMTP konfigurieren',    view: 'settings', tab: 'smtp',        icon: 'fa-envelope' },
+    {
+        id: 'branding',
+        label: 'Logo & Branding einrichten',
+        view: 'settings',
+        tab: 'branding',
+        icon: 'fa-palette',
+    },
+    { id: 'opening', label: 'Öffnungszeiten setzen', view: 'opening', tab: null, icon: 'fa-clock' },
+    {
+        id: 'first_dish',
+        label: 'Erstes Gericht anlegen',
+        view: 'menu',
+        tab: 'dishes',
+        icon: 'fa-hamburger',
+    },
+    {
+        id: 'first_table',
+        label: 'Ersten Tisch anlegen',
+        view: 'tables',
+        tab: null,
+        icon: 'fa-chair',
+    },
+    {
+        id: 'smtp',
+        label: 'E-Mail / SMTP konfigurieren',
+        view: 'settings',
+        tab: 'smtp',
+        icon: 'fa-envelope',
+    },
 ];
 
 function getProgress() {
     try {
         return JSON.parse(localStorage.getItem('meraki_onboarding') || '{}');
-    } catch { return {}; }
+    } catch {
+        return {};
+    }
 }
 
 function saveProgress(progress) {
@@ -35,7 +61,7 @@ export function renderOnboardingWidget(container) {
     const progress = getProgress();
 
     // Alle erledigt → Widget entfernen
-    if (STEPS.every(s => progress[s.id])) {
+    if (STEPS.every((s) => progress[s.id])) {
         const existing = document.getElementById('onboarding-widget');
         if (existing) existing.remove();
         return;
@@ -45,8 +71,8 @@ export function renderOnboardingWidget(container) {
     const key = localStorage.getItem('meraki_license_key');
     if (!key) return;
 
-    const done = STEPS.filter(s => progress[s.id]).length;
-    const pct  = Math.round((done / STEPS.length) * 100);
+    const done = STEPS.filter((s) => progress[s.id]).length;
+    const pct = Math.round((done / STEPS.length) * 100);
 
     const existing = document.getElementById('onboarding-widget');
     if (existing) existing.remove();
@@ -81,7 +107,8 @@ export function renderOnboardingWidget(container) {
         </div>
 
         <div style="display:flex; flex-direction:column; gap:10px;">
-            ${STEPS.map(step => `
+            ${STEPS.map(
+                (step) => `
                 <div style="display:flex; align-items:center; gap:12px; padding:10px 14px;
                              background:${progress[step.id] ? '#f0fdf4' : '#f9fafb'};
                              border-radius:10px; cursor:${progress[step.id] ? 'default' : 'pointer'};
@@ -91,9 +118,11 @@ export function renderOnboardingWidget(container) {
                                 background:${progress[step.id] ? '#16a34a' : '#e5e7eb'};
                                 display:flex; align-items:center; justify-content:center;
                                 color:${progress[step.id] ? '#fff' : '#9ca3af'}; font-size:.75rem;">
-                        ${progress[step.id]
-                            ? '<i class="fas fa-check"></i>'
-                            : `<i class="fas ${step.icon}"></i>`}
+                        ${
+                            progress[step.id]
+                                ? '<i class="fas fa-check"></i>'
+                                : `<i class="fas ${step.icon}"></i>`
+                        }
                     </div>
                     <span style="font-size:.88rem; font-weight:600;
                                  color:${progress[step.id] ? '#16a34a' : '#374151'};
@@ -102,7 +131,8 @@ export function renderOnboardingWidget(container) {
                     </span>
                     ${!progress[step.id] ? '<i class="fas fa-chevron-right" style="margin-left:auto; color:#9ca3af; font-size:.7rem;"></i>' : ''}
                 </div>
-            `).join('')}
+            `
+            ).join('')}
         </div>
     `;
 

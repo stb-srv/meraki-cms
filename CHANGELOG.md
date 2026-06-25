@@ -8,6 +8,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 ## [Unreleased]
 
 ### Geplant
+
 - Docker Compose Support
 - Grace-Period für Token-Ablauf (CMS läuft bei Heartbeat-Fehler noch 24–48h weiter)
 - Trial-Lizenz Reset-Limit
@@ -15,6 +16,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - GitHub Actions CI (Tests + Lint)
 
 ### Sicherheit (offen)
+
 - **SEC-04**: Plugin-System ohne Code-Signing – Plugins werden ohne Hash/Signatur-Prüfung geladen. Geplant: Integritäts-Check vor dem Laden.
 
 ---
@@ -22,6 +24,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 ## [3.1.1] – 2026-05-xx
 
 ### Hinzugefügt
+
 - Setup-Wizard (erster Start via `/setup`, schreibt `server/config.json`, erstellt Admin-User + Trial-Lizenz)
 - Backup-System mit automatischem Cleanup (cron, konfigurierbar via `BACKUP_MAX_AGE_DAYS` / `BACKUP_MIN_COUNT`)
 - Tisch-Planer (Drag & Drop im Admin-Panel, Grundriss-Editor)
@@ -36,12 +39,14 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - `deepMerge` in Settings-Routen (partielle Updates ohne Überschreiben)
 
 ### Sicherheit
+
 - **SEC-02**: `requireLicense` prüft jetzt immer das RS256-signierte JWT via `verifyLicenseToken()` statt rohem DB-Cache
 - **SEC-04**: Path-Traversal-Schutz beim Plugin-Laden
 - Helmet Security-Header (inkl. CSP)
 - Rate-Limiter auf Login, Passwort-Vergessen und Reservierungen
 
 ### Geändert
+
 - Plan-Limits mit License-Server synchronisiert (FREE: 30, STARTER: 60, PRO: 150, PRO+: 300, ENTERPRISE: 999 Gerichte)
 - RSA Public Key wird beim Start automatisch vom Lizenzserver geladen; `LICENSE_PUBLIC_KEY` Env-Variable überschreibt diesen
 - Offline-Fallback: letzter bekannter Plan bleibt aktiv wenn Lizenzserver nicht erreichbar
@@ -52,6 +57,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 ## [1.0.0] – 2026-04-12
 
 ### Hinzugefügt
+
 - CMS als modulares Node.js/Express-System mit SQLite/JSON-KV-Datenbank
 - RS256-JWT-Token-Verifikation mit Domain-Binding
 - Trial-Lizenz-System mit Ablaufprüfung

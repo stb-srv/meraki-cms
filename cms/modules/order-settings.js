@@ -2,7 +2,11 @@
  * Meraki CMS – Online-Bestellungen Einstellungen
  */
 
-const escHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const escHtml = (s) =>
+    String(s || '').replace(
+        /[&<>"']/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+    );
 
 export async function initOrderSettings(container, api, license) {
     const hasModule = license && license.modules && license.modules.online_orders;
@@ -31,17 +35,24 @@ export async function initOrderSettings(container, api, license) {
 
     let settings = {};
     try {
-        settings = await api.get('settings') || {};
+        settings = (await api.get('settings')) || {};
     } catch (e) {
         console.warn('settings konnte nicht geladen werden', e.message);
     }
     const orderConfig = settings.orderConfig || {};
 
     const checked = (key, def = false) =>
-        orderConfig[key] === true ? 'checked' : (orderConfig[key] === false ? '' : (def ? 'checked' : ''));
-    const intVal  = (key, def) =>
-        (orderConfig[key] !== undefined && !isNaN(parseInt(orderConfig[key], 10)))
-            ? parseInt(orderConfig[key], 10) : def;
+        orderConfig[key] === true
+            ? 'checked'
+            : orderConfig[key] === false
+              ? ''
+              : def
+                ? 'checked'
+                : '';
+    const intVal = (key, def) =>
+        orderConfig[key] !== undefined && !isNaN(parseInt(orderConfig[key], 10))
+            ? parseInt(orderConfig[key], 10)
+            : def;
 
     const ordersActive = orderConfig.ordersEnabled === true;
 
@@ -279,21 +290,26 @@ export async function initOrderSettings(container, api, license) {
 
             <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; padding:12px; background:rgba(0,0,0,0.02); border-radius:10px; border:1px solid rgba(0,0,0,0.04);">
                 <span style="font-size:0.75rem; color:var(--text-muted); width:100%; margin-bottom:4px; font-weight:700;">VERFÜGBARE PLATZHALTER:</span>
-                ${['customerName', 'restaurantName', 'estimatedTime', 'total', 'statusUrl'].map(p => `
+                ${['customerName', 'restaurantName', 'estimatedTime', 'total', 'statusUrl']
+                    .map(
+                        (p) => `
                     <span class="placeholder-chip" style="cursor:pointer; background:rgba(0,0,0,0.05); padding:3px 10px; border-radius:14px; font-size:.72rem; border:1px solid rgba(0,0,0,.1); font-family:monospace; color:var(--primary);" onclick="insertOrderPlaceholder(this, '{{${p}}}')">{{${p}}}</span>
-                `).join('')}
+                `
+                    )
+                    .join('')}
             </div>
 
             <div style="display:flex; flex-direction:column; gap:20px;">
-                ${['tpl_order_confirmed', 'tpl_order_cancelled', 'tpl_order_ready'].map(key => {
-                    const labels = {
-                        tpl_order_confirmed: { icon: '✅', title: 'Bestätigung (Annahme)' },
-                        tpl_order_cancelled: { icon: '❌', title: 'Ablehnung (Storno)' },
-                        tpl_order_ready:     { icon: '🎉', title: 'Bestellung Bereit' },
-                    };
-                    const l = labels[key];
-                    const val = (settings.emailTemplates || {})[key] || {};
-                    return `
+                ${['tpl_order_confirmed', 'tpl_order_cancelled', 'tpl_order_ready']
+                    .map((key) => {
+                        const labels = {
+                            tpl_order_confirmed: { icon: '✅', title: 'Bestätigung (Annahme)' },
+                            tpl_order_cancelled: { icon: '❌', title: 'Ablehnung (Storno)' },
+                            tpl_order_ready: { icon: '🎉', title: 'Bestellung Bereit' },
+                        };
+                        const l = labels[key];
+                        const val = (settings.emailTemplates || {})[key] || {};
+                        return `
                     <div class="template-box" style="background:rgba(255,255,255,0.4); border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:20px;">
                         <h4 style="margin:0 0 16px; font-size:.95rem; color:var(--primary); font-weight:800; display:flex; align-items:center; gap:10px;">
                             <span style="font-size:1.2rem;">${l.icon}</span> ${l.title}
@@ -316,7 +332,8 @@ export async function initOrderSettings(container, api, license) {
                             </button>
                         </div>
                     </div>`;
-                }).join('')}
+                    })
+                    .join('')}
             </div>
 
             <div style="margin-top:24px; display:flex; justify-content:flex-end;">
@@ -337,15 +354,15 @@ export async function initOrderSettings(container, api, license) {
     </div>`;
 
     const modesSection = container.querySelector('#os-modes');
-    const statusBadge  = container.querySelector('#os-status-badge');
+    const statusBadge = container.querySelector('#os-status-badge');
 
     const updateModesState = () => {
         // Active state is now managed centrally. We assume true here so the UI is usable.
         // If the module is fully disabled, the entire page would typically not be accessed.
         const active = true;
-        modesSection.style.opacity       = active ? '1'   : '0.45';
-        modesSection.style.pointerEvents = active ? ''    : 'none';
-        
+        modesSection.style.opacity = active ? '1' : '0.45';
+        modesSection.style.pointerEvents = active ? '' : 'none';
+
         if (statusBadge) {
             statusBadge.textContent = active ? 'Aktiv' : 'Deaktiviert';
             statusBadge.style.background = active ? '#10b98122' : '#6b728022';
@@ -362,24 +379,24 @@ export async function initOrderSettings(container, api, license) {
     });
 
     container.querySelector('#os-save').addEventListener('click', async () => {
-        const feedback   = container.querySelector('#os-feedback');
-        const cutoffRaw  = parseInt(container.querySelector('#os-cutoffMinutes').value, 10);
-        const leadRaw    = parseInt(container.querySelector('#os-leadMinutes').value, 10);
-        const newConfig  = {
-            dineInEnabled:       container.querySelector('#os-dineInEnabled').checked,
-            pickupEnabled:       container.querySelector('#os-pickupEnabled').checked,
-            deliveryEnabled:     container.querySelector('#os-deliveryEnabled').checked,
-            orderCutoffMinutes:  isNaN(cutoffRaw) ? 30 : Math.max(0, Math.min(120, cutoffRaw)),
-            pickupLeadMinutes:   isNaN(leadRaw)   ?  5 : Math.max(0, Math.min(60,  leadRaw)),
+        const feedback = container.querySelector('#os-feedback');
+        const cutoffRaw = parseInt(container.querySelector('#os-cutoffMinutes').value, 10);
+        const leadRaw = parseInt(container.querySelector('#os-leadMinutes').value, 10);
+        const newConfig = {
+            dineInEnabled: container.querySelector('#os-dineInEnabled').checked,
+            pickupEnabled: container.querySelector('#os-pickupEnabled').checked,
+            deliveryEnabled: container.querySelector('#os-deliveryEnabled').checked,
+            orderCutoffMinutes: isNaN(cutoffRaw) ? 30 : Math.max(0, Math.min(120, cutoffRaw)),
+            pickupLeadMinutes: isNaN(leadRaw) ? 5 : Math.max(0, Math.min(60, leadRaw)),
 
             // New Slot Fields
-            timeSlotMode:    container.querySelector('#os-timeSlotMode').value,
-            timeSlotLead:    parseInt(container.querySelector('#os-timeSlotLead').value, 10) || 0,
-            timeSlotStep:    parseInt(container.querySelector('#os-timeSlotStep').value, 10) || 15,
-            openTime:       container.querySelector('#os-openTime').value,
-            closeTime:      container.querySelector('#os-closeTime').value,
-            sofortEnabled:   container.querySelector('#os-sofortEnabled').checked,
-            sofortLabel:    container.querySelector('#os-sofortLabel').value
+            timeSlotMode: container.querySelector('#os-timeSlotMode').value,
+            timeSlotLead: parseInt(container.querySelector('#os-timeSlotLead').value, 10) || 0,
+            timeSlotStep: parseInt(container.querySelector('#os-timeSlotStep').value, 10) || 15,
+            openTime: container.querySelector('#os-openTime').value,
+            closeTime: container.querySelector('#os-closeTime').value,
+            sofortEnabled: container.querySelector('#os-sofortEnabled').checked,
+            sofortLabel: container.querySelector('#os-sofortLabel').value,
         };
         try {
             await api.post('settings', { orderConfig: newConfig });
@@ -389,7 +406,9 @@ export async function initOrderSettings(container, api, license) {
             feedback.textContent = '❌ ' + (e.message || 'Fehler beim Speichern');
             feedback.style.color = '#ef4444';
         }
-        setTimeout(() => { feedback.textContent = ''; }, 3000);
+        setTimeout(() => {
+            feedback.textContent = '';
+        }, 3000);
     });
 
     // Email Template Logic
@@ -398,7 +417,7 @@ export async function initOrderSettings(container, api, license) {
         for (const key of ['tpl_order_confirmed', 'tpl_order_cancelled', 'tpl_order_ready']) {
             templates[key] = {
                 subject: container.querySelector(`#et-${key}-subject`)?.value.trim() || '',
-                body:    container.querySelector(`#et-${key}-body`)?.value.trim() || '',
+                body: container.querySelector(`#et-${key}-body`)?.value.trim() || '',
             };
         }
         settings.emailTemplates = templates;
@@ -414,7 +433,8 @@ export async function initOrderSettings(container, api, license) {
     window.insertOrderPlaceholder = (chip, text) => {
         const box = chip.closest('.glass-panel');
         // Find the focused or first available input/textarea in templates
-        const target = box.querySelector('.et-body:focus, .et-subject:focus') || box.querySelector('.et-body');
+        const target =
+            box.querySelector('.et-body:focus, .et-subject:focus') || box.querySelector('.et-body');
         if (!target) return;
         const start = target.selectionStart;
         const end = target.selectionEnd;
@@ -427,7 +447,9 @@ export async function initOrderSettings(container, api, license) {
     window.previewOrderEmail = (key) => {
         const body = container.querySelector(`#et-${key}-body`)?.value || '(Standard-Template)';
         const win = window.open('', '_blank');
-        win.document.write(`<html><body style="font-family:sans-serif;padding:20px;">${body}</body></html>`);
+        win.document.write(
+            `<html><body style="font-family:sans-serif;padding:20px;">${body}</body></html>`
+        );
         win.document.close();
     };
 }

@@ -1,7 +1,7 @@
 /**
  * Express Middleware – auth, license, rate limiters
  */
-const jwt      = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { getCurrentLicense, verifyLicenseToken } = require('../services/license.js');
 const DB = require('../db');
@@ -11,16 +11,26 @@ const { extractDomain } = require('../helpers.js');
 const requireAuth = (ADMIN_SECRET) => (req, res, next) => {
     const token = req.headers['x-admin-token'] || req.query.token;
     if (!token) return res.status(401).json({ success: false, reason: 'No token' });
-    try { req.admin = jwt.verify(token, ADMIN_SECRET); next(); }
-    catch (e) { res.status(401).json({ success: false, reason: 'Invalid session' }); }
+    try {
+        req.admin = jwt.verify(token, ADMIN_SECRET);
+        next();
+    } catch (e) {
+        res.status(401).json({ success: false, reason: 'Invalid session' });
+    }
 };
 
-const requireRole = (...roles) => (req, res, next) => {
-    if (!req.admin || !req.admin.role) return res.status(403).json({ success: false, reason: "Keine Berechtigung für diese Aktion." });
-    if (req.admin.role === 'admin' || roles.includes(req.admin.role)) return next();
-    return res.status(403).json({ success: false, reason: "Keine Berechtigung für diese Aktion." });
-};
-
+const requireRole =
+    (...roles) =>
+    (req, res, next) => {
+        if (!req.admin || !req.admin.role)
+            return res
+                .status(403)
+                .json({ success: false, reason: 'Keine Berechtigung für diese Aktion.' });
+        if (req.admin.role === 'admin' || roles.includes(req.admin.role)) return next();
+        return res
+            .status(403)
+            .json({ success: false, reason: 'Keine Berechtigung für diese Aktion.' });
+    };
 
 /**
  * requireLicense – prüft ob ein Modul in der aktuellen Lizenz aktiv ist.
@@ -38,13 +48,13 @@ const requireRole = (...roles) => (req, res, next) => {
 const requireLicense = (module) => async (req, res, next) => {
     try {
         const domain = extractDomain(req);
-        const lic    = await getCurrentLicense(DB, domain);
+        const lic = await getCurrentLicense(DB, domain);
 
         // Abgelaufene oder ungültige Lizenz → FREE hat keine Premium-Module
         if (lic.isExpired) {
             return res.status(403).json({
                 success: false,
-                reason: `Feature '${module}' gesperrt – Lizenz abgelaufen.`
+                reason: `Feature '${module}' gesperrt – Lizenz abgelaufen.`,
             });
         }
 
@@ -52,7 +62,7 @@ const requireLicense = (module) => async (req, res, next) => {
         if (!modules[module]) {
             return res.status(403).json({
                 success: false,
-                reason: `Feature '${module}' ist in Ihrem ${lic.label || lic.type}-Plan nicht enthalten.`
+                reason: `Feature '${module}' ist in Ihrem ${lic.label || lic.type}-Plan nicht enthalten.`,
             });
         }
 
@@ -72,14 +82,16 @@ const requireLicense = (module) => async (req, res, next) => {
 const requireMenuLimit = async (req, res, next) => {
     try {
         const host = extractDomain(req);
-        const lic  = await getCurrentLicense(DB, host);
+        const lic = await getCurrentLicense(DB, host);
         const maxDishes = lic.limits?.max_dishes ?? 10;
         const incomingItems = Array.isArray(req.body) ? req.body : [];
         if (incomingItems.length > maxDishes) {
             return res.status(403).json({
                 success: false,
                 reason: `Ihr ${lic.label || lic.type}-Plan erlaubt maximal ${maxDishes} Speisen. Bitte upgraden Sie Ihren Plan.`,
-                limit: maxDishes, current: incomingItems.length, plan: lic.type
+                limit: maxDishes,
+                current: incomingItems.length,
+                plan: lic.type,
             });
         }
         next();
@@ -90,30 +102,46 @@ const requireMenuLimit = async (req, res, next) => {
 };
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, max: 10,
-    message: { success: false, reason: 'Zu viele Login-Versuche. Bitte 15 Minuten warten.' }
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, reason: 'Zu viele Login-Versuche. Bitte 15 Minuten warten.' },
 });
 
 const forgotPasswordLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, max: 5,
-    message: { success: false, reason: 'Zu viele Anfragen. Bitte 1 Stunde warten.' }
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { success: false, reason: 'Zu viele Anfragen. Bitte 1 Stunde warten.' },
 });
 
 const reservationLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, max: 20,
-    message: { success: false, reason: 'Zu viele Anfragen. Bitte später erneut versuchen.' }
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { success: false, reason: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
 const generalLimiter = rateLimit({
-    windowMs: 60 * 1000, max: 300,
-    standardHeaders: true, legacyHeaders: false,
-    message: { success: false, reason: 'Zu viele Anfragen. Bitte kurz warten.' }
+    windowMs: 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, reason: 'Zu viele Anfragen. Bitte kurz warten.' },
 });
 
 // Gäste-Bewertungen: öffentlich, daher Spam-Schutz pro IP
 const feedbackLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, max: 10,
-    message: { success: false, reason: 'Zu viele Bewertungen. Bitte später erneut versuchen.' }
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    message: { success: false, reason: 'Zu viele Bewertungen. Bitte später erneut versuchen.' },
 });
 
-module.exports = { requireAuth, requireRole, requireLicense, requireMenuLimit, loginLimiter, forgotPasswordLimiter, reservationLimiter, generalLimiter, feedbackLimiter };
+module.exports = {
+    requireAuth,
+    requireRole,
+    requireLicense,
+    requireMenuLimit,
+    loginLimiter,
+    forgotPasswordLimiter,
+    reservationLimiter,
+    generalLimiter,
+    feedbackLimiter,
+};

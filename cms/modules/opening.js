@@ -7,11 +7,19 @@ import { showToast } from './utils.js';
 
 export async function renderOpeningHours(container, titleEl) {
     titleEl.innerHTML = '<i class="fas fa-clock"></i> Öffnungszeiten';
-    const home = await apiGet('homepage') || {};
+    const home = (await apiGet('homepage')) || {};
     const oh = home.openingHours || {};
-    
+
     const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    const labels = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
+    const labels = {
+        Mo: 'Montag',
+        Di: 'Dienstag',
+        Mi: 'Mittwoch',
+        Do: 'Donnerstag',
+        Fr: 'Freitag',
+        Sa: 'Samstag',
+        So: 'Sonntag',
+    };
 
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
@@ -21,9 +29,10 @@ export async function renderOpeningHours(container, titleEl) {
             </div>
             
             <div class="form-grid">
-                ${days.map(d => {
-                    const data = oh[d] || { open: '12:00', close: '22:00', closed: false };
-                    return `
+                ${days
+                    .map((d) => {
+                        const data = oh[d] || { open: '12:00', close: '22:00', closed: false };
+                        return `
                         <div class="form-group" style="padding:15px; background:rgba(255,255,255,0.3); border-radius:12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                                 <label style="margin:0;">${labels[d]}</label>
@@ -39,7 +48,8 @@ export async function renderOpeningHours(container, titleEl) {
                             </div>
                         </div>
                     `;
-                }).join('')}
+                    })
+                    .join('')}
             </div>
 
             <div style="display:flex; justify-content:flex-end; margin-top:30px;">
@@ -48,7 +58,7 @@ export async function renderOpeningHours(container, titleEl) {
         </div>
     `;
 
-    container.querySelectorAll('.oh-closed').forEach(cb => {
+    container.querySelectorAll('.oh-closed').forEach((cb) => {
         cb.onchange = (e) => {
             const wrap = container.querySelector(`#wrap-${cb.dataset.day}`);
             wrap.style.opacity = e.target.checked ? '0.3' : '1';
@@ -58,14 +68,14 @@ export async function renderOpeningHours(container, titleEl) {
 
     container.querySelector('#save-opening-hours').onclick = async () => {
         const newOh = {};
-        days.forEach(d => {
+        days.forEach((d) => {
             newOh[d] = {
                 open: container.querySelector(`.oh-open[data-day="${d}"]`).value,
                 close: container.querySelector(`.oh-close[data-day="${d}"]`).value,
-                closed: container.querySelector(`.oh-closed[data-day="${d}"]`).checked
+                closed: container.querySelector(`.oh-closed[data-day="${d}"]`).checked,
             };
         });
-        
+
         home.openingHours = newOh;
         const res = await apiPost('homepage', home);
         if (res.success) showToast('Öffnungszeiten gespeichert!');

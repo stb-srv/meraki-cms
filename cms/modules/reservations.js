@@ -15,25 +15,35 @@ let resPage = 1;
 const RES_PAGE_SIZE = 20;
 
 // Phase 5: Kalenderansicht
-let resViewMode = 'list';            // 'list' | 'month' | 'week' | 'day'
-let resCalCursor = new Date();       // aktuell betrachteter Zeitpunkt
+let resViewMode = 'list'; // 'list' | 'month' | 'week' | 'day'
+let resCalCursor = new Date(); // aktuell betrachteter Zeitpunkt
 
 // Reservierungs-Datum robust parsen (de-DE "16.6.2026" oder ISO)
 function parseResDate(str) {
     if (!str) return null;
     let m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/.exec(String(str).trim());
-    if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+    if (m) {
+        let y = +m[3];
+        if (y < 100) y += 2000;
+        return new Date(y, +m[2] - 1, +m[1]);
+    }
     m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
     if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
     const d = new Date(str);
     return isNaN(d) ? null : d;
 }
 function resSameDay(a, b) {
-    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    return (
+        a &&
+        b &&
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate()
+    );
 }
 // Belegung eines Tages: gebuchte Gäste vs. Gesamtkapazität (aktive Tische)
 function dayCapacity(dateObj, resRaw, totalCapacity) {
-    const counted = (resRaw || []).filter(r => {
+    const counted = (resRaw || []).filter((r) => {
         const rd = parseResDate(r.date);
         return rd && resSameDay(rd, dateObj) && ['Confirmed', 'Pending'].includes(r.status);
     });
@@ -46,14 +56,33 @@ function dayCapacity(dateObj, resRaw, totalCapacity) {
 }
 
 const RES_WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const RES_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const mondayIndex = (d) => (d.getDay() + 6) % 7;  // 0=Mo … 6=So
+const RES_MONTHS = [
+    'Januar',
+    'Februar',
+    'März',
+    'April',
+    'Mai',
+    'Juni',
+    'Juli',
+    'August',
+    'September',
+    'Oktober',
+    'November',
+    'Dezember',
+];
+const isoOf = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const mondayIndex = (d) => (d.getDay() + 6) % 7; // 0=Mo … 6=So
 
 function resOfDay(dateObj, resRaw) {
     return (resRaw || [])
-        .filter(r => { const rd = parseResDate(r.date); return rd && resSameDay(rd, dateObj) && !['Cancelled','No-Show'].includes(r.status); })
-        .sort((a,b) => String(a.start_time||a.time||'').localeCompare(String(b.start_time||b.time||'')));
+        .filter((r) => {
+            const rd = parseResDate(r.date);
+            return rd && resSameDay(rd, dateObj) && !['Cancelled', 'No-Show'].includes(r.status);
+        })
+        .sort((a, b) =>
+            String(a.start_time || a.time || '').localeCompare(String(b.start_time || b.time || ''))
+        );
 }
 
 function capLegend(totalCapacity) {
@@ -69,11 +98,18 @@ function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
     let title = '';
     if (mode === 'month') title = `${RES_MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`;
     else if (mode === 'week') {
-        const start = new Date(cursor); start.setDate(cursor.getDate() - mondayIndex(cursor));
-        const end = new Date(start); end.setDate(start.getDate() + 6);
-        title = `${start.getDate()}. ${RES_MONTHS[start.getMonth()].slice(0,3)} – ${end.getDate()}. ${RES_MONTHS[end.getMonth()].slice(0,3)} ${end.getFullYear()}`;
+        const start = new Date(cursor);
+        start.setDate(cursor.getDate() - mondayIndex(cursor));
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        title = `${start.getDate()}. ${RES_MONTHS[start.getMonth()].slice(0, 3)} – ${end.getDate()}. ${RES_MONTHS[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`;
     } else {
-        title = cursor.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+        title = cursor.toLocaleDateString('de-DE', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+        });
     }
 
     const header = `
@@ -111,14 +147,16 @@ function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
         }
         body = `
             <div class="rescal-grid">
-                ${RES_WD.map(w => `<div class="rescal-wd">${w}</div>`).join('')}
+                ${RES_WD.map((w) => `<div class="rescal-wd">${w}</div>`).join('')}
                 ${cells.join('')}
             </div>`;
     } else if (mode === 'week') {
-        const start = new Date(cursor); start.setDate(cursor.getDate() - mondayIndex(cursor));
+        const start = new Date(cursor);
+        start.setDate(cursor.getDate() - mondayIndex(cursor));
         const cols = [];
         for (let i = 0; i < 7; i++) {
-            const dt = new Date(start); dt.setDate(start.getDate() + i);
+            const dt = new Date(start);
+            dt.setDate(start.getDate() + i);
             const cap = dayCapacity(dt, resRaw, totalCapacity);
             const items = resOfDay(dt, resRaw);
             const isToday = resSameDay(dt, today);
@@ -129,18 +167,30 @@ function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
                         <span>${cap.guests}/${totalCapacity || '∞'} P.</span>
                     </div>
                     <div class="rescal-col-body">
-                        ${items.length ? items.map(r => `
-                            <div class="rescal-chip rescal-${(r.status||'').toLowerCase()}" onclick="window.editRes(${r.id})" title="${r.name} · ${r.guests} Gäste · ${r.status}">
+                        ${
+                            items.length
+                                ? items
+                                      .map(
+                                          (r) => `
+                            <div class="rescal-chip rescal-${(r.status || '').toLowerCase()}" onclick="window.editRes(${r.id})" title="${r.name} · ${r.guests} Gäste · ${r.status}">
                                 <strong>${r.start_time || r.time || ''}</strong> ${r.name || 'Gast'} <span style="opacity:.7;">(${r.guests || 1})</span>
-                            </div>`).join('') : '<div style="opacity:.35; font-size:.72rem; padding:8px; text-align:center;">—</div>'}
+                            </div>`
+                                      )
+                                      .join('')
+                                : '<div style="opacity:.35; font-size:.72rem; padding:8px; text-align:center;">—</div>'
+                        }
                     </div>
                 </div>`);
         }
         body = `<div class="rescal-week">${cols.join('')}</div>`;
-    } else { // day
+    } else {
+        // day
         const items = resOfDay(cursor, resRaw);
         const cap = dayCapacity(cursor, resRaw, totalCapacity);
-        const waitlist = (resRaw || []).filter(r => { const rd = parseResDate(r.date); return rd && resSameDay(rd, cursor) && r.status === 'Waitlist'; });
+        const waitlist = (resRaw || []).filter((r) => {
+            const rd = parseResDate(r.date);
+            return rd && resSameDay(rd, cursor) && r.status === 'Waitlist';
+        });
         body = `
             <div class="rescal-day-summary rescal-${cap.level}">
                 <div><span class="value" style="font-size:1.6rem;">${cap.guests}</span> <span style="opacity:.6;">/ ${totalCapacity || '∞'} Plätze belegt</span></div>
@@ -149,21 +199,33 @@ function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
             <table class="cms-table" style="margin-top:14px;">
                 <thead><tr><th>Zeit</th><th>Gast</th><th>Gäste</th><th>Status</th><th>Tische</th></tr></thead>
                 <tbody>
-                    ${items.length ? items.map(r => `
+                    ${
+                        items.length
+                            ? items
+                                  .map(
+                                      (r) => `
                         <tr onclick="window.editRes(${r.id})" style="cursor:pointer;">
                             <td data-label="Zeit"><strong>${r.start_time || r.time || ''}</strong></td>
                             <td data-label="Gast">${r.name || 'Gast'}<br><small style="opacity:.6;">${r.phone || r.email || ''}</small></td>
                             <td data-label="Gäste">${r.guests || 1}</td>
-                            <td data-label="Status"><span class="rescal-chip rescal-${(r.status||'').toLowerCase()}">${r.status || 'Pending'}</span></td>
-                            <td data-label="Tische"><small>${(Array.isArray(r.assigned_tables)?r.assigned_tables:[]).join(', ') || '—'}</small></td>
-                        </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; opacity:.5; padding:30px;">Keine Reservierungen an diesem Tag</td></tr>'}
+                            <td data-label="Status"><span class="rescal-chip rescal-${(r.status || '').toLowerCase()}">${r.status || 'Pending'}</span></td>
+                            <td data-label="Tische"><small>${(Array.isArray(r.assigned_tables) ? r.assigned_tables : []).join(', ') || '—'}</small></td>
+                        </tr>`
+                                  )
+                                  .join('')
+                            : '<tr><td colspan="5" style="text-align:center; opacity:.5; padding:30px;">Keine Reservierungen an diesem Tag</td></tr>'
+                    }
                 </tbody>
             </table>
-            ${waitlist.length ? `
+            ${
+                waitlist.length
+                    ? `
                 <div style="margin-top:20px;">
                     <h4 style="margin-bottom:10px;"><i class="fas fa-hourglass-half" style="color:var(--widget-warn);"></i> Warteliste (${waitlist.length})</h4>
-                    ${waitlist.map(r => `<div class="widget-list-row" style="cursor:pointer;" onclick="window.editRes(${r.id})"><span>${r.start_time||''} · ${r.name||'Gast'} (${r.guests||1})</span><button class="btn-edit action-btn-green" onclick="event.stopPropagation(); window.updateResStatus(${r.id}, 'Confirmed')" title="Von Warteliste bestätigen"><i class="fas fa-check"></i></button></div>`).join('')}
-                </div>` : ''}
+                    ${waitlist.map((r) => `<div class="widget-list-row" style="cursor:pointer;" onclick="window.editRes(${r.id})"><span>${r.start_time || ''} · ${r.name || 'Gast'} (${r.guests || 1})</span><button class="btn-edit action-btn-green" onclick="event.stopPropagation(); window.updateResStatus(${r.id}, 'Confirmed')" title="Von Warteliste bestätigen"><i class="fas fa-check"></i></button></div>`).join('')}
+                </div>`
+                    : ''
+            }
         `;
     }
 
@@ -173,7 +235,7 @@ function buildResCalendar(mode, cursor, resRaw, totalCapacity) {
 export async function renderReservations(container, titleEl) {
     titleEl.innerHTML = '<i class="fas fa-calendar-check"></i> Reservierungen';
     const [resRaw, tables] = await Promise.all([apiGet('reservations'), apiGet('tables')]);
-    
+
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
             <div style="background:rgba(59,130,246,.05); border:1px solid rgba(59,130,246,.15); border-radius:14px; padding:16px 20px; margin-bottom:25px; display:flex; align-items:center; gap:16px;">
@@ -191,15 +253,23 @@ export async function renderReservations(container, titleEl) {
                 </div>
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <div class="res-view-toggle" style="display:inline-flex; background:var(--bg-inset); border:1px solid var(--border); border-radius:var(--radius-pill); padding:3px;">
-                        ${[['list','Liste','fa-list'],['day','Tag','fa-calendar-day'],['week','Woche','fa-calendar-week'],['month','Monat','fa-calendar']].map(([m,lbl,ic]) =>
-                            `<button class="res-view-btn ${resViewMode===m?'active':''}" data-view="${m}" style="border:none; cursor:pointer; padding:7px 14px; border-radius:var(--radius-pill); font-size:.78rem; font-weight:700; background:${resViewMode===m?'var(--primary)':'transparent'}; color:${resViewMode===m?'#fff':'var(--text-muted)'};"><i class="fas ${ic}"></i> <span class="res-view-lbl">${lbl}</span></button>`
-                        ).join('')}
+                        ${[
+                            ['list', 'Liste', 'fa-list'],
+                            ['day', 'Tag', 'fa-calendar-day'],
+                            ['week', 'Woche', 'fa-calendar-week'],
+                            ['month', 'Monat', 'fa-calendar'],
+                        ]
+                            .map(
+                                ([m, lbl, ic]) =>
+                                    `<button class="res-view-btn ${resViewMode === m ? 'active' : ''}" data-view="${m}" style="border:none; cursor:pointer; padding:7px 14px; border-radius:var(--radius-pill); font-size:.78rem; font-weight:700; background:${resViewMode === m ? 'var(--primary)' : 'transparent'}; color:${resViewMode === m ? '#fff' : 'var(--text-muted)'};"><i class="fas ${ic}"></i> <span class="res-view-lbl">${lbl}</span></button>`
+                            )
+                            .join('')}
                     </div>
                     <button class="btn-premium" id="btn-manual-res"><i class="fas fa-plus"></i> Manuelle Buchung</button>
                 </div>
             </div>
 
-            <div id="res-filter-bar" style="display:${resViewMode==='list'?'flex':'none'}; gap:15px; margin-bottom:30px; flex-wrap:wrap;">
+            <div id="res-filter-bar" style="display:${resViewMode === 'list' ? 'flex' : 'none'}; gap:15px; margin-bottom:30px; flex-wrap:wrap;">
                 <div style="flex:1; min-width:250px; position:relative;">
                     <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); opacity:.3;"></i>
                     <input type="text" class="input-styled" id="res-search" placeholder="Suchen..." value="${resFilterText}" style="padding-left:45px;">
@@ -218,23 +288,29 @@ export async function renderReservations(container, titleEl) {
                 <button class="btn-secondary" id="res-reset-filters" style="width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;"><i class="fas fa-undo"></i></button>
             </div>
 
-            <div id="res-list-container" style="display:${resViewMode==='list'?'block':'none'};"></div>
-            <div id="res-calendar-container" style="display:${resViewMode==='list'?'none':'block'};"></div>
+            <div id="res-list-container" style="display:${resViewMode === 'list' ? 'block' : 'none'};"></div>
+            <div id="res-calendar-container" style="display:${resViewMode === 'list' ? 'none' : 'block'};"></div>
         </div>
     `;
 
     // Gesamtkapazität (Summe aktiver Tische) für Belegungs-Warnungen
     const totalCapacity = (Array.isArray(tables) ? tables : [])
-        .filter(t => t.active !== false)
+        .filter((t) => t.active !== false)
         .reduce((s, t) => s + (parseInt(t.capacity) || 0), 0);
 
     const renderCalendar = () => {
         const cal = container.querySelector('#res-calendar-container');
-        if (cal) cal.innerHTML = buildResCalendar(resViewMode, resCalCursor, resRaw || [], totalCapacity);
+        if (cal)
+            cal.innerHTML = buildResCalendar(
+                resViewMode,
+                resCalCursor,
+                resRaw || [],
+                totalCapacity
+            );
     };
 
     // View-Toggle
-    container.querySelectorAll('.res-view-btn').forEach(btn => {
+    container.querySelectorAll('.res-view-btn').forEach((btn) => {
         btn.onclick = () => {
             resViewMode = btn.dataset.view;
             renderReservations(container, titleEl);
@@ -249,7 +325,10 @@ export async function renderReservations(container, titleEl) {
         resCalCursor = c;
         renderCalendar();
     };
-    window.resCalToday = () => { resCalCursor = new Date(); renderCalendar(); };
+    window.resCalToday = () => {
+        resCalCursor = new Date();
+        renderCalendar();
+    };
     window.resCalPickDay = (iso) => {
         // Tag anklicken → in Listenansicht mit Datumsfilter springen
         resViewMode = 'list';
@@ -257,32 +336,38 @@ export async function renderReservations(container, titleEl) {
         renderReservations(container, titleEl);
     };
 
-    if (resViewMode !== 'list') { renderCalendar(); }
+    if (resViewMode !== 'list') {
+        renderCalendar();
+    }
 
     const refreshList = () => {
         try {
             const listContainer = container.querySelector('#res-list-container');
             if (!listContainer) return;
 
-            let res = resFilterStatus === 'Cancelled' || resFilterStatus === 'No-Show'
-                ? (resRaw || [])
-                : (resRaw || []).filter(r => r.status !== 'Cancelled' && r.status !== 'No-Show');
-            
+            let res =
+                resFilterStatus === 'Cancelled' || resFilterStatus === 'No-Show'
+                    ? resRaw || []
+                    : (resRaw || []).filter(
+                          (r) => r.status !== 'Cancelled' && r.status !== 'No-Show'
+                      );
+
             // Text Search
             if (resFilterText) {
                 const txt = resFilterText.toLowerCase();
-                res = res.filter(r => 
-                    (r.name || '').toLowerCase().includes(txt) || 
-                    (r.email || '').toLowerCase().includes(txt) ||
-                    (r.phone || '').includes(txt)
+                res = res.filter(
+                    (r) =>
+                        (r.name || '').toLowerCase().includes(txt) ||
+                        (r.email || '').toLowerCase().includes(txt) ||
+                        (r.phone || '').includes(txt)
                 );
             }
-            
+
             // Status Filter
             if (resFilterStatus !== 'All') {
-                res = res.filter(r => r.status === resFilterStatus);
+                res = res.filter((r) => r.status === resFilterStatus);
             }
-            
+
             // Date Filter (Robust comparison)
             if (resFilterDate) {
                 const dParts = resFilterDate.split('-');
@@ -290,18 +375,20 @@ export async function renderReservations(container, titleEl) {
                 const searchM = parseInt(dParts[1]);
                 const searchY = parseInt(dParts[0]);
 
-                res = res.filter(r => {
+                res = res.filter((r) => {
                     if (!r.date) return false;
                     const parts = r.date.split('.');
                     if (parts.length !== 3) return false;
-                    return parseInt(parts[0]) === searchD && 
-                        parseInt(parts[1]) === searchM && 
-                        parseInt(parts[2]) === searchY;
+                    return (
+                        parseInt(parts[0]) === searchD &&
+                        parseInt(parts[1]) === searchM &&
+                        parseInt(parts[2]) === searchY
+                    );
                 });
             }
 
             // Sorting (Defensive)
-            res.sort((a,b) => {
+            res.sort((a, b) => {
                 try {
                     let valA, valB;
                     if (resSortField === 'date') {
@@ -309,20 +396,24 @@ export async function renderReservations(container, titleEl) {
                             if (!str) return new Date(0);
                             const p = str.split('.');
                             if (p.length !== 3) return new Date(0);
-                            const t = (time || '00:00').replace(' Uhr','').trim();
-                            return new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}T${t}`);
+                            const t = (time || '00:00').replace(' Uhr', '').trim();
+                            return new Date(
+                                `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}T${t}`
+                            );
                         };
                         valA = parseD(a.date, a.start_time);
                         valB = parseD(b.date, b.start_time);
                     } else if (resSortField === 'guests') {
-                        valA = parseInt(a.guests) || 0; 
+                        valA = parseInt(a.guests) || 0;
                         valB = parseInt(b.guests) || 0;
                     } else {
                         valA = (a[resSortField] || '').toString().toLowerCase();
                         valB = (b[resSortField] || '').toString().toLowerCase();
                     }
-                    return resSortOrder === 'asc' ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
-                } catch(e) { return 0; }
+                    return resSortOrder === 'asc' ? (valA > valB ? 1 : -1) : valA < valB ? 1 : -1;
+                } catch (e) {
+                    return 0;
+                }
             });
 
             const totalRes = res.length;
@@ -344,99 +435,147 @@ export async function renderReservations(container, titleEl) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${paginated.map(r => `
+                        ${paginated
+                            .map(
+                                (r) => `
                             <tr>
                                 <td><strong>${r.name || 'Unbekannt'}</strong><br><small>${r.email || ''}</small></td>
                                 <td><strong>${r.date || '---'}</strong><br><small>${r.start_time || ''} - ${r.end_time || ''}</small></td>
                                 <td>${r.guests || 0}</td>
                                 <td>
                                     <span style="font-weight:700; color:${r.status === 'Blocked' ? '#ef4444' : 'var(--primary)'};">
-                                        ${r.status === 'Blocked' ? '<i class="fas fa-ban"></i> Gesperrt' : (r.status || 'Pending')}
+                                        ${r.status === 'Blocked' ? '<i class="fas fa-ban"></i> Gesperrt' : r.status || 'Pending'}
                                     </span>
                                 </td>
-                                <td><small>${(Array.isArray(r.assigned_tables) ? r.assigned_tables : []).map(tid => tid.startsWith('C') ? 'Combo ' + tid.substring(1) : tid).join(', ') || '<i style="opacity:.5;">Keine</i>'}</small></td>
+                                <td><small>${(Array.isArray(r.assigned_tables) ? r.assigned_tables : []).map((tid) => (tid.startsWith('C') ? 'Combo ' + tid.substring(1) : tid)).join(', ') || '<i style="opacity:.5;">Keine</i>'}</small></td>
                                 <td style="text-align:right;">
                                     <div style="display:flex; justify-content:flex-end; gap:8px;">
                                         <button class="btn-edit" onclick="window.assignTable(${r.id})" title="Tisch zuweisen" style="background:rgba(255,255,255,0.1); border:none;"><i class="fas fa-chair"></i></button>
                                         <button class="btn-edit" onclick="window.editRes(${r.id})" title="Bearbeiten"><i class="fas fa-pen"></i></button>
                                         
                                         <!-- Actions -->
-                                        ${r.status !== 'Confirmed' ? `
+                                        ${
+                                            r.status !== 'Confirmed'
+                                                ? `
                                             <button class="btn-edit action-btn-green" onclick="window.updateResStatus(${r.id}, 'Confirmed')" title="Akzeptieren"><i class="fas fa-check"></i></button>
-                                        ` : `
+                                        `
+                                                : `
                                             <button class="btn-edit action-btn-gray" onclick="window.markNoShow(${r.id})" title="No-Show markieren" style="background:rgba(107,114,128,0.15); color:#6b7280;">
                                                 <i class="fas fa-user-slash"></i>
                                             </button>
-                                        `}
-                                        ${(r.status !== 'Confirmed' && r.status !== 'Waitlist') ? `
+                                        `
+                                        }
+                                        ${
+                                            r.status !== 'Confirmed' && r.status !== 'Waitlist'
+                                                ? `
                                             <button class="btn-edit action-btn-yellow" onclick="window.updateResStatus(${r.id}, 'Waitlist')" title="Auf Warteliste setzen"><i class="fas fa-hourglass-half"></i></button>
-                                        ` : ''}
+                                        `
+                                                : ''
+                                        }
                                         
-                                        ${r.status !== 'Cancelled' ? `
+                                        ${
+                                            r.status !== 'Cancelled'
+                                                ? `
                                             <button class="btn-edit action-btn-yellow" onclick="window.cancelRes(${r.id})" title="Stornieren mit Grund"><i class="fas fa-undo"></i></button>
-                                        ` : ''}
+                                        `
+                                                : ''
+                                        }
                                         
                                         <button class="btn-edit action-btn-red" onclick="window.deleteRes(${r.id})" title="Löschen (Permanent)"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
-                        `).join('')}
+                        `
+                            )
+                            .join('')}
                     </tbody>
                 </table>
                 ${res.length === 0 ? '<div style="padding:60px;text-align:center;opacity:.5;"><h3>Keine passenden Reservierungen</h3></div>' : ''}
                 
-                ${totalPages > 1 ? `
+                ${
+                    totalPages > 1
+                        ? `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; font-size:.82rem; opacity:.7;">
-                    <span>${(safePage-1)*RES_PAGE_SIZE+1}–${Math.min(safePage*RES_PAGE_SIZE, totalRes)} von ${totalRes} Einträgen</span>
+                    <span>${(safePage - 1) * RES_PAGE_SIZE + 1}–${Math.min(safePage * RES_PAGE_SIZE, totalRes)} von ${totalRes} Einträgen</span>
                     <div style="display:flex; gap:6px;">
-                        <button onclick="window.resGoToPage(${safePage-1})" ${safePage <= 1 ? 'disabled' : ''} style="padding:4px 12px; border-radius:8px; border:none; cursor:pointer;">‹</button>
+                        <button onclick="window.resGoToPage(${safePage - 1})" ${safePage <= 1 ? 'disabled' : ''} style="padding:4px 12px; border-radius:8px; border:none; cursor:pointer;">‹</button>
                         <span style="padding:4px 12px;">Seite ${safePage} / ${totalPages}</span>
-                        <button onclick="window.resGoToPage(${safePage+1})" ${safePage >= totalPages ? 'disabled' : ''} style="padding:4px 12px; border-radius:8px; border:none; cursor:pointer;">›</button>
+                        <button onclick="window.resGoToPage(${safePage + 1})" ${safePage >= totalPages ? 'disabled' : ''} style="padding:4px 12px; border-radius:8px; border:none; cursor:pointer;">›</button>
                     </div>
-                </div>` : ''}
+                </div>`
+                        : ''
+                }
             `;
         } catch (err) {
             console.error('Error in refreshList:', err);
-            container.querySelector('#res-list-container').innerHTML = `<div class="alert error">Fehler beim Laden der Liste: ${err.message}</div>`;
+            container.querySelector('#res-list-container').innerHTML =
+                `<div class="alert error">Fehler beim Laden der Liste: ${err.message}</div>`;
         }
     };
 
     // Attach Event Handlers (BEFORE first refreshList to ensure responsiveness)
-    container.querySelector('#res-search').oninput = (e) => { resFilterText = e.target.value; resPage = 1; refreshList(); };
-    container.querySelector('#res-status-filter').onchange = (e) => { resFilterStatus = e.target.value; resPage = 1; refreshList(); };
-    container.querySelector('#res-date-filter').onchange = (e) => { resFilterDate = e.target.value; resPage = 1; refreshList(); };
-    container.querySelector('#res-reset-filters').onclick = () => { 
-        resFilterText = ''; resFilterStatus = 'All'; resFilterDate = ''; resPage = 1;
-        renderReservations(container, titleEl); 
+    container.querySelector('#res-search').oninput = (e) => {
+        resFilterText = e.target.value;
+        resPage = 1;
+        refreshList();
     };
-    container.querySelector('#btn-manual-res').onclick = () => showManualResModal(container, titleEl);
+    container.querySelector('#res-status-filter').onchange = (e) => {
+        resFilterStatus = e.target.value;
+        resPage = 1;
+        refreshList();
+    };
+    container.querySelector('#res-date-filter').onchange = (e) => {
+        resFilterDate = e.target.value;
+        resPage = 1;
+        refreshList();
+    };
+    container.querySelector('#res-reset-filters').onclick = () => {
+        resFilterText = '';
+        resFilterStatus = 'All';
+        resFilterDate = '';
+        resPage = 1;
+        renderReservations(container, titleEl);
+    };
+    container.querySelector('#btn-manual-res').onclick = () =>
+        showManualResModal(container, titleEl);
 
     // Initial Render
     refreshList();
 
     // Global Hooks
-    window.setResSort = (field) => { 
+    window.setResSort = (field) => {
         if (resSortField === field) resSortOrder = resSortOrder === 'asc' ? 'desc' : 'asc';
-        else { resSortField = field; resSortOrder = 'asc'; }
+        else {
+            resSortField = field;
+            resSortOrder = 'asc';
+        }
         refreshList();
     };
 
-    window.resGoToPage = (p) => { resPage = p; refreshList(); };
+    window.resGoToPage = (p) => {
+        resPage = p;
+        refreshList();
+    };
 
     window.markNoShow = async (id) => {
-        const ok = await showConfirm('No-Show markieren', 'Gast ist nicht erschienen. Als No-Show markieren?');
+        const ok = await showConfirm(
+            'No-Show markieren',
+            'Gast ist nicht erschienen. Als No-Show markieren?'
+        );
         if (!ok) return;
         const result = await apiPut(`reservations/${id}`, { status: 'No-Show' });
         if (result.success) {
             showToast('Als No-Show markiert.', 'warning');
-            const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+            const activeItem =
+                document.querySelector('.nav-item.active') ||
+                document.querySelector('.nav-subitem.active');
             if (activeItem) activeItem.click();
         }
     };
 
     // Live-Updates für Reservierungen
-    onRealtime('reservation:new',       () => renderReservations(container, titleEl));
-    onRealtime('reservation:updated',   () => renderReservations(container, titleEl));
+    onRealtime('reservation:new', () => renderReservations(container, titleEl));
+    onRealtime('reservation:updated', () => renderReservations(container, titleEl));
     onRealtime('reservation:cancelled', () => renderReservations(container, titleEl));
 }
 
@@ -446,16 +585,20 @@ let archiveDateTo = '';
 
 export async function renderArchive(container, titleEl) {
     titleEl.innerHTML = '<i class="fas fa-archive"></i> Archiv';
-    
+
     if (!archiveDateFrom) {
         const now = new Date();
-        archiveDateFrom = new Date(now.getFullYear(), now.getMonth(), 2).toISOString().split('T')[0];
-        archiveDateTo = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0];
+        archiveDateFrom = new Date(now.getFullYear(), now.getMonth(), 2)
+            .toISOString()
+            .split('T')[0];
+        archiveDateTo = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+            .toISOString()
+            .split('T')[0];
     }
 
-    const resRaw = await apiGet('reservations') || [];
+    const resRaw = (await apiGet('reservations')) || [];
     const now = new Date();
-    now.setHours(0,0,0,0);
+    now.setHours(0, 0, 0, 0);
 
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
@@ -496,47 +639,52 @@ export async function renderArchive(container, titleEl) {
                 if (!str) return new Date(0);
                 const p = str.split('.');
                 if (p.length !== 3) return new Date(0);
-                return new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}T00:00:00`);
+                return new Date(
+                    `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}T00:00:00`
+                );
             };
 
-            let archive = (resRaw || []).filter(r => {
+            let archive = (resRaw || []).filter((r) => {
                 const rDate = parseD(r.date);
                 return r.status === 'Cancelled' || r.status === 'No-Show' || rDate < now;
             });
 
             if (archiveSearch) {
                 const s = archiveSearch.toLowerCase();
-                archive = archive.filter(r => 
-                    (r.name || '').toLowerCase().includes(s) || 
-                    (r.email || '').toLowerCase().includes(s) || 
-                    (r.phone || '').includes(s)
+                archive = archive.filter(
+                    (r) =>
+                        (r.name || '').toLowerCase().includes(s) ||
+                        (r.email || '').toLowerCase().includes(s) ||
+                        (r.phone || '').includes(s)
                 );
             }
 
             if (archiveDateFrom && archiveDateTo) {
                 const dFrom = new Date(archiveDateFrom);
                 const dTo = new Date(archiveDateTo);
-                dTo.setHours(23,59,59,999); 
-                archive = archive.filter(r => {
+                dTo.setHours(23, 59, 59, 999);
+                archive = archive.filter((r) => {
                     const rd = parseD(r.date);
                     return rd >= dFrom && rd <= dTo;
                 });
             }
 
             const grouped = {};
-            archive.forEach(r => {
+            archive.forEach((r) => {
                 const dStr = r.date || 'Unbekannt';
                 if (!grouped[dStr]) grouped[dStr] = [];
                 grouped[dStr].push(r);
             });
 
-            const sortedDates = Object.keys(grouped).sort((a,b) => {
+            const sortedDates = Object.keys(grouped).sort((a, b) => {
                 const da = parseD(a);
                 const db = parseD(b);
                 return db - da;
             });
 
-            listContainer.innerHTML = sortedDates.map(date => `
+            listContainer.innerHTML = sortedDates
+                .map(
+                    (date) => `
                 <div class="accordion-item glass-panel" style="margin-bottom:15px; background:rgba(255,255,255,0.15); border-radius:16px; overflow:hidden;">
                     <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')" style="padding:20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:rgba(255,255,255,0.2);">
                         <h4 style="margin:0;"><i class="fas fa-calendar-day"></i> ${date} <small style="margin-left:10px; opacity:.5;">(${grouped[date].length} Reservierungen)</small></h4>
@@ -550,7 +698,9 @@ export async function renderArchive(container, titleEl) {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${grouped[date].map(r => `
+                                ${grouped[date]
+                                    .map(
+                                        (r) => `
                                     <tr>
                                         <td><strong>${r.name || '---'}</strong><br><small>${r.email || ''}</small></td>
                                         <td>${r.start_time || '---'}</td>
@@ -558,30 +708,47 @@ export async function renderArchive(container, titleEl) {
                                         <td><span class="status-badge ${r.status?.toLowerCase() || 'pending'}" style="font-weight:700; color:${r.status === 'Cancelled' ? '#ef4444' : 'inherit'};">${r.status || 'Pending'}</span></td>
                                         <td style="text-align:right;"><i class="fas fa-info-circle" title="${(r.note || 'Keine Notiz').replace(/"/g, '&quot;')}" style="cursor:help; opacity:.5;"></i></td>
                                     </tr>
-                                `).join('')}
+                                `
+                                    )
+                                    .join('')}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            `).join('');
+            `
+                )
+                .join('');
 
             if (archive.length === 0) {
-                listContainer.innerHTML = '<div style="padding:60px;text-align:center;opacity:.5;"><h3>Keine Archiv-Einträge gefunden</h3></div>';
+                listContainer.innerHTML =
+                    '<div style="padding:60px;text-align:center;opacity:.5;"><h3>Keine Archiv-Einträge gefunden</h3></div>';
             }
             window._archiveData = archive;
         } catch (err) {
             console.error('Error in refreshArchive:', err);
-            container.querySelector('#archive-list-container').innerHTML = `<div class="alert error">Archiv konnte nicht geladen werden: ${err.message}</div>`;
+            container.querySelector('#archive-list-container').innerHTML =
+                `<div class="alert error">Archiv konnte nicht geladen werden: ${err.message}</div>`;
         }
     };
 
     // Attach Event Handlers (BEFORE first refreshArchive)
-    container.querySelector('#arc-search').oninput = (e) => { archiveSearch = e.target.value; refreshArchive(); };
-    container.querySelector('#arc-from').onchange = (e) => { archiveDateFrom = e.target.value; refreshArchive(); };
-    container.querySelector('#arc-to').onchange = (e) => { archiveDateTo = e.target.value; refreshArchive(); };
-    container.querySelector('#arc-reset').onclick = () => { 
-        archiveSearch = ''; archiveDateFrom = ''; archiveDateTo = ''; 
-        renderArchive(container, titleEl); 
+    container.querySelector('#arc-search').oninput = (e) => {
+        archiveSearch = e.target.value;
+        refreshArchive();
+    };
+    container.querySelector('#arc-from').onchange = (e) => {
+        archiveDateFrom = e.target.value;
+        refreshArchive();
+    };
+    container.querySelector('#arc-to').onchange = (e) => {
+        archiveDateTo = e.target.value;
+        refreshArchive();
+    };
+    container.querySelector('#arc-reset').onclick = () => {
+        archiveSearch = '';
+        archiveDateFrom = '';
+        archiveDateTo = '';
+        renderArchive(container, titleEl);
     };
     container.querySelector('#arc-export').onclick = () => exportArchiveCSV();
 
@@ -593,38 +760,52 @@ window.updateResStatus = async (id, status) => {
     const result = await apiPut(`reservations/${id}`, { status });
     if (result.success) {
         showToast(`Status auf ${status} geändert.`);
-        const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+        const activeItem =
+            document.querySelector('.nav-item.active') ||
+            document.querySelector('.nav-subitem.active');
         if (activeItem) activeItem.click();
     }
 };
 
 window.cancelRes = async (id) => {
-    const reason = await showPrompt('Reservierung stornieren', 'Bitte gib einen Grund für die Stornierung ein (optional):');
+    const reason = await showPrompt(
+        'Reservierung stornieren',
+        'Bitte gib einen Grund für die Stornierung ein (optional):'
+    );
     if (reason === null) return; // Cancelled by user
-    
+
     // Update status and append reason to notes
-    const resRaw = await apiGet('reservations') || [];
-    const res = resRaw.find(r => r.id === id);
+    const resRaw = (await apiGet('reservations')) || [];
+    const res = resRaw.find((r) => r.id === id);
     if (!res) return;
 
-    const newNote = res.note ? `${res.note}\n--- STORNO-GRUND: ${reason || 'Kein Grund angegeben'}` : `STORNO-GRUND: ${reason || 'Kein Grund angegeben'}`;
+    const newNote = res.note
+        ? `${res.note}\n--- STORNO-GRUND: ${reason || 'Kein Grund angegeben'}`
+        : `STORNO-GRUND: ${reason || 'Kein Grund angegeben'}`;
     const result = await apiPut(`reservations/${id}`, { status: 'Cancelled', note: newNote });
-    
+
     if (result.success) {
         showToast('Reservierung storniert.');
-        const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+        const activeItem =
+            document.querySelector('.nav-item.active') ||
+            document.querySelector('.nav-subitem.active');
         if (activeItem) activeItem.click();
     }
 };
 
 window.deleteRes = async (id) => {
-    const ok = await showConfirm('Reservierung löschen', 'Möchtest du diese Reservierung wirklich unwiderruflich löschen?');
+    const ok = await showConfirm(
+        'Reservierung löschen',
+        'Möchtest du diese Reservierung wirklich unwiderruflich löschen?'
+    );
     if (!ok) return;
 
     const result = await apiDelete(`reservations/${id}`);
     if (result.success) {
         showToast('Reservierung gelöscht.');
-        const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+        const activeItem =
+            document.querySelector('.nav-item.active') ||
+            document.querySelector('.nav-subitem.active');
         if (activeItem) activeItem.click();
     }
 };
@@ -639,8 +820,8 @@ function escVal(str) {
 }
 
 window.editRes = async (id) => {
-    const resRaw = await apiGet('reservations') || [];
-    const res = resRaw.find(r => r.id === id);
+    const resRaw = (await apiGet('reservations')) || [];
+    const res = resRaw.find((r) => r.id === id);
     if (!res) return;
 
     const modal = document.createElement('div');
@@ -677,14 +858,16 @@ window.editRes = async (id) => {
             date: modal.querySelector('#er-date').value,
             start_time: modal.querySelector('#er-time').value,
             email: modal.querySelector('#er-email').value,
-            note: modal.querySelector('#er-note').value
+            note: modal.querySelector('#er-note').value,
         };
 
         const result = await apiPut(`reservations/${id}`, update);
         if (result.success) {
             showToast('Änderungen gespeichert.');
             modal.remove();
-            const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+            const activeItem =
+                document.querySelector('.nav-item.active') ||
+                document.querySelector('.nav-subitem.active');
             if (activeItem) activeItem.click();
         }
     };
@@ -717,7 +900,7 @@ async function showManualResModal(container, titleEl) {
     modal.querySelector('#mr-save').onclick = async () => {
         const rawDate = modal.querySelector('#mr-date').value; // YYYY-MM-DD
         const date = rawDate.split('-').reverse().join('.'); // DD.MM.YYYY
-        
+
         const data = {
             name: modal.querySelector('#mr-name').value,
             email: modal.querySelector('#mr-email').value,
@@ -726,7 +909,7 @@ async function showManualResModal(container, titleEl) {
             time: modal.querySelector('#mr-time').value,
             date: date,
             note: modal.querySelector('#mr-note').value,
-            status: 'Confirmed'
+            status: 'Confirmed',
         };
 
         if (!data.name) return showToast('Bitte Namen eingeben', 'error');
@@ -743,18 +926,18 @@ async function showManualResModal(container, titleEl) {
 }
 
 window.assignTable = async (id) => {
-    const list = await apiGet('reservations') || [];
-    const res = list.find(r => r.id === id);
+    const list = (await apiGet('reservations')) || [];
+    const res = list.find((r) => r.id === id);
     if (!res) return;
 
     // Fetch availability for this specific slot
     const check = await apiPost('reservations/check', {
         date: res.date,
         time: res.start_time,
-        guests: res.guests
+        guests: res.guests,
     });
 
-    const tables = await apiGet('tables') || [];
+    const tables = (await apiGet('tables')) || [];
     const currentAssigned = Array.isArray(res.assigned_tables) ? res.assigned_tables : [];
 
     const modal = document.createElement('div');
@@ -770,12 +953,15 @@ window.assignTable = async (id) => {
             <div style="margin-bottom:20px; max-height:400px; overflow-y:auto; padding-right:10px;">
                 <label style="display:block; margin-bottom:10px; font-weight:700; font-size:.8rem;">Verfügbare Tische & Kombinationen:</label>
                 <div id="table-selection-list" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    ${tables.map(t => {
-                        const isAssigned = currentAssigned.includes(t.id);
-                        const isAvailable = check.success && check.tables.includes(t.id);
-                        const label = t.id.startsWith('C') ? 'Combo ' + t.name : 'Tisch ' + t.name;
-                        
-                        return `
+                    ${tables
+                        .map((t) => {
+                            const isAssigned = currentAssigned.includes(t.id);
+                            const isAvailable = check.success && check.tables.includes(t.id);
+                            const label = t.id.startsWith('C')
+                                ? 'Combo ' + t.name
+                                : 'Tisch ' + t.name;
+
+                            return `
                             <div class="table-opt" data-id="${t.id}" style="
                                 padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); 
                                 background: ${isAssigned ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'};
@@ -793,7 +979,8 @@ window.assignTable = async (id) => {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+                        })
+                        .join('')}
                 </div>
             </div>
 
@@ -807,7 +994,7 @@ window.assignTable = async (id) => {
     document.body.appendChild(modal);
 
     const selectedIds = new Set(currentAssigned);
-    modal.querySelectorAll('.table-opt').forEach(opt => {
+    modal.querySelectorAll('.table-opt').forEach((opt) => {
         opt.onclick = () => {
             const id = opt.dataset.id;
             const indicator = opt.querySelector('.opt-indicator');
@@ -820,18 +1007,23 @@ window.assignTable = async (id) => {
                 selectedIds.add(id);
                 opt.style.background = 'rgba(99,102,241,0.2)';
                 opt.style.borderColor = 'var(--primary)';
-                indicator.innerHTML = '<i class="fas fa-check-circle" style="color:var(--primary);"></i>';
+                indicator.innerHTML =
+                    '<i class="fas fa-check-circle" style="color:var(--primary);"></i>';
             }
         };
     });
 
     modal.querySelector('#assign-cancel').onclick = () => modal.remove();
     modal.querySelector('#assign-save').onclick = async () => {
-        const result = await apiPut(`reservations/${res.id}`, { assigned_tables: Array.from(selectedIds) });
+        const result = await apiPut(`reservations/${res.id}`, {
+            assigned_tables: Array.from(selectedIds),
+        });
         if (result.success) {
             showToast('Tische erfolgreich zugewiesen.');
             modal.remove();
-            const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.nav-subitem.active');
+            const activeItem =
+                document.querySelector('.nav-item.active') ||
+                document.querySelector('.nav-subitem.active');
             if (activeItem) activeItem.click();
         }
     };
@@ -840,19 +1032,32 @@ window.assignTable = async (id) => {
 function exportArchiveCSV() {
     const resRaw = window._archiveData || [];
     if (!resRaw.length) return showToast('Keine Daten zum Exportieren.', 'warning');
-    
-    const headers = ['Name', 'E-Mail', 'Telefon', 'Datum', 'Uhrzeit', 'Personen', 'Status', 'Notiz'];
-    const rows = resRaw.map(r => [
-        r.name || '',
-        r.email || '',
-        r.phone || '',
-        r.date || '',
-        r.start_time || '',
-        r.guests || '',
-        r.status || '',
-        (r.note || '').replace(/\n/g, ' ')
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'));
-    
+
+    const headers = [
+        'Name',
+        'E-Mail',
+        'Telefon',
+        'Datum',
+        'Uhrzeit',
+        'Personen',
+        'Status',
+        'Notiz',
+    ];
+    const rows = resRaw.map((r) =>
+        [
+            r.name || '',
+            r.email || '',
+            r.phone || '',
+            r.date || '',
+            r.start_time || '',
+            r.guests || '',
+            r.status || '',
+            (r.note || '').replace(/\n/g, ' '),
+        ]
+            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+            .join(';')
+    );
+
     const csv = [headers.join(';'), ...rows].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -862,4 +1067,3 @@ function exportArchiveCSV() {
     a.click();
     URL.revokeObjectURL(url);
 }
-

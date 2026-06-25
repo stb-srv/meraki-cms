@@ -5,7 +5,12 @@
 import { checkAuth, login, logout } from './modules/auth.js';
 import { apiGet } from './modules/api.js';
 import { NAV_CONFIG } from './modules/navigation-config.js';
-import { initTrialOnboarding, showTrialBanner, initUpgradeModal, showTrialExpiredLock } from './modules/trial.js';
+import {
+    initTrialOnboarding,
+    showTrialBanner,
+    initUpgradeModal,
+    showTrialExpiredLock,
+} from './modules/trial.js';
 import { showToast } from './modules/utils.js';
 import { renderDashboard } from './modules/dashboard.js';
 import { renderMenu } from './modules/menu.js';
@@ -31,9 +36,9 @@ import { enhanceTables } from './modules/responsive-tables.js';
 // One-time migration of legacy storage keys from opa_* → meraki_*
 (function migrateLegacyKeys() {
     const keys = [
-        ['sessionStorage', 'opa_admin_token',  'meraki_admin_token'],
-        ['localStorage',   'opa_license_key',  'meraki_license_key'],
-        ['sessionStorage', 'opa_nav_recent',   'meraki_nav_recent'],
+        ['sessionStorage', 'opa_admin_token', 'meraki_admin_token'],
+        ['localStorage', 'opa_license_key', 'meraki_license_key'],
+        ['sessionStorage', 'opa_nav_recent', 'meraki_nav_recent'],
     ];
     for (const [store, oldKey, newKey] of keys) {
         // Identity-Mappings nie verarbeiten – sonst würde der aktive Wert
@@ -46,13 +51,13 @@ import { enhanceTables } from './modules/responsive-tables.js';
     }
 })();
 
-const loginContainer    = document.getElementById('login-container');
-const adminDashboard    = document.getElementById('admin-dashboard');
-const loginForm         = document.getElementById('login-form');
-const logoutBtn         = document.getElementById('btn-logout');
-const contentView       = document.getElementById('content-view');
-const viewTitle         = document.getElementById('view-title');
-const dashboardToolbar  = document.getElementById('dashboard-toolbar');
+const loginContainer = document.getElementById('login-container');
+const adminDashboard = document.getElementById('admin-dashboard');
+const loginForm = document.getElementById('login-form');
+const logoutBtn = document.getElementById('btn-logout');
+const contentView = document.getElementById('content-view');
+const viewTitle = document.getElementById('view-title');
+const dashboardToolbar = document.getElementById('dashboard-toolbar');
 
 let currentView = 'stats';
 let tokenExpiryTimer = null;
@@ -64,11 +69,14 @@ function scheduleTokenExpiryWarning() {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (!payload.exp) return;
-        const expiresInMs = (payload.exp * 1000) - Date.now();
-        const warnMs = expiresInMs - (5 * 60 * 1000);
+        const expiresInMs = payload.exp * 1000 - Date.now();
+        const warnMs = expiresInMs - 5 * 60 * 1000;
         if (warnMs > 0) {
             tokenExpiryTimer = setTimeout(() => {
-                showToast('Ihre Sitzung läuft in 5 Minuten ab. Bitte speichern Sie Ihre Arbeit.', 'warning');
+                showToast(
+                    'Ihre Sitzung läuft in 5 Minuten ab. Bitte speichern Sie Ihre Arbeit.',
+                    'warning'
+                );
             }, warnMs);
         }
     } catch (e) {}
@@ -79,15 +87,17 @@ function scheduleTokenExpiryWarning() {
  */
 function buildInitialsAvatar(name) {
     const parts = name.trim().split(/\s+/);
-    const initials = parts.length >= 2
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : name.slice(0, 2).toUpperCase();
-    const colors = ['#2b6cb0','#276749','#744210','#702459','#553c9a','#2c7a7b','#9b2c2c'];
+    const initials =
+        parts.length >= 2
+            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+            : name.slice(0, 2).toUpperCase();
+    const colors = ['#2b6cb0', '#276749', '#744210', '#702459', '#553c9a', '#2c7a7b', '#9b2c2c'];
     const bg = colors[name.charCodeAt(0) % colors.length];
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">`
-        + `<circle cx="18" cy="18" r="18" fill="${bg}"/>`
-        + `<text x="18" y="23" text-anchor="middle" font-size="14" font-family="sans-serif" fill="#fff" font-weight="600">${initials}</text>`
-        + `</svg>`;
+    const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">` +
+        `<circle cx="18" cy="18" r="18" fill="${bg}"/>` +
+        `<text x="18" y="23" text-anchor="middle" font-size="14" font-family="sans-serif" fill="#fff" font-weight="600">${initials}</text>` +
+        `</svg>`;
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
@@ -98,9 +108,9 @@ function applyUserFromToken() {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const name = payload.name || payload.user || payload.sub || 'Admin';
-        const nameEl   = document.getElementById('disp-user-name');
+        const nameEl = document.getElementById('disp-user-name');
         const avatarEl = document.getElementById('disp-user-avatar');
-        if (nameEl)   nameEl.textContent = name;
+        if (nameEl) nameEl.textContent = name;
         if (avatarEl) avatarEl.src = buildInitialsAvatar(name);
     } catch (e) {}
 }
@@ -159,14 +169,15 @@ async function init() {
 
     // ── Sidebar Collapse ──────────────────────────────────
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
-    const cmsSidebarEl     = document.getElementById('cms-sidebar');
+    const cmsSidebarEl = document.getElementById('cms-sidebar');
     if (sidebarToggleBtn && cmsSidebarEl) {
         sidebarToggleBtn.addEventListener('click', () => {
             const isCollapsed = cmsSidebarEl.classList.toggle('collapsed');
-            sidebarToggleBtn.setAttribute('aria-label',
-                isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen');
-            sidebarToggleBtn.setAttribute('title',
-                isCollapsed ? 'Ausklappen' : 'Einklappen');
+            sidebarToggleBtn.setAttribute(
+                'aria-label',
+                isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'
+            );
+            sidebarToggleBtn.setAttribute('title', isCollapsed ? 'Ausklappen' : 'Einklappen');
         });
     }
 
@@ -175,18 +186,25 @@ async function init() {
     const metaThemeColor = document.getElementById('meta-theme-color');
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
-        if (metaThemeColor) metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1B3A5C');
+        if (metaThemeColor)
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1B3A5C');
         if (themeToggleBtn) {
             const icon = themeToggleBtn.querySelector('i');
             if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            themeToggleBtn.setAttribute('title', theme === 'dark' ? 'Zu Hell wechseln' : 'Zu Dunkel wechseln');
+            themeToggleBtn.setAttribute(
+                'title',
+                theme === 'dark' ? 'Zu Hell wechseln' : 'Zu Dunkel wechseln'
+            );
         }
     };
     applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            try { localStorage.setItem('meraki_theme', next); } catch (e) {}
+            const next =
+                document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            try {
+                localStorage.setItem('meraki_theme', next);
+            } catch (e) {}
             applyTheme(next);
         });
     }
@@ -211,8 +229,9 @@ async function init() {
 
     const branding = await apiGet('branding');
     if (branding) {
-        document.getElementById('disp-res-name').textContent    = branding.name   || 'Meraki';
-        document.getElementById('disp-res-slogan').textContent  = branding.slogan || 'Restaurant Management';
+        document.getElementById('disp-res-name').textContent = branding.name || 'Meraki';
+        document.getElementById('disp-res-slogan').textContent =
+            branding.slogan || 'Restaurant Management';
         if (branding.name) document.title = branding.name + ' CMS';
 
         const cmsLogoEl = document.getElementById('cms-header-logo');
@@ -232,7 +251,7 @@ async function init() {
         }
     }
 
-    const settings = await apiGet('settings') || {};
+    const settings = (await apiGet('settings')) || {};
     updateSidebarVisibility(settings);
 
     try {
@@ -246,25 +265,25 @@ async function init() {
             }
         }
         if (licInfo?.type) {
-            const badge    = document.getElementById('license-badge');
+            const badge = document.getElementById('license-badge');
             const badgeTxt = document.getElementById('license-badge-text');
             if (badge && badgeTxt) {
-                const isTrial  = licInfo.type === 'TRIAL';
+                const isTrial = licInfo.type === 'TRIAL';
                 const daysLeft = licInfo.expires_at
                     ? Math.ceil((new Date(licInfo.expires_at) - Date.now()) / 86400000)
                     : null;
                 badgeTxt.textContent = isTrial
                     ? `TRIAL · ${daysLeft != null ? daysLeft + ' Tage' : 'aktiv'}`
                     : licInfo.plan_label || licInfo.type;
-                badge.style.display     = 'flex';
-                badge.style.alignItems  = 'center';
-                badge.style.background  = isTrial ? '#fef3c7' : '#f0fdf4';
-                badge.style.color       = isTrial ? '#92400e' : '#166534';
+                badge.style.display = 'flex';
+                badge.style.alignItems = 'center';
+                badge.style.background = isTrial ? '#fef3c7' : '#f0fdf4';
+                badge.style.color = isTrial ? '#92400e' : '#166534';
                 badge.style.borderColor = isTrial ? '#fcd34d' : '#86efac';
                 badge.title = `Plan: ${licInfo.plan_label || licInfo.type}`;
             }
         }
-    } catch(e) {}
+    } catch (e) {}
     initUpgradeModal();
 
     initRealtime();
@@ -279,18 +298,20 @@ export function updateSidebarVisibility(settings) {
     const isModuleActive = (key, legacyKey) => {
         if (enabled[key] !== undefined) return enabled[key] !== false;
         if (legacyKey && legacy[legacyKey] !== undefined) return legacy[legacyKey] !== false;
-        return true; 
+        return true;
     };
 
     // Orders Group
     const ordersGroup = document.getElementById('nav-orders-group');
-    if (ordersGroup) ordersGroup.style.display = isModuleActive('orders_kitchen', 'orders') ? '' : 'none';
+    if (ordersGroup)
+        ordersGroup.style.display = isModuleActive('orders_kitchen', 'orders') ? '' : 'none';
 
     // Reservations Group
     const resHeader = document.querySelector('.nav-group-header[data-view="reservations"]');
     if (resHeader) {
         const resGroup = resHeader.closest('.nav-group');
-        if (resGroup) resGroup.style.display = isModuleActive('reservations', 'reservations') ? '' : 'none';
+        if (resGroup)
+            resGroup.style.display = isModuleActive('reservations', 'reservations') ? '' : 'none';
     }
 
     // Individual module items
@@ -299,14 +320,18 @@ export function updateSidebarVisibility(settings) {
         if (el) el.style.display = active ? '' : 'none';
     };
 
-    toggleItem('.nav-subitem[data-view="menu"][data-tab="daily"]', isModuleActive('daily_specials', 'dailySpecialsEnabled'));
+    toggleItem(
+        '.nav-subitem[data-view="menu"][data-tab="daily"]',
+        isModuleActive('daily_specials', 'dailySpecialsEnabled')
+    );
     toggleItem('.nav-subitem[data-view="table-planner"]', isModuleActive('table_planner'));
     toggleItem('.nav-subitem[data-view="qrcodes"]', isModuleActive('qrcodes'));
     toggleItem('.nav-subitem[data-view="shifts"]', isModuleActive('shifts'));
     toggleItem('.nav-subitem[data-view="backup"]', isModuleActive('backup'));
-    
+
     const kitchenDisplay = document.querySelector('.nav-subitem[onclick*="kitchen.html"]');
-    if (kitchenDisplay) kitchenDisplay.style.display = isModuleActive('kitchen_display') ? '' : 'none';
+    if (kitchenDisplay)
+        kitchenDisplay.style.display = isModuleActive('kitchen_display') ? '' : 'none';
 }
 
 /**
@@ -318,21 +343,34 @@ export function updateSidebarVisibility(settings) {
  */
 function setActiveNavItem(view, tab) {
     // Alle aktiven Klassen entfernen
-    document.querySelectorAll('.nav-item, .nav-subitem').forEach(el => el.classList.remove('active'));
+    document
+        .querySelectorAll('.nav-item, .nav-subitem')
+        .forEach((el) => el.classList.remove('active'));
 
     // 1. Exakter Match: view + tab
     if (tab) {
-        const exact = document.querySelector(`.nav-subitem[data-view="${view}"][data-tab="${tab}"]`);
-        if (exact) { exact.classList.add('active'); return; }
+        const exact = document.querySelector(
+            `.nav-subitem[data-view="${view}"][data-tab="${tab}"]`
+        );
+        if (exact) {
+            exact.classList.add('active');
+            return;
+        }
     }
 
     // 2. Sub-item mit view aber ohne tab (z.B. erster Eintrag einer Gruppe)
     const noTab = document.querySelector(`.nav-subitem[data-view="${view}"]:not([data-tab])`);
-    if (noTab) { noTab.classList.add('active'); return; }
+    if (noTab) {
+        noTab.classList.add('active');
+        return;
+    }
 
     // 3. Fallback auf erstes passendes sub-item mit diesem view
     const first = document.querySelector(`.nav-subitem[data-view="${view}"]`);
-    if (first) { first.classList.add('active'); return; }
+    if (first) {
+        first.classList.add('active');
+        return;
+    }
 
     // 4. Direkt-Link (nav-item)
     const navItem = document.querySelector(`.nav-item[data-view="${view}"]`);
@@ -341,10 +379,9 @@ function setActiveNavItem(view, tab) {
 
 function getBreadcrumb(view, tab) {
     for (const group of NAV_CONFIG) {
-        const items = group.items
-            || (group.sections || []).flatMap(s => s.items);
-        const match = items.find(i =>
-            i.view === view && (tab ? i.tab === tab : !i.tab || i.view === view)
+        const items = group.items || (group.sections || []).flatMap((s) => s.items);
+        const match = items.find(
+            (i) => i.view === view && (tab ? i.tab === tab : !i.tab || i.view === view)
         );
         if (match) return [group.label, match.label];
     }
@@ -359,11 +396,14 @@ async function switchView(view, tab = null) {
     const trail = getBreadcrumb(view, tab);
     const trailEl = document.getElementById('breadcrumb-trail');
     if (trailEl && trail) {
-        trailEl.innerHTML = trail.filter(Boolean).map((crumb, i) =>
-            i < trail.length - 1
-                ? `<i class="fas fa-chevron-right" style="font-size:.6rem; opacity:.4; margin:0 6px;"></i><span class="breadcrumb-crumb">${crumb}</span>`
-                : `<i class="fas fa-chevron-right" style="font-size:.6rem; opacity:.4; margin:0 6px;"></i><span class="breadcrumb-crumb breadcrumb-crumb--active">${crumb}</span>`
-        ).join('');
+        trailEl.innerHTML = trail
+            .filter(Boolean)
+            .map((crumb, i) =>
+                i < trail.length - 1
+                    ? `<i class="fas fa-chevron-right" style="font-size:.6rem; opacity:.4; margin:0 6px;"></i><span class="breadcrumb-crumb">${crumb}</span>`
+                    : `<i class="fas fa-chevron-right" style="font-size:.6rem; opacity:.4; margin:0 6px;"></i><span class="breadcrumb-crumb breadcrumb-crumb--active">${crumb}</span>`
+            )
+            .join('');
     }
 
     switch (view) {
@@ -385,12 +425,15 @@ async function switchView(view, tab = null) {
         case 'tables':
             if (tab === 'qrcodes') {
                 viewTitle.innerHTML = '<i class="fas fa-qrcode"></i> QR-Codes';
-                contentView.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);"></i><p style="margin-top:12px;color:var(--text-muted);">QR-Modul wird geladen...</p></div>';
+                contentView.innerHTML =
+                    '<div style="padding:40px;text-align:center;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);"></i><p style="margin-top:12px;color:var(--text-muted);">QR-Modul wird geladen...</p></div>';
                 let attempts = 0;
                 const tryRender = () => {
                     if (window.AdminQR) window.AdminQR.render(contentView, viewTitle);
                     else if (attempts++ < 10) setTimeout(tryRender, 300);
-                    else contentView.innerHTML = '<div class="glass-panel" style="padding:40px;text-align:center;"><p style="color:#ef4444;">QR-Modul konnte nicht geladen werden. Bitte Seite neu laden.</p></div>';
+                    else
+                        contentView.innerHTML =
+                            '<div class="glass-panel" style="padding:40px;text-align:center;"><p style="color:#ef4444;">QR-Modul konnte nicht geladen werden. Bitte Seite neu laden.</p></div>';
                 };
                 tryRender();
             } else {
@@ -414,7 +457,11 @@ async function switchView(view, tab = null) {
             contentView.innerHTML = '<div id="order-settings-root"></div>';
             await initOrderSettings(
                 document.getElementById('order-settings-root'),
-                { get: (path) => apiGet(path), post: (path, body) => import('./modules/api.js').then(m => m.apiPost(path, body)) },
+                {
+                    get: (path) => apiGet(path),
+                    post: (path, body) =>
+                        import('./modules/api.js').then((m) => m.apiPost(path, body)),
+                },
                 await apiGet('license/info')
             );
             break;
@@ -432,12 +479,15 @@ async function switchView(view, tab = null) {
             break;
         case 'qrcodes': {
             viewTitle.innerHTML = '<i class="fas fa-qrcode"></i> QR-Codes';
-            contentView.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);"></i><p style="margin-top:12px;color:var(--text-muted);">QR-Modul wird geladen...</p></div>';
+            contentView.innerHTML =
+                '<div style="padding:40px;text-align:center;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);"></i><p style="margin-top:12px;color:var(--text-muted);">QR-Modul wird geladen...</p></div>';
             let attempts = 0;
             const tryRender = () => {
                 if (window.AdminQR) window.AdminQR.render(contentView, viewTitle);
                 else if (attempts++ < 10) setTimeout(tryRender, 300);
-                else contentView.innerHTML = '<div class="glass-panel" style="padding:40px;text-align:center;"><p style="color:#ef4444;">QR-Modul konnte nicht geladen werden. Bitte Seite neu laden.</p></div>';
+                else
+                    contentView.innerHTML =
+                        '<div class="glass-panel" style="padding:40px;text-align:center;"><p style="color:#ef4444;">QR-Modul konnte nicht geladen werden. Bitte Seite neu laden.</p></div>';
             };
             tryRender();
             break;
@@ -465,11 +515,17 @@ if (loginForm) {
         e.preventDefault();
         const btn = loginForm.querySelector('button[type="submit"]');
         const origText = btn ? btn.innerHTML : null;
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Anmelden...'; }
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Anmelden...';
+        }
 
         const res = await login(loginForm.username.value, loginForm.password.value);
 
-        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
 
         if (res.success) {
             init();
@@ -479,9 +535,9 @@ if (loginForm) {
     };
 
     const linkForgot = document.getElementById('link-forgot-pass');
-    const linkBack   = document.getElementById('link-back-login');
+    const linkBack = document.getElementById('link-back-login');
     const forgotContainer = document.getElementById('forgot-password-container');
-    const forgotForm      = document.getElementById('forgot-password-form');
+    const forgotForm = document.getElementById('forgot-password-form');
 
     if (linkForgot) {
         linkForgot.onclick = (e) => {
@@ -503,14 +559,17 @@ if (loginForm) {
         forgotForm.onsubmit = async (e) => {
             e.preventDefault();
             const user = document.getElementById('forgot-username').value;
-            const btn  = document.getElementById('btn-forgot-submit');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Sende...'; }
+            const btn = document.getElementById('btn-forgot-submit');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Sende...';
+            }
 
             try {
-                const res  = await fetch('/api/admin/forgot-password', {
+                const res = await fetch('/api/admin/forgot-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user })
+                    body: JSON.stringify({ user }),
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -518,15 +577,24 @@ if (loginForm) {
                     setTimeout(() => {
                         if (forgotContainer) forgotContainer.style.display = 'none';
                         document.getElementById('login-container').style.display = 'flex';
-                        if (btn) { btn.disabled = false; btn.innerHTML = 'Neues Passwort anfordern'; }
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Neues Passwort anfordern';
+                        }
                     }, 2000);
                 } else {
                     showToast(data.reason || 'Fehler beim Senden', 'error');
-                    if (btn) { btn.disabled = false; btn.innerHTML = 'Neues Passwort anfordern'; }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Neues Passwort anfordern';
+                    }
                 }
             } catch (err) {
                 showToast('Verbindungsfehler', 'error');
-                if (btn) { btn.disabled = false; btn.innerHTML = 'Neues Passwort anfordern'; }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Neues Passwort anfordern';
+                }
             }
         };
     }
@@ -537,14 +605,15 @@ if (pwdChangeForm) {
     pwdChangeForm.onsubmit = async (e) => {
         e.preventDefault();
         const newPassword = document.getElementById('new-password').value;
-        if (newPassword.length < 6) return showToast('Passwort muss mind. 6 Zeichen haben.', 'error');
+        if (newPassword.length < 6)
+            return showToast('Passwort muss mind. 6 Zeichen haben.', 'error');
 
         try {
             const token = sessionStorage.getItem('meraki_admin_token');
-            const res   = await fetch('/api/admin/change-password', {
+            const res = await fetch('/api/admin/change-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-                body: JSON.stringify({ newPassword })
+                body: JSON.stringify({ newPassword }),
             });
             const data = await res.json();
             if (data.success && data.token) {
@@ -564,24 +633,24 @@ if (pwdChangeForm) {
 if (logoutBtn) logoutBtn.onclick = () => logout();
 
 // ── Sidebar-Gruppen: mehrere gleichzeitig offen, manuell schließbar ──
-document.querySelectorAll('.nav-group-header').forEach(header => {
+document.querySelectorAll('.nav-group-header').forEach((header) => {
     header.addEventListener('click', (e) => {
         e.preventDefault();
         const group = header.closest('.nav-group');
         group.classList.toggle('open');
         const view = header.dataset.view;
-        const tab  = header.dataset.tab || null;
+        const tab = header.dataset.tab || null;
         if (view) switchView(view, tab);
     });
 });
 
 // ── Sub-Items ──
-document.querySelectorAll('.nav-subitem:not(.nav-subitem--group-label)').forEach(item => {
+document.querySelectorAll('.nav-subitem:not(.nav-subitem--group-label)').forEach((item) => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         const view = item.dataset.view;
-        const tab  = item.dataset.tab || null;
+        const tab = item.dataset.tab || null;
         if (view) switchView(view, tab);
         document.getElementById('cms-sidebar')?.classList.remove('mobile-open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
@@ -589,11 +658,14 @@ document.querySelectorAll('.nav-subitem:not(.nav-subitem--group-label)').forEach
 });
 
 // ── Direkt-Links ──
-document.querySelectorAll('.nav-item:not(.nav-group-header)').forEach(item => {
+document.querySelectorAll('.nav-item:not(.nav-group-header)').forEach((item) => {
     item.addEventListener('click', (e) => {
         const view = item.dataset.view;
-        const tab  = item.dataset.tab || null;
-        if (view) { e.preventDefault(); switchView(view, tab); }
+        const tab = item.dataset.tab || null;
+        if (view) {
+            e.preventDefault();
+            switchView(view, tab);
+        }
         document.getElementById('cms-sidebar')?.classList.remove('mobile-open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
     });
@@ -601,7 +673,7 @@ document.querySelectorAll('.nav-item:not(.nav-group-header)').forEach(item => {
 
 // ── Aktive Gruppe beim Start aufklappen ──
 function ensureActiveGroupOpen() {
-    document.querySelectorAll('.nav-subitem.active, .nav-item.active').forEach(el => {
+    document.querySelectorAll('.nav-subitem.active, .nav-item.active').forEach((el) => {
         const group = el.closest('.nav-group');
         if (group) group.classList.add('open');
     });
@@ -611,18 +683,17 @@ function ensureActiveGroupOpen() {
 function buildSearchIndex() {
     const index = [];
     for (const group of NAV_CONFIG) {
-        const items = group.items
-            || (group.sections || []).flatMap(s => s.items);
+        const items = group.items || (group.sections || []).flatMap((s) => s.items);
         for (const item of items) {
             index.push({
-                label:       item.label,
+                label: item.label,
                 description: item.description || '',
-                keywords:    item.keywords || [],
-                group:       item.group || group.label || '',
-                view:        item.view,
-                tab:         item.tab || null,
-                external:    item.external || null,
-                icon:        item.icon
+                keywords: item.keywords || [],
+                group: item.group || group.label || '',
+                view: item.view,
+                tab: item.tab || null,
+                external: item.external || null,
+                icon: item.icon,
             });
         }
     }
@@ -634,15 +705,22 @@ const navSearchResults = document.getElementById('nav-search-results');
 
 // ── Fuzzy-Suche Hilfsfunktionen ──
 function _normalizeText(s) {
-    return s.toLowerCase()
-        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-        .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    return s
+        .toLowerCase()
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function _levenshtein(a, b) {
     if (Math.abs(a.length - b.length) > 2) return 99;
-    const m = a.length, n = b.length;
-    const dp = Array.from({length: m + 1}, (_, i) => i);
+    const m = a.length,
+        n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) => i);
     for (let j = 1; j <= n; j++) {
         let prev = j;
         for (let i = 1; i <= m; i++) {
@@ -670,21 +748,23 @@ function _fuzzyScore(query, item) {
 
     // Alle Query-Wörter müssen irgendwo matchen
     const qWords = q.split(' ').filter(Boolean);
-    const allMatch = qWords.every(w => haystack.includes(w));
+    const allMatch = qWords.every((w) => haystack.includes(w));
     if (allMatch) return 65;
 
     // Wortanfang-Match (Query-Wort startet Haystack-Wort)
     const hWords = haystack.split(' ').filter(Boolean);
-    const prefixMatch = qWords.every(qw =>
-        hWords.some(hw => hw.startsWith(qw) || qw.startsWith(hw.slice(0, Math.max(3, hw.length - 1))))
+    const prefixMatch = qWords.every((qw) =>
+        hWords.some(
+            (hw) => hw.startsWith(qw) || qw.startsWith(hw.slice(0, Math.max(3, hw.length - 1)))
+        )
     );
     if (prefixMatch) return 45;
 
     // Levenshtein ≤ 1 für Query-Wörter ≥ 4 Zeichen
-    const fuzzyMatch = qWords.filter(w => w.length >= 4).every(qw =>
-        hWords.some(hw => _levenshtein(qw, hw) <= 1)
-    );
-    if (fuzzyMatch && qWords.some(w => w.length >= 4)) return 25;
+    const fuzzyMatch = qWords
+        .filter((w) => w.length >= 4)
+        .every((qw) => hWords.some((hw) => _levenshtein(qw, hw) <= 1));
+    if (fuzzyMatch && qWords.some((w) => w.length >= 4)) return 25;
 
     return 0;
 }
@@ -692,12 +772,16 @@ function _fuzzyScore(query, item) {
 // ── Zuletzt besucht (sessionStorage) ──
 const _RECENT_KEY = 'meraki_nav_recent';
 function _getRecent() {
-    try { return JSON.parse(sessionStorage.getItem(_RECENT_KEY) || '[]'); } catch { return []; }
+    try {
+        return JSON.parse(sessionStorage.getItem(_RECENT_KEY) || '[]');
+    } catch {
+        return [];
+    }
 }
 function _addRecent(view, tab) {
     if (!view) return;
     const key = view + (tab ? '/' + tab : '');
-    const list = _getRecent().filter(k => k !== key);
+    const list = _getRecent().filter((k) => k !== key);
     list.unshift(key);
     sessionStorage.setItem(_RECENT_KEY, JSON.stringify(list.slice(0, 5)));
 }
@@ -715,19 +799,27 @@ function _renderResultItem(m) {
         </div>
     </li>`;
 }
-window._closeNavSearch = function() {
+window._closeNavSearch = function () {
     if (navSearch) navSearch.value = '';
     if (navSearchResults) navSearchResults.style.display = 'none';
 };
 
 function _showRecentItems() {
     const recent = _getRecent();
-    if (!recent.length) { navSearchResults.style.display = 'none'; return; }
-    const items = recent.map(key => {
-        const [v, t] = key.split('/');
-        return _searchIndex.find(i => i.view === v && (i.tab || null) === (t || null));
-    }).filter(Boolean);
-    if (!items.length) { navSearchResults.style.display = 'none'; return; }
+    if (!recent.length) {
+        navSearchResults.style.display = 'none';
+        return;
+    }
+    const items = recent
+        .map((key) => {
+            const [v, t] = key.split('/');
+            return _searchIndex.find((i) => i.view === v && (i.tab || null) === (t || null));
+        })
+        .filter(Boolean);
+    if (!items.length) {
+        navSearchResults.style.display = 'none';
+        return;
+    }
     navSearchResults.innerHTML =
         `<li class="nav-search-no-result" style="font-size:.72rem; padding:8px 12px 4px; opacity:.55; pointer-events:none;">Zuletzt besucht</li>` +
         items.map(_renderResultItem).join('');
@@ -735,9 +827,12 @@ function _showRecentItems() {
 }
 
 function _runSearch(q) {
-    if (!q) { _showRecentItems(); return; }
+    if (!q) {
+        _showRecentItems();
+        return;
+    }
     const scored = _searchIndex
-        .map(item => ({ item, score: _fuzzyScore(q, item) }))
+        .map((item) => ({ item, score: _fuzzyScore(q, item) }))
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 8)
@@ -800,12 +895,11 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-
 // ── Mobile Hamburger ──
-const sidebarToggle  = document.getElementById('mobile-menu-toggle');
-const sidebarClose   = document.getElementById('sidebar-close');
+const sidebarToggle = document.getElementById('mobile-menu-toggle');
+const sidebarClose = document.getElementById('sidebar-close');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
-const sidebar        = document.getElementById('cms-sidebar');
+const sidebar = document.getElementById('cms-sidebar');
 
 sidebarToggle?.addEventListener('click', () => {
     sidebar?.classList.add('mobile-open');
@@ -831,18 +925,18 @@ if (contentView) {
 
 // ── Bestellungs-Badge live aktualisieren ──
 async function updateOrderBadge() {
-    if (!checkAuth()) return;   // Nur bei aktiver Sitzung – verhindert 401 (Orders-Fetch ohne Token) vor Login
+    if (!checkAuth()) return; // Nur bei aktiver Sitzung – verhindert 401 (Orders-Fetch ohne Token) vor Login
     try {
         const orders = await apiGet('orders');
-        const pending = (orders || []).filter(o =>
-            o.status === 'pending' || o.status === 'new'
+        const pending = (orders || []).filter(
+            (o) => o.status === 'pending' || o.status === 'new'
         ).length;
         const badge = document.getElementById('nav-orders-badge');
         if (badge) {
             badge.textContent = pending;
             badge.style.display = pending > 0 ? 'inline-flex' : 'none';
         }
-    } catch(e) {}
+    } catch (e) {}
 }
 
 updateOrderBadge();

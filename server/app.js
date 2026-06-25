@@ -1,64 +1,128 @@
 const express = require('express');
-const cors    = require('cors');
-const fs      = require('fs');
-const path    = require('path');
-const crypto  = require('crypto');
-const bcrypt  = require('bcryptjs');
-const helmet  = require('helmet');
-const logger  = require('./core/logger.js');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const helmet = require('helmet');
+const logger = require('./core/logger.js');
 
-const DB      = require('./db');
-const { requireAuth: makeRequireAuth, requireLicense, requireRole, generalLimiter } = require('./core/middleware.js');
+const DB = require('./db');
+const {
+    requireAuth: makeRequireAuth,
+    requireLicense,
+    requireRole,
+    generalLimiter,
+} = require('./core/middleware.js');
 const { PLAN_DEFINITIONS } = require('./services/license.js');
 const { version: APP_VERSION } = require('../package.json');
 
-module.exports = function(CONFIG, io) {
+module.exports = function (CONFIG, io) {
     const app = express();
     app.set('trust proxy', 1);
 
     const ADMIN_SECRET = CONFIG.ADMIN_SECRET;
-    const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
-    const UPLOADS_DIR  = path.join(__dirname, '..', 'uploads');
-    const PLUGINS_DIR  = path.join(__dirname, '..', 'plugins');
+    const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(
+        /\/+$/,
+        ''
+    );
+    const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+    const PLUGINS_DIR = path.join(__dirname, '..', 'plugins');
 
     const requireAuth = makeRequireAuth(ADMIN_SECRET);
 
     // Ensure required directories exist
-    [__dirname, UPLOADS_DIR, PLUGINS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+    [__dirname, UPLOADS_DIR, PLUGINS_DIR].forEach((d) => {
+        if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+    });
 
     try {
-        app.use(helmet({
-            contentSecurityPolicy: {
-                directives: {
-                    defaultSrc:      ["'self'"],
-                    scriptSrc:       ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net', 'https://js.puter.com'],
-                    scriptSrcAttr:   ["'unsafe-inline'"],
-                    styleSrc:        ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
-                    styleSrcAttr:    ["'unsafe-inline'"],
-                    fontSrc:         ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-                    imgSrc:          ["'self'", 'data:', 'blob:', 'https://maps.gstatic.com', 'https://maps.googleapis.com', 'https://ui-avatars.com', 'https://images.unsplash.com', 'https://images.pexels.com', 'https://*.puter.com'],
-                    connectSrc:      ["'self'", 'ws:', 'wss:', 'https://cdnjs.cloudflare.com', 'https://api.unsplash.com', 'https://api.pexels.com', 'https://generativelanguage.googleapis.com', 'https://licens-prod.stb-srv.de', 'https://api.puter.com', 'https://*.puter.com'],
-                    frameSrc:        ["'self'", 'https://maps.google.com', 'https://maps.googleapis.com', 'https://www.google.com', 'https://puter.com', 'https://*.puter.com'],
-                    objectSrc:       ["'none'"],
-                }
-            },
-            crossOriginEmbedderPolicy: false,
-        }));
+        app.use(
+            helmet({
+                contentSecurityPolicy: {
+                    directives: {
+                        defaultSrc: ["'self'"],
+                        scriptSrc: [
+                            "'self'",
+                            "'unsafe-inline'",
+                            "'unsafe-eval'",
+                            'https://cdnjs.cloudflare.com',
+                            'https://cdn.jsdelivr.net',
+                            'https://js.puter.com',
+                        ],
+                        scriptSrcAttr: ["'unsafe-inline'"],
+                        styleSrc: [
+                            "'self'",
+                            "'unsafe-inline'",
+                            'https://cdnjs.cloudflare.com',
+                            'https://fonts.googleapis.com',
+                        ],
+                        styleSrcAttr: ["'unsafe-inline'"],
+                        fontSrc: [
+                            "'self'",
+                            'data:',
+                            'https://cdnjs.cloudflare.com',
+                            'https://fonts.gstatic.com',
+                        ],
+                        imgSrc: [
+                            "'self'",
+                            'data:',
+                            'blob:',
+                            'https://maps.gstatic.com',
+                            'https://maps.googleapis.com',
+                            'https://ui-avatars.com',
+                            'https://images.unsplash.com',
+                            'https://images.pexels.com',
+                            'https://*.puter.com',
+                        ],
+                        connectSrc: [
+                            "'self'",
+                            'ws:',
+                            'wss:',
+                            'https://cdnjs.cloudflare.com',
+                            'https://api.unsplash.com',
+                            'https://api.pexels.com',
+                            'https://generativelanguage.googleapis.com',
+                            'https://licens-prod.stb-srv.de',
+                            'https://api.puter.com',
+                            'https://*.puter.com',
+                        ],
+                        frameSrc: [
+                            "'self'",
+                            'https://maps.google.com',
+                            'https://maps.googleapis.com',
+                            'https://www.google.com',
+                            'https://puter.com',
+                            'https://*.puter.com',
+                        ],
+                        objectSrc: ["'none'"],
+                    },
+                },
+                crossOriginEmbedderPolicy: false,
+            })
+        );
         logger.info('Helmet Security-Header aktiv.');
     } catch (e) {
         logger.warn('helmet nicht gefunden – Security-Header deaktiviert.');
     }
 
     const rawOrigins = CONFIG.CORS_ORIGINS || process.env.CORS_ORIGINS || '';
-    const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean) : ['http://localhost:3000', 'http://localhost:5000'];
-    app.use(cors({
-        origin: (origin, callback) => {
-            if (!CONFIG.SETUP_COMPLETE) return callback(null, true);
-            if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-            return callback(new Error(`CORS: Origin '${origin}' nicht erlaubt.`));
-        },
-        credentials: true
-    }));
+    const allowedOrigins = rawOrigins
+        ? rawOrigins
+              .split(',')
+              .map((o) => o.trim())
+              .filter(Boolean)
+        : ['http://localhost:3000', 'http://localhost:5000'];
+    app.use(
+        cors({
+            origin: (origin, callback) => {
+                if (!CONFIG.SETUP_COMPLETE) return callback(null, true);
+                if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+                return callback(new Error(`CORS: Origin '${origin}' nicht erlaubt.`));
+            },
+            credentials: true,
+        })
+    );
     app.use(express.json({ limit: '1mb' }));
 
     // General rate limiter — 300 req/min per IP across all API routes
@@ -70,14 +134,30 @@ module.exports = function(CONFIG, io) {
             const ms = Date.now() - start;
             // Redact JWT tokens that may appear in ?token= query param
             const safeUrl = req.originalUrl.replace(/([?&])token=[^&]*/g, '$1token=REDACTED');
-            logger.info({ method: req.method, url: safeUrl, status: res.statusCode, ms, ip: req.ip }, `${req.method} ${safeUrl} ${res.statusCode} (${ms}ms)`);
+            logger.info(
+                { method: req.method, url: safeUrl, status: res.statusCode, ms, ip: req.ip },
+                `${req.method} ${safeUrl} ${res.statusCode} (${ms}ms)`
+            );
         });
         next();
     });
 
     app.use((req, res, next) => {
-        if (CONFIG.SETUP_COMPLETE || req.path === '/api/setup' || req.path === '/api/setup/status' || req.path === '/api/setup/verify-token' || req.path === '/setup' || req.path.startsWith('/setup-assets')) return next();
-        if (req.path.startsWith('/api/')) return res.status(403).json({ success: false, reason: 'SETUP_REQUIRED', message: 'System must be configured first.' });
+        if (
+            CONFIG.SETUP_COMPLETE ||
+            req.path === '/api/setup' ||
+            req.path === '/api/setup/status' ||
+            req.path === '/api/setup/verify-token' ||
+            req.path === '/setup' ||
+            req.path.startsWith('/setup-assets')
+        )
+            return next();
+        if (req.path.startsWith('/api/'))
+            return res.status(403).json({
+                success: false,
+                reason: 'SETUP_REQUIRED',
+                message: 'System must be configured first.',
+            });
         res.redirect('/setup');
     });
 
@@ -88,82 +168,131 @@ module.exports = function(CONFIG, io) {
             version: APP_VERSION,
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            ...(failedPlugins.length > 0 && { failedPlugins })
+            ...(failedPlugins.length > 0 && { failedPlugins }),
         });
     });
     app.get('/api/version', (req, res) => res.json({ version: APP_VERSION }));
 
-    app.use('/api/admin',        require('./routes/auth.js')(ADMIN_SECRET));
-    app.use('/api/v1/setup',     require('./routes/setup.js'));
-    app.use('/api/users',        require('./routes/users.js')(requireAuth));
-    app.use('/api',              require('./routes/menu.js')(requireAuth, requireLicense));
-    app.use('/api/orders',       require('./routes/orders.js')(requireAuth, io));
+    app.use('/api/admin', require('./routes/auth.js')(ADMIN_SECRET));
+    app.use('/api/v1/setup', require('./routes/setup.js'));
+    app.use('/api/users', require('./routes/users.js')(requireAuth));
+    app.use('/api', require('./routes/menu.js')(requireAuth, requireLicense));
+    app.use('/api/orders', require('./routes/orders.js')(requireAuth, io));
     app.use('/api/reservations', require('./routes/reservations.js')(requireAuth, requireLicense));
-    app.use('/api',              require('./routes/tables.js')(requireAuth));
-    app.use('/api',              require('./routes/settings.js')(requireAuth, requireLicense, LICENSE_SERVER));
-    app.use('/api/upload',       require('./routes/upload.js')(requireAuth, UPLOADS_DIR));
-    app.use('/api',              require('./routes/cookie.js')(requireAuth));
-    app.use('/api',              require('./routes/feedback.js')(requireAuth));
-    app.use('/api/cart',         require('./routes/cart.js')(requireLicense, io));
-    app.use('/api/image-ai',     requireAuth, require('./routes/image-ai.js')(requireAuth, DB));
-    app.use('/api/backup',       require('./routes/backup.js')(requireAuth));
+    app.use('/api', require('./routes/tables.js')(requireAuth));
+    app.use('/api', require('./routes/settings.js')(requireAuth, requireLicense, LICENSE_SERVER));
+    app.use('/api/upload', require('./routes/upload.js')(requireAuth, UPLOADS_DIR));
+    app.use('/api', require('./routes/cookie.js')(requireAuth));
+    app.use('/api', require('./routes/feedback.js')(requireAuth));
+    app.use('/api/cart', require('./routes/cart.js')(requireLicense, io));
+    app.use('/api/image-ai', requireAuth, require('./routes/image-ai.js')(requireAuth, DB));
+    app.use('/api/backup', require('./routes/backup.js')(requireAuth));
 
     const getInstalledPlugins = () => {
         if (!fs.existsSync(PLUGINS_DIR)) return [];
-        return fs.readdirSync(PLUGINS_DIR)
-            .filter(f => fs.statSync(path.join(PLUGINS_DIR, f)).isDirectory())
-            .map(dir => { try { return JSON.parse(fs.readFileSync(path.join(PLUGINS_DIR, dir, 'plugin.json'))); } catch(e) { return null; } })
+        return fs
+            .readdirSync(PLUGINS_DIR)
+            .filter((f) => fs.statSync(path.join(PLUGINS_DIR, f)).isDirectory())
+            .map((dir) => {
+                try {
+                    return JSON.parse(fs.readFileSync(path.join(PLUGINS_DIR, dir, 'plugin.json')));
+                } catch (e) {
+                    return null;
+                }
+            })
             .filter(Boolean);
     };
 
     app.get('/api/plugins', requireAuth, async (req, res) => {
         try {
-            const installed  = getInstalledPlugins();
-            const dbPlugins  = await DB.getKV('plugins', []);
-            res.json(installed.map(p => { const dbP = dbPlugins.find(x => x.id === p.id); return { ...p, enabled: dbP ? dbP.enabled : false }; }));
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+            const installed = getInstalledPlugins();
+            const dbPlugins = await DB.getKV('plugins', []);
+            res.json(
+                installed.map((p) => {
+                    const dbP = dbPlugins.find((x) => x.id === p.id);
+                    return { ...p, enabled: dbP ? dbP.enabled : false };
+                })
+            );
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     app.post('/api/plugins/toggle', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             let dbPlugins = await DB.getKV('plugins', []);
             const { id, enabled } = req.body;
-            const idx = dbPlugins.findIndex(p => p.id === id);
-            if (idx > -1) dbPlugins[idx].enabled = enabled; else dbPlugins.push({ id, enabled });
+            const idx = dbPlugins.findIndex((p) => p.id === id);
+            if (idx > -1) dbPlugins[idx].enabled = enabled;
+            else dbPlugins.push({ id, enabled });
             await DB.setKV('plugins', dbPlugins);
             res.json({ success: true });
-        } catch(e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     app.post('/api/setup/verify-token', (req, res) => {
         if (CONFIG.SETUP_COMPLETE) return res.json({ valid: false, reason: 'Already configured' });
         const { token } = req.body;
-        if (!global._setupToken) return res.json({ valid: false, reason: 'Kein Setup-Token aktiv.' });
+        if (!global._setupToken)
+            return res.json({ valid: false, reason: 'Kein Setup-Token aktiv.' });
         res.json({ valid: token === global._setupToken });
     });
 
     app.post('/api/setup', async (req, res) => {
-        if (CONFIG.SETUP_COMPLETE) return res.status(403).json({ success: false, reason: 'Already configured' });
+        if (CONFIG.SETUP_COMPLETE)
+            return res.status(403).json({ success: false, reason: 'Already configured' });
 
-        const { setupToken, restaurantName, licenseKey, licenseServer, dbType, dbDetails, smtp, adminUser, adminPass, adminEmail, adminName, restaurant } = req.body;
+        const {
+            setupToken,
+            restaurantName,
+            licenseKey,
+            licenseServer,
+            dbType,
+            dbDetails,
+            smtp,
+            adminUser,
+            adminPass,
+            adminEmail,
+            adminName,
+            restaurant,
+        } = req.body;
 
         if (!global._setupToken || setupToken !== global._setupToken) {
-            return res.status(403).json({ success: false, reason: 'Ungültiger Setup-Token. Sieh in der Konsole nach.' });
+            return res.status(403).json({
+                success: false,
+                reason: 'Ungültiger Setup-Token. Sieh in der Konsole nach.',
+            });
         }
         try {
             if (!adminPass || adminPass.length < 12) {
-                return res.status(400).json({ success: false, reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.' });
+                return res.status(400).json({
+                    success: false,
+                    reason: 'Admin-Passwort ist erforderlich und muss mindestens 12 Zeichen lang sein.',
+                });
             }
-            const licenseServerUrl = (licenseServer || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
+            const licenseServerUrl = (licenseServer || 'https://licens-prod.stb-srv.de').replace(
+                /\/+$/,
+                ''
+            );
             const trialPlan = PLAN_DEFINITIONS['FREE'];
             const r = restaurant || {};
             const customerName = r.name || restaurantName || 'Trial';
             const trialLicense = {
-                key: 'MERAKI-TRIAL-' + crypto.randomBytes(4).toString('hex').toUpperCase() + '-' + new Date().getFullYear(),
-                status: 'trial', customer: customerName, type: 'FREE', label: trialPlan.label,
+                key:
+                    'MERAKI-TRIAL-' +
+                    crypto.randomBytes(4).toString('hex').toUpperCase() +
+                    '-' +
+                    new Date().getFullYear(),
+                status: 'trial',
+                customer: customerName,
+                type: 'FREE',
+                label: trialPlan.label,
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                modules: trialPlan.modules, limits: { max_dishes: trialPlan.menu_items, max_tables: trialPlan.max_tables },
-                isTrial: true
+                modules: trialPlan.modules,
+                limits: { max_dishes: trialPlan.menu_items, max_tables: trialPlan.max_tables },
+                isTrial: true,
             };
 
             const selectedDbType = (dbType || 'sqlite').toLowerCase();
@@ -172,7 +301,7 @@ module.exports = function(CONFIG, io) {
                 ADMIN_SECRET: crypto.randomBytes(32).toString('hex'),
                 SMTP: smtp || {},
                 DB_TYPE: selectedDbType,
-                SETUP_COMPLETE: true
+                SETUP_COMPLETE: true,
             };
             if (selectedDbType === 'mysql' && dbDetails) {
                 newConfig.DB_HOST = dbDetails.host || 'localhost';
@@ -206,7 +335,8 @@ module.exports = function(CONFIG, io) {
 
             const finalAdminUser = adminUser || 'admin';
             const hash = await bcrypt.hash(adminPass, 12);
-            const plainRecoveryCodes = [], hashedCodes = [];
+            const plainRecoveryCodes = [],
+                hashedCodes = [];
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             for (let i = 0; i < 3; i++) {
                 let code = 'MERAKI-';
@@ -217,20 +347,26 @@ module.exports = function(CONFIG, io) {
                 hashedCodes.push(await bcrypt.hash(code, 12));
             }
             await DB.addUser({
-                user: finalAdminUser, pass: hash,
-                name: adminName || 'Administrator', last_name: '',
-                email: adminEmail || '', role: 'admin',
-                require_password_change: 0, recovery_codes: hashedCodes
+                user: finalAdminUser,
+                pass: hash,
+                name: adminName || 'Administrator',
+                last_name: '',
+                email: adminEmail || '',
+                role: 'admin',
+                require_password_change: 0,
+                recovery_codes: hashedCodes,
             });
 
             global._setupToken = null;
             res.json({
                 success: true,
-                trial: licenseKey ? { key: licenseKey.trim(), status: 'pending_validation' } : trialLicense,
+                trial: licenseKey
+                    ? { key: licenseKey.trim(), status: 'pending_validation' }
+                    : trialLicense,
                 message: 'Setup abgeschlossen.',
                 recovery_codes: plainRecoveryCodes,
                 adminUser: finalAdminUser,
-                needsRestart: selectedDbType === 'mysql'
+                needsRestart: selectedDbType === 'mysql',
             });
         } catch (e) {
             logger.error({ err: e }, 'Setup error');
@@ -246,27 +382,38 @@ module.exports = function(CONFIG, io) {
                 if (settings.license && settings.license.key) licenseKey = settings.license.key;
             }
             res.json({ setupComplete: CONFIG.SETUP_COMPLETE, licenseKey });
-        } catch (e) { res.json({ setupComplete: CONFIG.SETUP_COMPLETE, licenseKey: null }); }
+        } catch (e) {
+            res.json({ setupComplete: CONFIG.SETUP_COMPLETE, licenseKey: null });
+        }
     });
-    
+
     app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'cms', 'setup.html')));
 
     app.use('/plugins', express.static(PLUGINS_DIR));
-    app.use('/uploads', (req, res, next) => {
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Content-Security-Policy', "default-src 'none'");
-        res.setHeader('X-Frame-Options', 'DENY');
-        next();
-    }, express.static(UPLOADS_DIR));
+    app.use(
+        '/uploads',
+        (req, res, next) => {
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('Content-Security-Policy', "default-src 'none'");
+            res.setHeader('X-Frame-Options', 'DENY');
+            next();
+        },
+        express.static(UPLOADS_DIR)
+    );
 
-    app.use('/admin',   express.static(path.join(__dirname, '..', 'cms')));
-    app.use('/',        express.static(path.join(__dirname, '..', 'menu-app')));
-    app.use('/',        express.static(path.join(__dirname, '..', 'public')));
-    app.get('/status',  (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'status.html')));
+    app.use('/admin', express.static(path.join(__dirname, '..', 'cms')));
+    app.use('/', express.static(path.join(__dirname, '..', 'menu-app')));
+    app.use('/', express.static(path.join(__dirname, '..', 'public')));
+    app.get('/status', (req, res) =>
+        res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
+    );
 
     app.use((err, req, res, next) => {
         logger.error({ err, url: req.originalUrl, method: req.method }, 'Unhandled Server Error');
-        res.status(err.status || 500).json({ success: false, reason: err.message || 'Interner Serverfehler.' });
+        res.status(err.status || 500).json({
+            success: false,
+            reason: err.message || 'Interner Serverfehler.',
+        });
     });
 
     return app;

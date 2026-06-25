@@ -6,8 +6,8 @@
 import { apiGet } from './api.js';
 import { showToast } from './utils.js';
 
-let kbDate = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
-let kbMode = 'day';                                    // 'day' | 'month'
+let kbDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+let kbMode = 'day'; // 'day' | 'month'
 
 const TYPE_LABELS = { dine_in: 'Vor Ort', pickup: 'Abholung', delivery: 'Lieferung' };
 const fmt = (n) => (parseFloat(n) || 0).toFixed(2) + ' €';
@@ -31,32 +31,51 @@ export async function renderKassenbuch(container, titleEl) {
     const draw = () => {
         const sel = orders.filter(inSelectedRange);
         // Nur abgeschlossene/bezahlte Umsätze zählen (storniert ausschließen)
-        const counted = sel.filter(o => !['cancelled', 'canceled', 'storniert', 'rejected'].includes(String(o.status || '').toLowerCase()));
+        const counted = sel.filter(
+            (o) =>
+                !['cancelled', 'canceled', 'storniert', 'rejected'].includes(
+                    String(o.status || '').toLowerCase()
+                )
+        );
         const revenue = counted.reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
         const count = counted.length;
         const avg = count ? revenue / count : 0;
 
         // Aufschlüsselung nach Typ
         const byType = {};
-        counted.forEach(o => {
+        counted.forEach((o) => {
             const t = o.type || 'dine_in';
             byType[t] = byType[t] || { count: 0, sum: 0 };
-            byType[t].count++; byType[t].sum += parseFloat(o.total) || 0;
+            byType[t].count++;
+            byType[t].sum += parseFloat(o.total) || 0;
         });
 
-        const periodLabel = kbMode === 'day'
-            ? new Date(kbDate).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
-            : new Date(kbDate).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+        const periodLabel =
+            kbMode === 'day'
+                ? new Date(kbDate).toLocaleDateString('de-DE', {
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                  })
+                : new Date(kbDate).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
 
-        const typeRows = Object.entries(byType).map(([t, v]) =>
-            `<div class="widget-list-row"><span>${TYPE_LABELS[t] || t} <small style="opacity:.5;">(${v.count})</small></span><strong>${fmt(v.sum)}</strong></div>`
-        ).join('') || '<div style="opacity:.5; padding:10px 0;">Keine Umsätze im Zeitraum.</div>';
+        const typeRows =
+            Object.entries(byType)
+                .map(
+                    ([t, v]) =>
+                        `<div class="widget-list-row"><span>${TYPE_LABELS[t] || t} <small style="opacity:.5;">(${v.count})</small></span><strong>${fmt(v.sum)}</strong></div>`
+                )
+                .join('') ||
+            '<div style="opacity:.5; padding:10px 0;">Keine Umsätze im Zeitraum.</div>';
 
         const orderRows = counted
             .sort((a, b) => (orderDate(a) || 0) - (orderDate(b) || 0))
-            .map(o => {
+            .map((o) => {
                 const d = orderDate(o);
-                const time = d ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '--';
+                const time = d
+                    ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                    : '--';
                 const dateStr = d ? d.toLocaleDateString('de-DE') : '';
                 return `<tr>
                     <td data-label="Zeit">${kbMode === 'month' ? dateStr + ' ' : ''}${time}</td>
@@ -65,7 +84,8 @@ export async function renderKassenbuch(container, titleEl) {
                     <td data-label="Tisch/Kunde">${o.table_name || o.customerName || '—'}</td>
                     <td data-label="Betrag" style="text-align:right; font-family:var(--font-mono); font-weight:700;">${fmt(o.total)}</td>
                 </tr>`;
-            }).join('');
+            })
+            .join('');
 
         container.innerHTML = `
             <div class="kb-toolbar no-print" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:24px;">
@@ -103,9 +123,19 @@ export async function renderKassenbuch(container, titleEl) {
             </div>
         `;
 
-        container.querySelectorAll('[data-kbmode]').forEach(b => b.onclick = () => { kbMode = b.dataset.kbmode; draw(); });
+        container.querySelectorAll('[data-kbmode]').forEach(
+            (b) =>
+                (b.onclick = () => {
+                    kbMode = b.dataset.kbmode;
+                    draw();
+                })
+        );
         const dateInp = container.querySelector('#kb-date');
-        if (dateInp) dateInp.onchange = (e) => { kbDate = kbMode === 'day' ? e.target.value : e.target.value + '-01'; draw(); };
+        if (dateInp)
+            dateInp.onchange = (e) => {
+                kbDate = kbMode === 'day' ? e.target.value : e.target.value + '-01';
+                draw();
+            };
         container.querySelector('#kb-print').onclick = () => window.print();
         container.querySelector('#kb-csv').onclick = () => exportCSV(counted);
     };
@@ -115,7 +145,7 @@ export async function renderKassenbuch(container, titleEl) {
 
 function exportCSV(orders) {
     const rows = [['Datum', 'Zeit', 'Beleg', 'Typ', 'Tisch/Kunde', 'Betrag']];
-    orders.forEach(o => {
+    orders.forEach((o) => {
         const d = new Date(o.timestamp || o.createdAt || 0);
         rows.push([
             isNaN(d) ? '' : d.toLocaleDateString('de-DE'),
@@ -123,10 +153,10 @@ function exportCSV(orders) {
             '#' + String(o.id || '').slice(-6),
             TYPE_LABELS[o.type] || o.type || '',
             (o.table_name || o.customerName || '').replace(/;/g, ','),
-            (parseFloat(o.total) || 0).toFixed(2)
+            (parseFloat(o.total) || 0).toFixed(2),
         ]);
     });
-    const csv = rows.map(r => r.join(';')).join('\n');
+    const csv = rows.map((r) => r.join(';')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

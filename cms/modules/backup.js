@@ -6,7 +6,7 @@ export async function renderBackup(container, titleEl) {
 
     // Aktuelle Instanz-Info laden
     let info = { counts: {}, dbType: '?' };
-    try { 
+    try {
         const res = await apiGet('backup/info');
         if (res && res.success) info = res;
     } catch (_) {}
@@ -29,17 +29,26 @@ export async function renderBackup(container, titleEl) {
                 <div style="font-size:.7rem; font-weight:800; text-transform:uppercase; 
                             opacity:.5; margin-bottom:12px;">Aktuelle Instanz</div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:12px;">
-                    ${Object.entries(info.counts || {}).map(([k, v]) => `
+                    ${Object.entries(info.counts || {})
+                        .map(
+                            ([k, v]) => `
                         <div style="text-align:center; padding:14px; background:rgba(255,255,255,0.2); 
                                     border-radius:12px;">
                             <div style="font-size:1.6rem; font-weight:900; color:var(--primary);">${v}</div>
-                            <div style="font-size:.72rem; opacity:.6; margin-top:2px;">${{
-                                menu: 'Gerichte', categories: 'Kategorien',
-                                reservations: 'Reservierungen', tables: 'Tische',
-                                orders: 'Bestellungen', users: 'Benutzer'
-                            }[k] || k}</div>
+                            <div style="font-size:.72rem; opacity:.6; margin-top:2px;">${
+                                {
+                                    menu: 'Gerichte',
+                                    categories: 'Kategorien',
+                                    reservations: 'Reservierungen',
+                                    tables: 'Tische',
+                                    orders: 'Bestellungen',
+                                    users: 'Benutzer',
+                                }[k] || k
+                            }</div>
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
                 <div style="margin-top:12px; font-size:.75rem; opacity:.4;">
                     Datenbank-Typ: ${info.dbType?.toUpperCase() || 'SQLITE'}
@@ -175,8 +184,8 @@ export async function renderBackup(container, titleEl) {
         </div>
     `;
 
-    const logEl   = container.querySelector('#backup-log');
-    const btnImp  = container.querySelector('#btn-import');
+    const logEl = container.querySelector('#backup-log');
+    const btnImp = container.querySelector('#btn-import');
     const dropZone = container.querySelector('#backup-drop-zone');
     const fileInput = container.querySelector('#backup-file-input');
     let selectedFile = null;
@@ -193,8 +202,8 @@ export async function renderBackup(container, titleEl) {
         const a = document.createElement('a');
         // Auth via Header geht nicht bei <a href>, daher fetch + blob
         fetch('/api/backup/export', { headers: { 'x-admin-token': token } })
-            .then(r => r.blob())
-            .then(blob => {
+            .then((r) => r.blob())
+            .then((blob) => {
                 const url = URL.createObjectURL(blob);
                 const date = new Date().toISOString().split('T')[0];
                 a.href = url;
@@ -208,19 +217,27 @@ export async function renderBackup(container, titleEl) {
 
     // File Drop & Select
     dropZone.onclick = () => fileInput.click();
-    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = '#ef4444'; };
-    dropZone.ondragleave = () => { dropZone.style.borderColor = 'rgba(239,68,68,0.3)'; };
+    dropZone.ondragover = (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#ef4444';
+    };
+    dropZone.ondragleave = () => {
+        dropZone.style.borderColor = 'rgba(239,68,68,0.3)';
+    };
     dropZone.ondrop = (e) => {
         e.preventDefault();
         dropZone.style.borderColor = 'rgba(239,68,68,0.3)';
         const file = e.dataTransfer.files[0];
         if (file) setFile(file);
     };
-    fileInput.onchange = () => { if (fileInput.files[0]) setFile(fileInput.files[0]); };
+    fileInput.onchange = () => {
+        if (fileInput.files[0]) setFile(fileInput.files[0]);
+    };
 
     const setFile = (file) => {
         selectedFile = file;
-        container.querySelector('#selected-file-name').textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+        container.querySelector('#selected-file-name').textContent =
+            `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         container.querySelector('#selected-file-name').style.display = 'block';
         btnImp.disabled = false;
         btnImp.style.opacity = '1';
@@ -242,34 +259,39 @@ export async function renderBackup(container, titleEl) {
         try {
             const text = await selectedFile.text();
             const data = JSON.parse(text);
-            log(`📋 Backup vom ${data._meta?.createdAt?.slice(0,10) || '?'} (Version ${data._meta?.version || '?'})`);
+            log(
+                `📋 Backup vom ${data._meta?.createdAt?.slice(0, 10) || '?'} (Version ${data._meta?.version || '?'})`
+            );
 
             const token = getAuthToken();
             const res = await fetch('/api/backup/import', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-admin-token': token
+                    'x-admin-token': token,
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
             });
             const result = await res.json();
 
             if (result.success) {
                 const r = result.results?.restored || {};
                 log('✅ Restore abgeschlossen!', '#10b981');
-                if (r.kv)           log(`   KV-Store:       ${r.kv} Einträge`);
-                if (r.categories)   log(`   Kategorien:     ${r.categories}`);
-                if (r.menu)         log(`   Speisekarte:    ${r.menu} Gerichte`);
-                if (r.tables)       log(`   Tische:         ${r.tables}`);
+                if (r.kv) log(`   KV-Store:       ${r.kv} Einträge`);
+                if (r.categories) log(`   Kategorien:     ${r.categories}`);
+                if (r.menu) log(`   Speisekarte:    ${r.menu} Gerichte`);
+                if (r.tables) log(`   Tische:         ${r.tables}`);
                 if (r.reservations) log(`   Reservierungen: ${r.reservations}`);
-                if (r.orders)       log(`   Bestellungen:   ${r.orders}`);
-                if (r.users)        log(`   Benutzer:       ${r.users} (neu)`);
+                if (r.orders) log(`   Bestellungen:   ${r.orders}`);
+                if (r.users) log(`   Benutzer:       ${r.users} (neu)`);
 
                 if (result.results?.errors?.length > 0) {
                     log('\n⚠️ Fehler bei Teilen des Restores:', '#f59e0b');
-                    result.results.errors.forEach(e => log('   ' + e, '#f59e0b'));
-                    showToast(`Backup teilweise eingespielt – ${result.results.errors.length} Fehler. Details im Log.`, 'error');
+                    result.results.errors.forEach((e) => log('   ' + e, '#f59e0b'));
+                    showToast(
+                        `Backup teilweise eingespielt – ${result.results.errors.length} Fehler. Details im Log.`,
+                        'error'
+                    );
                 } else {
                     showToast('Backup vollständig eingespielt!');
                 }
@@ -286,21 +308,25 @@ export async function renderBackup(container, titleEl) {
     // Cloud-Backup Events
     document.getElementById('btn-s3-save')?.addEventListener('click', async () => {
         const config = {
-            s3_endpoint:   document.getElementById('s3-endpoint').value.trim(),
-            s3_bucket:     document.getElementById('s3-bucket').value.trim(),
+            s3_endpoint: document.getElementById('s3-endpoint').value.trim(),
+            s3_bucket: document.getElementById('s3-bucket').value.trim(),
             s3_access_key: document.getElementById('s3-access-key').value.trim(),
             s3_secret_key: document.getElementById('s3-secret-key').value.trim(),
-            s3_auto:       document.getElementById('s3-auto').checked,
-            s3_time:       document.getElementById('s3-time').value
+            s3_auto: document.getElementById('s3-auto').checked,
+            s3_time: document.getElementById('s3-time').value,
         };
         try {
             const { apiPost } = await import('./api.js');
             await apiPost('settings/backup-cloud', config);
             const fb = document.getElementById('s3-feedback');
-            fb.style.display='block'; fb.style.background='#f0fdf4';
-            fb.style.color='#16a34a'; fb.style.border='1px solid #bbf7d0';
-            fb.textContent='✅ Einstellungen gespeichert.';
-        } catch(e) { console.error(e); }
+            fb.style.display = 'block';
+            fb.style.background = '#f0fdf4';
+            fb.style.color = '#16a34a';
+            fb.style.border = '1px solid #bbf7d0';
+            fb.textContent = '✅ Einstellungen gespeichert.';
+        } catch (e) {
+            console.error(e);
+        }
     });
 
     document.getElementById('btn-s3-now')?.addEventListener('click', async () => {
@@ -311,22 +337,26 @@ export async function renderBackup(container, titleEl) {
             const { apiPost } = await import('./api.js');
             const res = await apiPost('backup/cloud', {});
             const fb = document.getElementById('s3-feedback');
-            fb.style.display='block';
+            fb.style.display = 'block';
             if (res?.success) {
-                fb.style.background='#f0fdf4'; fb.style.color='#16a34a';
-                fb.style.border='1px solid #bbf7d0';
-                fb.textContent=`✅ Backup erfolgreich: ${res.filename || 'backup.sql.gz'}`;
+                fb.style.background = '#f0fdf4';
+                fb.style.color = '#16a34a';
+                fb.style.border = '1px solid #bbf7d0';
+                fb.textContent = `✅ Backup erfolgreich: ${res.filename || 'backup.sql.gz'}`;
             } else {
-                fb.style.background='#fef2f2'; fb.style.color='#dc2626';
-                fb.style.border='1px solid #fecaca';
-                fb.textContent=`❌ ${res?.message || 'Backup fehlgeschlagen.'}`;
+                fb.style.background = '#fef2f2';
+                fb.style.color = '#dc2626';
+                fb.style.border = '1px solid #fecaca';
+                fb.textContent = `❌ ${res?.message || 'Backup fehlgeschlagen.'}`;
             }
-        } catch(e) {
+        } catch (e) {
             const fb = document.getElementById('s3-feedback');
-            fb.style.display='block'; fb.style.background='#fef2f2';
-            fb.style.color='#dc2626'; fb.textContent='❌ Verbindungsfehler.';
+            fb.style.display = 'block';
+            fb.style.background = '#fef2f2';
+            fb.style.color = '#dc2626';
+            fb.textContent = '❌ Verbindungsfehler.';
         }
-        btn.disabled=false;
-        btn.innerHTML='<i class="fas fa-cloud-upload-alt"></i> Jetzt sichern';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Jetzt sichern';
     });
 }

@@ -27,16 +27,18 @@
 ## Voraussetzungen
 
 **Linux Server (Produktion):**
+
 - Ubuntu 22.04 / 24.04, Debian 12 oder Rocky Linux 9
 - Root-Zugang (einmalig für das Installer-Skript)
 - Offene Ports: 80, 443 (nginx), optional 5000
 
 **Lokal (Entwicklung):**
+
 - Node.js ≥ 18
 - npm ≥ 9
 - **Native Build-Tools** (für `better-sqlite3`):
-  - Ubuntu/Debian: `sudo apt install -y build-essential python3`
-  - macOS: `xcode-select --install`
+    - Ubuntu/Debian: `sudo apt install -y build-essential python3`
+    - macOS: `xcode-select --install`
 
 > Das Paket `@meraki/plans` wird aus dem zentralen Repository `github:stb-srv/meraki-plans` installiert (siehe `package.json`). CMS und Lizenzserver teilen sich damit **eine einzige Quelle** der Plan-Definitionen.
 
@@ -106,12 +108,12 @@ Beim ersten Start erscheint in der Konsole ein **Setup-Token** – den brauchst 
 
 Öffne die angezeigte URL im Browser und folge den 4 Schritten:
 
-| Schritt | Inhalt |
-|---------|--------|
-| **1 – Zugang** | Setup-Token aus der Konsole · Admin-Name · E-Mail · Passwort (min. 12 Zeichen) |
-| **2 – Restaurant** | Name · Telefon · Adresse · Sprache · Zeitzone · Website |
-| **3 – System** | Lizenzschlüssel (optional) · Datenbanktyp (SQLite empfohlen) |
-| **4 – E-Mail** | SMTP-Daten für Bestätigungs-Mails (optional, auch später einstellbar) |
+| Schritt            | Inhalt                                                                         |
+| ------------------ | ------------------------------------------------------------------------------ |
+| **1 – Zugang**     | Setup-Token aus der Konsole · Admin-Name · E-Mail · Passwort (min. 12 Zeichen) |
+| **2 – Restaurant** | Name · Telefon · Adresse · Sprache · Zeitzone · Website                        |
+| **3 – System**     | Lizenzschlüssel (optional) · Datenbanktyp (SQLite empfohlen)                   |
+| **4 – E-Mail**     | SMTP-Daten für Bestätigungs-Mails (optional, auch später einstellbar)          |
 
 Am Ende werden **Recovery-Codes** angezeigt – **unbedingt sicher aufbewahren**, da sie nur einmalig sichtbar sind.
 
@@ -121,28 +123,28 @@ Der Wizard schreibt automatisch `server/config.json` inkl. eines zufälligen `AD
 
 ## ⚙️ .env Variablen-Referenz
 
-| Variable | Beschreibung | Standard |
-|---|---|---|
-| `PORT` | Port des Express-Servers | `5000` |
-| `ADMIN_SECRET` | JWT Signing Key – wird automatisch vom Setup-Wizard gesetzt | – |
-| `CORS_ORIGINS` | Erlaubte Frontend-Domains, kommagetrennt | `localhost` |
-| `DB_TYPE` | `sqlite` oder `mysql` | `sqlite` |
-| `DB_HOST` | Hostname der MySQL DB | `localhost` |
-| `DB_PORT` | Port der MySQL DB | `3306` |
-| `DB_USER` | Benutzername MySQL | – |
-| `DB_PASS` | Passwort MySQL | – |
-| `DB_NAME` | Datenbankname | – |
-| `DB_SSL` | SSL für DB-Verbindung (`true`/`false`) | `false` |
-| `SMTP_HOST` | SMTP Server | – |
-| `SMTP_PORT` | SMTP Port | `465` |
-| `SMTP_USER` | SMTP Benutzername | – |
-| `SMTP_PASS` | SMTP Passwort | – |
-| `SMTP_FROM` | Absender-Adresse | – |
-| `BACKUP_DIR` | Verzeichnis für Backups | `./backups` |
-| `BACKUP_MAX_AGE_DAYS` | Backups älter als X Tage löschen | `30` |
-| `BACKUP_MIN_COUNT` | Mindestanzahl Backups behalten | `7` |
-| `PEXELS_API_KEY` | Key für automatische Speisefotos | – |
-| `UNSPLASH_ACCESS_KEY` | Zweiter Key für Speisefotos | – |
+| Variable              | Beschreibung                                                | Standard    |
+| --------------------- | ----------------------------------------------------------- | ----------- |
+| `PORT`                | Port des Express-Servers                                    | `5000`      |
+| `ADMIN_SECRET`        | JWT Signing Key – wird automatisch vom Setup-Wizard gesetzt | –           |
+| `CORS_ORIGINS`        | Erlaubte Frontend-Domains, kommagetrennt                    | `localhost` |
+| `DB_TYPE`             | `sqlite` oder `mysql`                                       | `sqlite`    |
+| `DB_HOST`             | Hostname der MySQL DB                                       | `localhost` |
+| `DB_PORT`             | Port der MySQL DB                                           | `3306`      |
+| `DB_USER`             | Benutzername MySQL                                          | –           |
+| `DB_PASS`             | Passwort MySQL                                              | –           |
+| `DB_NAME`             | Datenbankname                                               | –           |
+| `DB_SSL`              | SSL für DB-Verbindung (`true`/`false`)                      | `false`     |
+| `SMTP_HOST`           | SMTP Server                                                 | –           |
+| `SMTP_PORT`           | SMTP Port                                                   | `465`       |
+| `SMTP_USER`           | SMTP Benutzername                                           | –           |
+| `SMTP_PASS`           | SMTP Passwort                                               | –           |
+| `SMTP_FROM`           | Absender-Adresse                                            | –           |
+| `BACKUP_DIR`          | Verzeichnis für Backups                                     | `./backups` |
+| `BACKUP_MAX_AGE_DAYS` | Backups älter als X Tage löschen                            | `30`        |
+| `BACKUP_MIN_COUNT`    | Mindestanzahl Backups behalten                              | `7`         |
+| `PEXELS_API_KEY`      | Key für automatische Speisefotos                            | –           |
+| `UNSPLASH_ACCESS_KEY` | Zweiter Key für Speisefotos                                 | –           |
 
 > SMTP kann alternativ vollständig über den Setup-Wizard / Admin-Panel konfiguriert werden.
 
@@ -152,13 +154,13 @@ Der Wizard schreibt automatisch `server/config.json` inkl. eines zufälligen `AD
 
 Das System bietet verschiedene Pläne. Die Aktivierung erfolgt im CMS unter **Einstellungen → Lizenz**.
 
-| Plan | Gerichte | Tische | Highlights |
-|---|---|---|---|
-| **Free** (Trial) | 30 | 5 | Speisekarte verwalten |
-| **Starter** | 60 | 10 | Reservierungen & Bestellungen |
-| **Pro** | 150 | 25 | Custom Design |
-| **Pro+** | 300 | 50 | Analytics, Online-Bestellungen |
-| **Enterprise** | 999 | 999 | Alle Module inkl. QR-Pay |
+| Plan             | Gerichte | Tische | Highlights                     |
+| ---------------- | -------- | ------ | ------------------------------ |
+| **Free** (Trial) | 30       | 5      | Speisekarte verwalten          |
+| **Starter**      | 60       | 10     | Reservierungen & Bestellungen  |
+| **Pro**          | 150      | 25     | Custom Design                  |
+| **Pro+**         | 300      | 50     | Analytics, Online-Bestellungen |
+| **Enterprise**   | 999      | 999    | Alle Module inkl. QR-Pay       |
 
 ---
 

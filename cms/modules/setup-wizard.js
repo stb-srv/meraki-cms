@@ -13,7 +13,9 @@ export async function shouldShowWizard() {
         const res = await fetch('/api/admin/login', { method: 'HEAD' });
         // Wenn 404 → noch kein Admin → Wizard zeigen
         return false; // Nur bei fehlendem License-Key triggern
-    } catch { return true; }
+    } catch {
+        return true;
+    }
 }
 
 export async function showSetupWizard(container, onComplete) {
@@ -30,17 +32,25 @@ export async function showSetupWizard(container, onComplete) {
                 <!-- Progress Steps -->
                 <div style="display:flex; align-items:center; justify-content:center;
                             gap:8px; margin-bottom:32px;">
-                    ${[1,2,3].map(s => `
+                    ${[1, 2, 3]
+                        .map(
+                            (s) => `
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%;
                                         background:${s <= step ? '#1b3a5c' : '#e5e7eb'};
                                         color:${s <= step ? '#fff' : '#9ca3af'};
                                         display:flex; align-items:center; justify-content:center;
                                         font-size:.8rem; font-weight:800;">${s < step ? '✓' : s}</div>
-                            ${s < 3 ? `<div style="width:40px; height:2px;
-                                background:${s < step ? '#1b3a5c' : '#e5e7eb'};"></div>` : ''}
+                            ${
+                                s < 3
+                                    ? `<div style="width:40px; height:2px;
+                                background:${s < step ? '#1b3a5c' : '#e5e7eb'};"></div>`
+                                    : ''
+                            }
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
 
                 <div id="wizard-step-content">${renderStep()}</div>
@@ -50,7 +60,8 @@ export async function showSetupWizard(container, onComplete) {
     };
 
     const renderStep = () => {
-        if (step === 1) return `
+        if (step === 1)
+            return `
             <h2 style="font-size:1.4rem; font-weight:900; color:#1b3a5c; margin-bottom:8px; text-align:center;">
                 🍽️ Willkommen bei Meraki
             </h2>
@@ -71,7 +82,8 @@ export async function showSetupWizard(container, onComplete) {
             <div id="wiz-feedback" style="display:none; margin-top:14px; padding:12px;
                  border-radius:10px; font-size:.85rem;"></div>`;
 
-        if (step === 2) return `
+        if (step === 2)
+            return `
             <h2 style="font-size:1.4rem; font-weight:900; color:#1b3a5c; margin-bottom:8px; text-align:center;">
                 ✅ Trial aktiviert!
             </h2>
@@ -100,7 +112,8 @@ export async function showSetupWizard(container, onComplete) {
             <div id="wiz-feedback" style="display:none; margin-top:14px; padding:12px;
                  border-radius:10px; font-size:.85rem;"></div>`;
 
-        if (step === 3) return `
+        if (step === 3)
+            return `
             <h2 style="font-size:1.4rem; font-weight:900; color:#1b3a5c; margin-bottom:8px; text-align:center;">
                 🎉 Alles bereit!
             </h2>
@@ -133,35 +146,47 @@ export async function showSetupWizard(container, onComplete) {
         if (!el) return;
         el.style.display = 'block';
         el.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
-        el.style.color      = type === 'error' ? '#dc2626' : '#16a34a';
-        el.style.border     = `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`;
+        el.style.color = type === 'error' ? '#dc2626' : '#16a34a';
+        el.style.border = `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`;
         el.textContent = msg;
     };
 
     const attachStepListeners = () => {
         if (step === 1) {
             document.getElementById('wiz-step1-btn')?.addEventListener('click', async () => {
-                const name  = document.getElementById('wiz-name').value.trim();
+                const name = document.getElementById('wiz-name').value.trim();
                 const email = document.getElementById('wiz-email').value.trim();
                 if (!name) return showFeedback('Bitte Restaurant-Name eingeben.');
                 const btn = document.getElementById('wiz-step1-btn');
-                btn.disabled = true; btn.textContent = 'Wird registriert…';
+                btn.disabled = true;
+                btn.textContent = 'Wird registriert…';
                 try {
-                    const res  = await fetch(`${LICENSE_SERVER}/api/v1/trial/register`, {
+                    const res = await fetch(`${LICENSE_SERVER}/api/v1/trial/register`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ domain: window.location.hostname, restaurant_name: name, contact_email: email, instance_id: navigator.userAgent.slice(0, 80) })
+                        body: JSON.stringify({
+                            domain: window.location.hostname,
+                            restaurant_name: name,
+                            contact_email: email,
+                            instance_id: navigator.userAgent.slice(0, 80),
+                        }),
                     });
                     const data = await res.json();
                     if (data.success) {
                         trialKey = data.license_key;
                         localStorage.setItem('meraki_license_key', trialKey);
-                        step = 2; render();
+                        step = 2;
+                        render();
                     } else {
                         showFeedback(data.message || 'Fehler bei der Registrierung.');
-                        btn.disabled = false; btn.textContent = 'Trial starten →';
+                        btn.disabled = false;
+                        btn.textContent = 'Trial starten →';
                     }
-                } catch { showFeedback('Verbindung fehlgeschlagen.'); btn.disabled = false; btn.textContent = 'Trial starten →'; }
+                } catch {
+                    showFeedback('Verbindung fehlgeschlagen.');
+                    btn.disabled = false;
+                    btn.textContent = 'Trial starten →';
+                }
             });
         }
 
@@ -169,19 +194,34 @@ export async function showSetupWizard(container, onComplete) {
             document.getElementById('wiz-step2-btn')?.addEventListener('click', async () => {
                 const username = document.getElementById('wiz-user').value.trim();
                 const password = document.getElementById('wiz-pass').value;
-                if (!username || password.length < 12) return showFeedback('Benutzername & Passwort (min. 12 Zeichen) erforderlich.');
+                if (!username || password.length < 12)
+                    return showFeedback('Benutzername & Passwort (min. 12 Zeichen) erforderlich.');
                 const btn = document.getElementById('wiz-step2-btn');
-                btn.disabled = true; btn.textContent = 'Erstelle Account…';
+                btn.disabled = true;
+                btn.textContent = 'Erstelle Account…';
                 try {
-                    const res  = await fetch('/api/v1/setup', {
+                    const res = await fetch('/api/v1/setup', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-setup-token': window.MERAKI_SETUP_TOKEN || '' },
-                        body: JSON.stringify({ username, password })
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-setup-token': window.MERAKI_SETUP_TOKEN || '',
+                        },
+                        body: JSON.stringify({ username, password }),
                     });
                     const data = await res.json();
-                    if (data.success) { step = 3; render(); }
-                    else { showFeedback(data.message || 'Fehler beim Erstellen.'); btn.disabled = false; btn.textContent = 'Account erstellen →'; }
-                } catch { showFeedback('Verbindung fehlgeschlagen.'); btn.disabled = false; btn.textContent = 'Account erstellen →'; }
+                    if (data.success) {
+                        step = 3;
+                        render();
+                    } else {
+                        showFeedback(data.message || 'Fehler beim Erstellen.');
+                        btn.disabled = false;
+                        btn.textContent = 'Account erstellen →';
+                    }
+                } catch {
+                    showFeedback('Verbindung fehlgeschlagen.');
+                    btn.disabled = false;
+                    btn.textContent = 'Account erstellen →';
+                }
             });
         }
 

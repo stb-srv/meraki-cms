@@ -12,12 +12,13 @@
 
 export function enhanceTables(root = document) {
     const tables = root.querySelectorAll('table.premium-table');
-    tables.forEach(table => {
-        const headers = Array.from(table.querySelectorAll('thead th'))
-            .map(th => (th.textContent || '').trim());
+    tables.forEach((table) => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map((th) =>
+            (th.textContent || '').trim()
+        );
         if (!headers.length) return;
 
-        table.querySelectorAll('tbody tr').forEach(tr => {
+        table.querySelectorAll('tbody tr').forEach((tr) => {
             const cells = tr.children;
             for (let i = 0; i < cells.length; i++) {
                 const cell = cells[i];

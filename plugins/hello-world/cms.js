@@ -1,7 +1,7 @@
 /**
  * Meraki Extra Plugin - CMS Side
  */
-(function() {
+(function () {
     console.log("🌟 Plugin 'Opa! Extra' geladen!");
 
     // Register a new tab in the sidebar

@@ -14,18 +14,20 @@ export class LicenseClient {
      * Start the license verification process.
      */
     async verifyLicense() {
-        console.log(`[License] Checking license key: ${CONFIG.license.key} for domain: ${CONFIG.domain}`);
-        
+        console.log(
+            `[License] Checking license key: ${CONFIG.license.key} for domain: ${CONFIG.domain}`
+        );
+
         try {
             // Simulate API request to Libenzserver.md concept
             const response = await this._mockApiCall('/api/v1/validate', {
                 license_key: CONFIG.license.key,
-                domain: CONFIG.domain
+                domain: CONFIG.domain,
             });
 
             this.status = response.status;
             this.lastChecked = new Date();
-            
+
             console.log(`[License] Verification successful. Status: ${this.status}`);
             return response;
         } catch (error) {
@@ -45,7 +47,7 @@ export class LicenseClient {
                     status: 'active',
                     expires_at: CONFIG.license.expiresAt,
                     allowed_modules: CONFIG.modules,
-                    signature: 'sha256-mock-signature-at-pos-123'
+                    signature: 'sha256-mock-signature-at-pos-123',
                 });
             }, 800);
         });

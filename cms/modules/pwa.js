@@ -28,20 +28,36 @@ function canNotify() {
 
 function notify(title, body, url) {
     if (!canNotify()) return;
-    const opts = { body, icon: '/admin/assets/favicon.svg', tag: title, data: url, renotify: false };
+    const opts = {
+        body,
+        icon: '/admin/assets/favicon.svg',
+        tag: title,
+        data: url,
+        renotify: false,
+    };
     try {
         if (swReg && swReg.showNotification) swReg.showNotification(title, opts);
         else new Notification(title, opts);
-    } catch (e) { /* ignorieren */ }
+    } catch (e) {
+        /* ignorieren */
+    }
 }
 
 function wireRealtimeNotifications() {
     onRealtime('reservation:new', (d) => {
-        notify('Neue Reservierung', `${d?.name || 'Gast'} · ${d?.date || ''} ${d?.start_time || ''} · ${d?.guests || '?'} Gäste`, '/admin/');
+        notify(
+            'Neue Reservierung',
+            `${d?.name || 'Gast'} · ${d?.date || ''} ${d?.start_time || ''} · ${d?.guests || '?'} Gäste`,
+            '/admin/'
+        );
     });
     onRealtime('order:new', (d) => {
-        const total = (d && d.total != null) ? ` · ${parseFloat(d.total).toFixed(2)} €` : '';
-        notify('Neue Bestellung', `${d?.table_name || d?.customerName || 'Bestellung'}${total}`, '/admin/');
+        const total = d && d.total != null ? ` · ${parseFloat(d.total).toFixed(2)} €` : '';
+        notify(
+            'Neue Bestellung',
+            `${d?.table_name || d?.customerName || 'Bestellung'}${total}`,
+            '/admin/'
+        );
     });
 }
 
@@ -52,14 +68,21 @@ function setupNotifyButton() {
         const supported = typeof Notification !== 'undefined';
         const perm = supported ? Notification.permission : 'unsupported';
         // Button nur zeigen, wenn Erlaubnis noch aussteht
-        btn.style.display = (supported && perm === 'default') ? 'inline-flex' : 'none';
+        btn.style.display = supported && perm === 'default' ? 'inline-flex' : 'none';
     };
     btn.onclick = async () => {
         if (typeof Notification === 'undefined') return;
         try {
             const res = await Notification.requestPermission();
-            if (res === 'granted') notify('Benachrichtigungen aktiv', 'Du wirst über neue Reservierungen & Bestellungen informiert.', '/admin/');
-        } catch (e) { /* ignorieren */ }
+            if (res === 'granted')
+                notify(
+                    'Benachrichtigungen aktiv',
+                    'Du wirst über neue Reservierungen & Bestellungen informiert.',
+                    '/admin/'
+                );
+        } catch (e) {
+            /* ignorieren */
+        }
         sync();
     };
     sync();

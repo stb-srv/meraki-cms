@@ -9,6 +9,11 @@
   "theme_color": "#1B3A5C",
   "orientation": "any",
   "icons": [
-    { "src": "/admin/assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "/admin/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

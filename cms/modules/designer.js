@@ -9,7 +9,7 @@ let designerTab = 'visuals';
 
 export async function renderDesigner(container, titleEl, initialTab = null) {
     if (initialTab) designerTab = initialTab;
-    
+
     const tabTitles = {
         visuals: 'Design & Bilder',
         location: 'Standort & Karte',
@@ -19,11 +19,11 @@ export async function renderDesigner(container, titleEl, initialTab = null) {
         holiday: 'Feiertage & Events',
         legal: 'Impressum & Datenschutz',
         cookies: 'Cookie Banner',
-        consent_log: 'Consent-Log'
+        consent_log: 'Consent-Log',
     };
-    
+
     titleEl.innerHTML = `<div style="display:flex;align-items:center;">${tabTitles[designerTab] || 'Website Designer'} ${renderHelpIcon(designerTab)}</div>`;
-    const home = await apiGet('homepage') || {};
+    const home = (await apiGet('homepage')) || {};
 
     let cookieConfig = null;
     let consentLog = null;
@@ -54,10 +54,14 @@ export async function renderDesigner(container, titleEl, initialTab = null) {
 async function _fetchCookieConfig() {
     try {
         const token = sessionStorage.getItem('meraki_admin_token');
-        const res = await fetch('/api/cookie-config/admin', { headers: { 'x-admin-token': token } });
+        const res = await fetch('/api/cookie-config/admin', {
+            headers: { 'x-admin-token': token },
+        });
         if (!res.ok) return null;
         return await res.json();
-    } catch { return null; }
+    } catch {
+        return null;
+    }
 }
 
 async function _saveCookieConfig(config) {
@@ -66,35 +70,51 @@ async function _saveCookieConfig(config) {
         const res = await fetch('/api/cookie-config/admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-            body: JSON.stringify(config)
+            body: JSON.stringify(config),
         });
         return await res.json();
-    } catch (e) { return { success: false, reason: e.message }; }
+    } catch (e) {
+        return { success: false, reason: e.message };
+    }
 }
 
 async function _fetchConsentLog(page = 1) {
     try {
         const token = sessionStorage.getItem('meraki_admin_token');
-        const res = await fetch(`/api/cookie-consent/log?page=${page}&limit=50`, { headers: { 'x-admin-token': token } });
+        const res = await fetch(`/api/cookie-consent/log?page=${page}&limit=50`, {
+            headers: { 'x-admin-token': token },
+        });
         if (!res.ok) return null;
         return await res.json();
-    } catch { return null; }
+    } catch {
+        return null;
+    }
 }
 
 async function _triggerRecons() {
     try {
         const token = sessionStorage.getItem('meraki_admin_token');
-        const res = await fetch('/api/cookie-consent/recons', { method: 'POST', headers: { 'x-admin-token': token } });
+        const res = await fetch('/api/cookie-consent/recons', {
+            method: 'POST',
+            headers: { 'x-admin-token': token },
+        });
         return await res.json();
-    } catch (e) { return { success: false, reason: e.message }; }
+    } catch (e) {
+        return { success: false, reason: e.message };
+    }
 }
 
 async function _clearConsentLog() {
     try {
         const token = sessionStorage.getItem('meraki_admin_token');
-        const res = await fetch('/api/cookie-consent/log', { method: 'DELETE', headers: { 'x-admin-token': token } });
+        const res = await fetch('/api/cookie-consent/log', {
+            method: 'DELETE',
+            headers: { 'x-admin-token': token },
+        });
         return await res.json();
-    } catch (e) { return { success: false, reason: e.message }; }
+    } catch (e) {
+        return { success: false, reason: e.message };
+    }
 }
 
 // ── Tab-Renderer ─────────────────────────────────────────────────────────────
@@ -142,7 +162,9 @@ function renderDesignerTab(home, cookieConfig = null, consentLog = null) {
                     <button class="btn-edit" id="add-custom-page"><i class="fas fa-plus"></i> Neue Seite</button>
                 </div>
                 <div id="pages-list" style="display:grid; gap:15px;">
-                    ${pages.map((p) => `
+                    ${pages
+                        .map(
+                            (p) => `
                         <div class="glass-panel" style="padding:20px; background:rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <strong style="font-size:1.1rem;">${p.title}</strong><br>
@@ -153,7 +175,9 @@ function renderDesignerTab(home, cookieConfig = null, consentLog = null) {
                                 <button class="btn-edit" onclick="window.deleteCustomPage('${p.id}')" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                     ${pages.length === 0 ? '<p style="text-align:center; opacity:.5; padding:40px;">Noch keine eigenen Seiten erstellt.</p>' : ''}
                 </div>
             `;
@@ -252,7 +276,8 @@ function renderDesignerTab(home, cookieConfig = null, consentLog = null) {
         case 'consent_log':
             return _renderConsentLogTab(consentLog);
 
-        default: return '<p>Sektion nicht gefunden.</p>';
+        default:
+            return '<p>Sektion nicht gefunden.</p>';
     }
 }
 
@@ -266,23 +291,38 @@ function _renderCookiesTab(cfg) {
     }
 
     const cats = cfg.categories || {};
-    const catIcons  = { necessary: 'shield-alt', functional: 'cogs', analytics: 'chart-bar', marketing: 'bullhorn' };
-    const catColors = { necessary: '#10b981', functional: '#3b82f6', analytics: '#f59e0b', marketing: '#8b5cf6' };
+    const catIcons = {
+        necessary: 'shield-alt',
+        functional: 'cogs',
+        analytics: 'chart-bar',
+        marketing: 'bullhorn',
+    };
+    const catColors = {
+        necessary: '#10b981',
+        functional: '#3b82f6',
+        analytics: '#f59e0b',
+        marketing: '#8b5cf6',
+    };
 
-    const categoriesHtml = Object.entries(cats).map(([id, cat]) => {
-        const icon      = catIcons[id]  || 'cookie-bite';
-        const color     = catColors[id] || '#6b7280';
-        const isRequired = cat.required === true;
-        const isEnabled  = cat.enabled  !== false;
-        const cookieRows = (cat.cookies || []).map(c => `
+    const categoriesHtml = Object.entries(cats)
+        .map(([id, cat]) => {
+            const icon = catIcons[id] || 'cookie-bite';
+            const color = catColors[id] || '#6b7280';
+            const isRequired = cat.required === true;
+            const isEnabled = cat.enabled !== false;
+            const cookieRows = (cat.cookies || [])
+                .map(
+                    (c) => `
             <tr style="font-size:.78rem; color:var(--text-muted);">
                 <td style="padding:4px 8px;"><code>${c.name || '\u2013'}</code></td>
-                <td style="padding:4px 8px;">${c.purpose  || '\u2013'}</td>
+                <td style="padding:4px 8px;">${c.purpose || '\u2013'}</td>
                 <td style="padding:4px 8px;">${c.duration || '\u2013'}</td>
                 <td style="padding:4px 8px;">${c.provider || '\u2013'}</td>
-            </tr>`).join('');
+            </tr>`
+                )
+                .join('');
 
-        return `
+            return `
         <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px; margin-bottom:14px;" data-cat-id="${id}">
             <div style="display:flex; align-items:center; gap:14px;">
                 <div style="width:40px;height:40px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -297,12 +337,14 @@ function _renderCookiesTab(cfg) {
                 </div>
                 <label class="switch small" style="flex-shrink:0;">
                     <input type="checkbox" class="cat-toggle" data-cat="${id}"
-                        ${isEnabled  ? 'checked'  : ''}
+                        ${isEnabled ? 'checked' : ''}
                         ${isRequired ? 'disabled' : ''}>
                     <span class="slider round"></span>
                 </label>
             </div>
-            ${cookieRows ? `
+            ${
+                cookieRows
+                    ? `
             <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
                 <table style="width:100%; border-collapse:collapse;">
                     <thead><tr style="font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);">
@@ -313,9 +355,12 @@ function _renderCookiesTab(cfg) {
                     </tr></thead>
                     <tbody>${cookieRows}</tbody>
                 </table>
-            </div>` : ''}
+            </div>`
+                    : ''
+            }
         </div>`;
-    }).join('');
+        })
+        .join('');
 
     return `
         <div style="background:rgba(37,99,235,.06); border:1px solid rgba(37,99,235,.15); border-radius:12px; padding:20px; margin-bottom:24px; display:flex; align-items:center; gap:16px;">
@@ -355,18 +400,23 @@ function _renderConsentLogTab(log) {
         </div>`;
     }
     const entries = log.entries || [];
-    const rows = entries.map(e => {
-        const choices = Object.entries(e.choices || {})
-            .map(([k, v]) => `<span style="color:${v ? '#10b981' : '#ef4444'}; margin-right:6px; font-size:.75rem;">${k}: ${v ? '\u2713' : '\u2717'}</span>`)
-            .join('');
-        return `
+    const rows = entries
+        .map((e) => {
+            const choices = Object.entries(e.choices || {})
+                .map(
+                    ([k, v]) =>
+                        `<span style="color:${v ? '#10b981' : '#ef4444'}; margin-right:6px; font-size:.75rem;">${k}: ${v ? '\u2713' : '\u2717'}</span>`
+                )
+                .join('');
+            return `
             <tr style="font-size:.82rem; border-bottom:1px solid rgba(255,255,255,0.05);">
                 <td style="padding:8px 10px; color:var(--text-muted);">${new Date(e.timestamp).toLocaleString('de-DE')}</td>
                 <td style="padding:8px 10px;">${choices}</td>
                 <td style="padding:8px 10px; color:var(--text-muted);">${e.source || '\u2013'}</td>
                 <td style="padding:8px 10px; font-family:monospace; font-size:.72rem; color:var(--text-muted);">${e.config_version || '\u2013'}</td>
             </tr>`;
-    }).join('');
+        })
+        .join('');
 
     return `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
@@ -381,7 +431,10 @@ function _renderConsentLogTab(log) {
                 <i class="fas fa-trash"></i> Log leeren
             </button>
         </div>
-        ${entries.length === 0 ? '<p style="text-align:center; opacity:.5; padding:40px;">Noch keine Consent-Eintr\u00e4ge vorhanden.</p>' : `
+        ${
+            entries.length === 0
+                ? '<p style="text-align:center; opacity:.5; padding:40px;">Noch keine Consent-Eintr\u00e4ge vorhanden.</p>'
+                : `
         <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
@@ -394,7 +447,8 @@ function _renderConsentLogTab(log) {
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
-        </div>`}
+        </div>`
+        }
     `;
 }
 
@@ -404,19 +458,20 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
 
     // Cookie-Banner-Tab
     if (designerTab === 'cookies') {
-        const btnSave   = f('btn-save-cookies');
+        const btnSave = f('btn-save-cookies');
         const btnRecons = f('btn-recons');
 
         if (btnSave) {
             btnSave.onclick = async () => {
                 const resultEl = f('cookie-save-result');
-                const updated  = JSON.parse(JSON.stringify(cookieConfig || {}));
+                const updated = JSON.parse(JSON.stringify(cookieConfig || {}));
                 updated.bannerEnabled = f('ck-enabled').checked;
-                updated.banner_text   = f('ck-text').value;
-                updated.privacy_url   = f('ck-privacy-url').value;
-                container.querySelectorAll('.cat-toggle').forEach(cb => {
+                updated.banner_text = f('ck-text').value;
+                updated.privacy_url = f('ck-privacy-url').value;
+                container.querySelectorAll('.cat-toggle').forEach((cb) => {
                     const catId = cb.dataset.cat;
-                    if (updated.categories && updated.categories[catId]) updated.categories[catId].enabled = cb.checked;
+                    if (updated.categories && updated.categories[catId])
+                        updated.categories[catId].enabled = cb.checked;
                 });
                 btnSave.disabled = true;
                 btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gespeichert...';
@@ -425,7 +480,8 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 btnSave.innerHTML = '<i class="fas fa-save"></i> Cookie-Einstellungen speichern';
                 if (res && res.success) {
                     showToast('Cookie-Einstellungen gespeichert!');
-                    if (resultEl) resultEl.innerHTML = `
+                    if (resultEl)
+                        resultEl.innerHTML = `
                         <div style="padding:10px 14px; background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.25); border-radius:8px; color:#10b981; font-size:.85rem;">
                             <i class="fas fa-check-circle"></i> Gespeichert \u2013 \u00c4nderungen sind sofort auf der Website aktiv.
                         </div>`;
@@ -442,7 +498,8 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 const res = await _triggerRecons();
                 btnRecons.disabled = false;
                 btnRecons.innerHTML = '<i class="fas fa-sync-alt"></i> Re-Consent ausl\u00f6sen';
-                if (res && res.success) showToast(`Re-Consent ausgel\u00f6st! Neue Version: ${res.new_version}`);
+                if (res && res.success)
+                    showToast(`Re-Consent ausgel\u00f6st! Neue Version: ${res.new_version}`);
                 else showToast(res?.reason || 'Fehler beim Re-Consent.', 'error');
             };
         }
@@ -473,8 +530,10 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 modal.querySelector('[data-action="confirm"]').onclick = async () => {
                     modal.remove();
                     const res = await _clearConsentLog();
-                    if (res && res.success) { showToast('Consent-Log geleert.'); renderDesigner(container, titleEl, 'consent_log'); }
-                    else showToast(res?.reason || 'Fehler beim Leeren.', 'error');
+                    if (res && res.success) {
+                        showToast('Consent-Log geleert.');
+                        renderDesigner(container, titleEl, 'consent_log');
+                    } else showToast(res?.reason || 'Fehler beim Leeren.', 'error');
                 };
             };
         }
@@ -491,7 +550,13 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
          */
         window.editCustomPage = (id = null) => {
             const page = id
-                ? (home.pages || []).find(p => p.id === id) || { id, title: '', content: '', headline: '', image: '' }
+                ? (home.pages || []).find((p) => p.id === id) || {
+                      id,
+                      title: '',
+                      content: '',
+                      headline: '',
+                      image: '',
+                  }
                 : { id: 'new-' + Date.now(), title: '', content: '', headline: '', image: '' };
 
             let blocks = [];
@@ -499,9 +564,12 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 const parsed = JSON.parse(page.content || '');
                 if (parsed.version === 1 && Array.isArray(parsed.blocks)) {
                     blocks = parsed.blocks;
-                } else { throw new Error('legacy'); }
+                } else {
+                    throw new Error('legacy');
+                }
             } catch {
-                if (page.content) blocks = [{ type: 'text', heading: page.headline || '', text: page.content }];
+                if (page.content)
+                    blocks = [{ type: 'text', heading: page.headline || '', text: page.content }];
             }
 
             const modal = document.createElement('div');
@@ -567,21 +635,25 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                             </div>
                             <div class="form-group"><label>Untertitel</label><input class="input-styled b-caption" value="${(block.caption || '').replace(/"/g, '&quot;')}"></div>
                             <div class="form-group"><label>Ausrichtung</label>
-                                <select class="input-styled b-align"><option value="full" ${block.align!=='center'?'selected':''}>Volle Breite</option><option value="center" ${block.align==='center'?'selected':''}>Zentriert</option></select>
+                                <select class="input-styled b-align"><option value="full" ${block.align !== 'center' ? 'selected' : ''}>Volle Breite</option><option value="center" ${block.align === 'center' ? 'selected' : ''}>Zentriert</option></select>
                             </div>
                         </div>`;
                 } else if (block.type === 'slider') {
-                    const slides = (block.images || []).map((img, i) => `
+                    const slides = (block.images || [])
+                        .map(
+                            (img, i) => `
                         <div class="slide-row" style="display:flex; gap:10px; margin-bottom:10px; align-items:center;" data-idx="${i}">
                             <input class="input-styled s-url" value="${img.url || ''}" placeholder="URL" style="flex:2;">
                             <input class="input-styled s-cap" value="${img.caption || ''}" placeholder="Untertitel" style="flex:1;">
                             <button class="btn-edit s-del" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
-                        </div>`).join('');
+                        </div>`
+                        )
+                        .join('');
                     contentHtml = `
                         <div class="b-slides">${slides}</div>
                         <button class="btn-edit b-add-slide"><i class="fas fa-plus"></i> Bild hinzuf\u00fcgen</button>
                         <div class="form-grid" style="margin-top:15px;">
-                            <div class="form-group"><label>Autoplay</label><input type="checkbox" class="b-autoplay" ${block.autoplay?'checked':''}></div>
+                            <div class="form-group"><label>Autoplay</label><input type="checkbox" class="b-autoplay" ${block.autoplay ? 'checked' : ''}></div>
                             <div class="form-group"><label>Intervall (Sekunden)</label><input type="number" class="input-styled b-interval" value="${block.interval || 3}" min="1"></div>
                         </div>`;
                 } else if (block.type === 'infobox') {
@@ -590,10 +662,10 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                             <div class="form-group"><label>Icon (FontAwesome)</label><input class="input-styled b-icon" value="${block.icon || 'fas fa-info-circle'}"></div>
                             <div class="form-group"><label>Farbe</label>
                                 <select class="input-styled b-color">
-                                    <option value="blue" ${block.color==='blue'?'selected':''}>Blau</option>
-                                    <option value="green" ${block.color==='green'?'selected':''}>Gr\u00fcn</option>
-                                    <option value="orange" ${block.color==='orange'?'selected':''}>Orange</option>
-                                    <option value="red" ${block.color==='red'?'selected':''}>Rot</option>
+                                    <option value="blue" ${block.color === 'blue' ? 'selected' : ''}>Blau</option>
+                                    <option value="green" ${block.color === 'green' ? 'selected' : ''}>Gr\u00fcn</option>
+                                    <option value="orange" ${block.color === 'orange' ? 'selected' : ''}>Orange</option>
+                                    <option value="red" ${block.color === 'red' ? 'selected' : ''}>Rot</option>
                                 </select>
                             </div>
                             <div class="form-group full"><label>Text</label><textarea class="input-styled b-text" style="height:60px;">${block.text || ''}</textarea></div>
@@ -608,8 +680,8 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                             <i class="fas fa-grip-lines" style="margin-right:10px; cursor:move;"></i> ${block.type}
                         </span>
                         <div class="btn-group">
-                            <button class="btn-edit btn-small b-up" ${index===0?'disabled':''}><i class="fas fa-arrow-up"></i></button>
-                            <button class="btn-edit btn-small b-down" ${index===blocks.length-1?'disabled':''}><i class="fas fa-arrow-down"></i></button>
+                            <button class="btn-edit btn-small b-up" ${index === 0 ? 'disabled' : ''}><i class="fas fa-arrow-up"></i></button>
+                            <button class="btn-edit btn-small b-down" ${index === blocks.length - 1 ? 'disabled' : ''}><i class="fas fa-arrow-down"></i></button>
                             <button class="btn-edit btn-small b-del" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
@@ -617,16 +689,33 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 `;
 
                 // Handlers inside block
-                b.querySelector('.b-del').onclick = () => { blocks.splice(index, 1); updateBlocks(); };
-                b.querySelector('.b-up').onclick = () => { if (index > 0) { [blocks[index], blocks[index-1]] = [blocks[index-1], blocks[index]]; updateBlocks(); } };
-                b.querySelector('.b-down').onclick = () => { if (index < blocks.length-1) { [blocks[index], blocks[index+1]] = [blocks[index+1], blocks[index]]; updateBlocks(); } };
+                b.querySelector('.b-del').onclick = () => {
+                    blocks.splice(index, 1);
+                    updateBlocks();
+                };
+                b.querySelector('.b-up').onclick = () => {
+                    if (index > 0) {
+                        [blocks[index], blocks[index - 1]] = [blocks[index - 1], blocks[index]];
+                        updateBlocks();
+                    }
+                };
+                b.querySelector('.b-down').onclick = () => {
+                    if (index < blocks.length - 1) {
+                        [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]];
+                        updateBlocks();
+                    }
+                };
 
                 if (block.type === 'image') {
                     b.querySelector('.b-upload').onclick = async () => {
-                        const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*';
+                        const file = document.createElement('input');
+                        file.type = 'file';
+                        file.accept = 'image/*';
                         file.onchange = async (e) => {
-                            const fi = e.target.files[0]; if (!fi) return;
-                            const res = await apiUpload(fi); if (res.success) b.querySelector('.b-url').value = res.url;
+                            const fi = e.target.files[0];
+                            if (!fi) return;
+                            const res = await apiUpload(fi);
+                            if (res.success) b.querySelector('.b-url').value = res.url;
                         };
                         file.click();
                     };
@@ -635,13 +724,15 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                     b.querySelector('.b-add-slide').onclick = () => {
                         if (!block.images) block.images = [];
                         block.images.push({ url: '', caption: '' });
-                        syncState(); updateBlocks();
+                        syncState();
+                        updateBlocks();
                     };
-                    b.querySelectorAll('.s-del').forEach(db => {
+                    b.querySelectorAll('.s-del').forEach((db) => {
                         db.onclick = () => {
                             const idx = parseInt(db.closest('.slide-row').dataset.idx);
                             block.images.splice(idx, 1);
-                            syncState(); updateBlocks();
+                            syncState();
+                            updateBlocks();
                         };
                     });
                 }
@@ -650,7 +741,7 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
             }
 
             function syncState() {
-                blocksList.querySelectorAll('[data-index]').forEach(el => {
+                blocksList.querySelectorAll('[data-index]').forEach((el) => {
                     const idx = parseInt(el.dataset.index);
                     const b = blocks[idx];
                     if (b.type === 'text') {
@@ -663,9 +754,9 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                     } else if (b.type === 'slider') {
                         b.autoplay = el.querySelector('.b-autoplay').checked;
                         b.interval = parseInt(el.querySelector('.b-interval').value);
-                        b.images = Array.from(el.querySelectorAll('.slide-row')).map(row => ({
+                        b.images = Array.from(el.querySelectorAll('.slide-row')).map((row) => ({
                             url: row.querySelector('.s-url').value,
-                            caption: row.querySelector('.s-cap').value
+                            caption: row.querySelector('.s-cap').value,
                         }));
                     } else if (b.type === 'infobox') {
                         b.icon = el.querySelector('.b-icon').value;
@@ -684,25 +775,44 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
 
             updateBlocks();
 
-            modal.querySelectorAll('[data-add-block]').forEach(btn => {
+            modal.querySelectorAll('[data-add-block]').forEach((btn) => {
                 btn.onclick = () => {
                     syncState();
                     const type = btn.dataset.addBlock;
                     const newBlock = { type };
-                    if (type === 'text') { newBlock.heading = ''; newBlock.text = ''; }
-                    if (type === 'image') { newBlock.url = ''; newBlock.caption = ''; newBlock.align = 'full'; }
-                    if (type === 'slider') { newBlock.images = [{url:'', caption:''}]; newBlock.autoplay = true; newBlock.interval = 3; }
-                    if (type === 'infobox') { newBlock.icon = 'fas fa-info-circle'; newBlock.color = 'blue'; newBlock.text = ''; }
+                    if (type === 'text') {
+                        newBlock.heading = '';
+                        newBlock.text = '';
+                    }
+                    if (type === 'image') {
+                        newBlock.url = '';
+                        newBlock.caption = '';
+                        newBlock.align = 'full';
+                    }
+                    if (type === 'slider') {
+                        newBlock.images = [{ url: '', caption: '' }];
+                        newBlock.autoplay = true;
+                        newBlock.interval = 3;
+                    }
+                    if (type === 'infobox') {
+                        newBlock.icon = 'fas fa-info-circle';
+                        newBlock.color = 'blue';
+                        newBlock.text = '';
+                    }
                     blocks.push(newBlock);
                     updateBlocks();
                 };
             });
 
             modal.querySelector('[data-action="upload-header"]').onclick = async () => {
-                const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*';
+                const file = document.createElement('input');
+                file.type = 'file';
+                file.accept = 'image/*';
                 file.onchange = async (e) => {
-                    const fi = e.target.files[0]; if (!fi) return;
-                    const res = await apiUpload(fi); if (res.success) modal.querySelector('[data-field="image"]').value = res.url;
+                    const fi = e.target.files[0];
+                    if (!fi) return;
+                    const res = await apiUpload(fi);
+                    if (res.success) modal.querySelector('[data-field="image"]').value = res.url;
                 };
                 file.click();
             };
@@ -712,31 +822,40 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
                 syncState();
                 const saveBtn = e.currentTarget;
                 const updated = {
-                    id:       page.id,
-                    title:    modal.querySelector('[data-field="title"]').value.trim(),
-                    image:    modal.querySelector('[data-field="image"]').value.trim(),
-                    content:  JSON.stringify({ version: 1, blocks }),
-                    active:   true
+                    id: page.id,
+                    title: modal.querySelector('[data-field="title"]').value.trim(),
+                    image: modal.querySelector('[data-field="image"]').value.trim(),
+                    content: JSON.stringify({ version: 1, blocks }),
+                    active: true,
                 };
 
-                if (!updated.title) { showToast('Bitte einen Men\u00fc-Titel eingeben.', 'error'); return; }
+                if (!updated.title) {
+                    showToast('Bitte einen Men\u00fc-Titel eingeben.', 'error');
+                    return;
+                }
 
                 if (!home.pages) home.pages = [];
-                const idx = home.pages.findIndex(p => p.id === page.id);
+                const idx = home.pages.findIndex((p) => p.id === page.id);
                 if (idx >= 0) home.pages[idx] = updated;
                 else home.pages.push(updated);
 
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 const res = await apiPost('homepage', home);
-                if (res && res.success) { modal.remove(); renderDesigner(container, titleEl, 'pages'); }
-                else { showToast(res?.reason || 'Fehler beim Speichern!', 'error'); saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Speichern'; }
+                if (res && res.success) {
+                    modal.remove();
+                    renderDesigner(container, titleEl, 'pages');
+                } else {
+                    showToast(res?.reason || 'Fehler beim Speichern!', 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Speichern';
+                }
             };
         };
 
         window.deleteCustomPage = async (id) => {
             if (!home.pages) return;
-            home.pages = home.pages.filter(p => p.id !== id);
+            home.pages = home.pages.filter((p) => p.id !== id);
             const res = await apiPost('homepage', home);
             if (res && res.success) renderDesigner(container, titleEl, 'pages');
             else showToast(res?.reason || 'Fehler beim L\u00f6schen!', 'error');
@@ -749,19 +868,31 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
         saveBtn.onclick = async () => {
             const u = { ...home };
             if (designerTab === 'visuals') {
-                u.heroTitle    = f('ds-title').value;
-                u.heroSlogan   = f('ds-slogan').value;
-                u.bgImage      = f('ds-bg').value;
+                u.heroTitle = f('ds-title').value;
+                u.heroSlogan = f('ds-slogan').value;
+                u.bgImage = f('ds-bg').value;
                 u.welcomeImage = f('ds-w-img').value;
             } else if (designerTab === 'location') {
                 u.location = { address: f('ds-loc-addr').value, embedUrl: f('ds-loc-map').value };
             } else if (designerTab === 'promo') {
                 u.promotionEnabled = f('ds-p-on').checked;
-                u.promotionText    = f('ds-p-text').value;
+                u.promotionText = f('ds-p-text').value;
             } else if (designerTab === 'vacation') {
-                u.vacation = { enabled: f('ds-v-on').checked, title: f('ds-v-title').value, text: f('ds-v-text').value, start: f('ds-v-start').value, end: f('ds-v-end').value };
+                u.vacation = {
+                    enabled: f('ds-v-on').checked,
+                    title: f('ds-v-title').value,
+                    text: f('ds-v-text').value,
+                    start: f('ds-v-start').value,
+                    end: f('ds-v-end').value,
+                };
             } else if (designerTab === 'holiday') {
-                u.holiday  = { enabled: f('ds-h-on').checked, title: f('ds-h-title').value, text: f('ds-h-text').value, start: f('ds-h-start').value, end: f('ds-h-end').value };
+                u.holiday = {
+                    enabled: f('ds-h-on').checked,
+                    title: f('ds-h-title').value,
+                    text: f('ds-h-text').value,
+                    start: f('ds-h-start').value,
+                    end: f('ds-h-end').value,
+                };
             } else if (designerTab === 'legal') {
                 u.legal = { impressum: f('ds-leg-imp').value, privacy: f('ds-leg-priv').value };
             }
@@ -773,8 +904,8 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
 
     // Upload handlers
     const setupUpload = (previewId, fileInputId, hiddenId) => {
-        const btn    = container.querySelector(`#${previewId}`);
-        const file   = container.querySelector(`#${fileInputId}`);
+        const btn = container.querySelector(`#${previewId}`);
+        const file = container.querySelector(`#${fileInputId}`);
         const hidden = container.querySelector(`#${hiddenId}`);
         if (!btn || !file) return;
         btn.onclick = () => file.click();
@@ -794,7 +925,7 @@ function attachDesignerHandlers(container, home, titleEl, cookieConfig) {
         };
     };
     if (designerTab === 'visuals') {
-        setupUpload('ds-bg-preview',   'ds-bg-file',   'ds-bg');
+        setupUpload('ds-bg-preview', 'ds-bg-file', 'ds-bg');
         setupUpload('ds-wimg-preview', 'ds-wimg-file', 'ds-w-img');
     }
 }

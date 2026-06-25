@@ -7,14 +7,19 @@
 
 require('dotenv').config();
 const path = require('path');
-const jwt  = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 async function main() {
     const CONFIG = require(path.join(__dirname, '..', 'config.js'));
-    const DB     = require(path.join(__dirname, '..', 'server', 'database.js'));
+    const DB = require(path.join(__dirname, '..', 'server', 'database.js'));
 
-    const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
-    const cliDomain = process.argv[2] ? process.argv[2].replace(/^https?:\/\//, '').split('/')[0] : null;
+    const LICENSE_SERVER = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(
+        /\/+$/,
+        ''
+    );
+    const cliDomain = process.argv[2]
+        ? process.argv[2].replace(/^https?:\/\//, '').split('/')[0]
+        : null;
 
     console.log('\n🔒 Meraki CMS License Token Fix-Script');
     console.log('='.repeat(45));
@@ -22,7 +27,7 @@ async function main() {
     if (typeof DB.init === 'function') await DB.init();
 
     const settings = await DB.getKV('settings', {});
-    const lic      = settings.license || {};
+    const lic = settings.license || {};
 
     if (!lic.key) {
         console.error('\u274c Kein License-Key in der DB gefunden.');
@@ -35,7 +40,9 @@ async function main() {
 
     const domain = cliDomain || lic.domain || null;
     if (!domain) {
-        console.error('\u274c Keine Domain – Aufruf: node scripts/fix-license-token.js deine-domain.de');
+        console.error(
+            '\u274c Keine Domain – Aufruf: node scripts/fix-license-token.js deine-domain.de'
+        );
         process.exit(1);
     }
 
@@ -49,13 +56,15 @@ async function main() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ license_key: lic.key, domain }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(15000),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error(`\u274c Lizenzserver Fehler (HTTP ${response.status}): ${data.message || data.status}`);
+            console.error(
+                `\u274c Lizenzserver Fehler (HTTP ${response.status}): ${data.message || data.status}`
+            );
             process.exit(1);
         }
 
@@ -71,20 +80,21 @@ async function main() {
 
         // Token direkt in DB speichern
         settings.license.licenseToken = rawToken;
-        settings.license.domain       = domain;
+        settings.license.domain = domain;
         delete settings.license.degraded;
         delete settings.license.degradedReason;
         delete settings.license.degradedAt;
         await DB.setKV('settings', settings);
 
-        const exp = payload?.exp ? new Date(payload.exp * 1000).toLocaleString('de-DE') : 'unbekannt';
+        const exp = payload?.exp
+            ? new Date(payload.exp * 1000).toLocaleString('de-DE')
+            : 'unbekannt';
         console.log('\u2705 Token erfolgreich in DB gespeichert!');
         console.log(`   Plan:        ${payload?.type}`);
         console.log(`   Domain:      ${payload?.domain}`);
         console.log(`   Gültig bis:  ${exp}`);
         console.log(`   Max Speisen: ${payload?.limits?.max_dishes ?? '?'}`);
         console.log('\n🚀 CMS neu starten: pm2 restart meraki-cms\n');
-
     } catch (e) {
         console.error('\u274c Fehler:', e.message);
         process.exit(1);

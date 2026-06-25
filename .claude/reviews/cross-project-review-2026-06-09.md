@@ -17,6 +17,7 @@ Die beiden Projekte haben **drei kritische Datenvertrags-Brüche** zwischen `pla
 ### CRITICAL
 
 #### C-01: Modul-Name-Mismatch `reservations` vs. `reservations_online`/`reservations_phone`
+
 **Datei**: `meraki-licens/server/plans.js` vs. `meraki-cms/server/routes/reservations.js:92`
 
 Der Lizenzserver stellt Tokens mit `allowed_modules: { reservations_online: true, reservations_phone: true }` aus (PRO und höher). Das CMS prüft `requireLicense('reservations')`, d.h. `modules['reservations']` — dieser Key existiert **nie** im Token. Alle Reservierungs-Endpunkte liefern daher 403 für jeden bezahlten Kunden.
@@ -31,6 +32,7 @@ CMS-Check:           modules['reservations']  →  undefined  →  403 BLOCK
 ---
 
 #### C-02: Modul-Name-Mismatch `custom_design` vs. `custom_branding`
+
 **Datei**: `meraki-licens/server/plans.js` vs. `meraki-cms/server/services/license.js:89`
 
 Lizenzserver sendet `custom_branding: true` (ab PRO). CMS definiert in `PLAN_DEFINITIONS` das Modul als `custom_design` und prüft `modules['custom_design']` — immer `undefined` wenn Token vom Server kommt.
@@ -45,6 +47,7 @@ CMS-Plan-Definition: custom_design: true     ← anderer Name
 ---
 
 #### C-03: `online_orders` fehlt komplett in Lizenzserver-Plan-Definitionen
+
 **Datei**: `meraki-licens/server/plans.js` (alle Pläne), `meraki-cms/server/routes/cart.js:208`
 
 Das CMS prüft `requireLicense('online_orders')` für Online-Bestellungen. Der Lizenzserver sendet **in keinem Plan** `online_orders` im Token. Das CMS-Fallback (eigene `PLAN_DEFINITIONS`) enthält `online_orders: true` für PRO_PLUS/ENTERPRISE, aber der aktive Code-Pfad mit einem gültigen Token verwendet die Server-Module, nicht die lokalen.
@@ -56,6 +59,7 @@ Das CMS prüft `requireLicense('online_orders')` für Online-Bestellungen. Der L
 ### HIGH
 
 #### H-01: Token-Gültigkeit (73h) < Refresh-Schwellenwert (78h) — immer sofortiger Refresh beim Start
+
 **Datei**: `meraki-cms/server/services/license-checker.js:13` + `meraki-licens/server/routes/public.js:216`
 
 ```js
@@ -73,6 +77,7 @@ Ein frisch ausgestelltes Token hat 73h Restlaufzeit. Da 73 < 78, triggert `_chec
 ---
 
 #### H-02: TRIAL-Plan fehlt in CMS `PLAN_DEFINITIONS`
+
 **Datei**: `meraki-cms/server/services/license.js:66-112` vs. `meraki-licens/server/plans.js:7-26`
 
 Lizenzserver definiert `TRIAL` mit 50 Speisen, 8 Tische, `orders_kitchen: true`, `reservations_phone: true`. Im CMS fehlt der `TRIAL`-Eintrag in `PLAN_DEFINITIONS`. `getPlan('TRIAL')` fällt auf `FREE` zurück (30 Speisen, 5 Tische, keine Premium-Module).
@@ -84,6 +89,7 @@ Trial-Kunden des Lizenzservers erhalten auf dem CMS effektiv nur den FREE-Plan.
 ---
 
 #### H-03: CMS `setup.js` speichert `licenseKey` mit hardcoded `type: 'PRO'` ohne Validierung
+
 **Datei**: `meraki-cms/server/routes/setup.js:52-54`
 
 ```js
@@ -101,6 +107,7 @@ if (licenseKey) {
 ---
 
 #### H-04: CMS `requireAuth` prüft keine Session-Datenbank — Tokens nicht widerrufbar
+
 **Datei**: `meraki-cms/server/core/middleware.js:11-16`
 
 Das CMS prüft nur die JWT-Signatur. Der Lizenzserver prüft zusätzlich `admin_sessions` (revoked-Flag). Ein gestohlenes CMS-Admin-Token ist bis zum Ablauf unwiderruflich gültig.
@@ -110,6 +117,7 @@ Das CMS prüft nur die JWT-Signatur. Der Lizenzserver prüft zusätzlich `admin_
 ### MEDIUM
 
 #### M-01: `HMAC_SECRET` Default-Wert unsicher im Lizenzserver
+
 **Datei**: `meraki-licens/server/crypto.js:14`
 
 ```js
@@ -121,6 +129,7 @@ Bei nicht gesetztem Secret können Offline-Tokens gefälscht werden. Sollte beim
 ---
 
 #### M-02: `PLAN_DEFINITIONS` ist dupliziert — zwei verschiedene Quellen der Wahrheit
+
 **Datei**: `meraki-licens/server/plans.js` (ESM) + `meraki-cms/server/services/license.js` (CJS)
 
 Zwei unterschiedliche Definitionen mit unterschiedlichen Modul-Namen. Das ist die Wurzel der C-01/C-02/C-03-Bugs.
@@ -130,6 +139,7 @@ Zwei unterschiedliche Definitionen mit unterschiedlichen Modul-Namen. Das ist di
 ---
 
 #### M-03: `normalizeLicense()` parst `allowed_modules` mit falschem Default-Typ `[]`
+
 **Datei**: `meraki-licens/server/routes/admin-licenses.js:22`
 
 `allowed_modules` ist ein Objekt `{key: bool}`, aber der Default ist ein leeres Array `[]`.
@@ -137,6 +147,7 @@ Zwei unterschiedliche Definitionen mit unterschiedlichen Modul-Namen. Das ist di
 ---
 
 #### M-04: Kein strukturiertes Logging im Lizenzserver
+
 Der Lizenzserver nutzt durchgehend `console.log/warn/error`. Das CMS nutzt `pino`. Inkonsistent — erschwert Production-Debugging.
 
 ---
@@ -144,6 +155,7 @@ Der Lizenzserver nutzt durchgehend `console.log/warn/error`. Das CMS nutzt `pino
 ### LOW
 
 #### L-01: `toDbDate` in zwei Dateien dupliziert
+
 **Datei**: `meraki-licens/server/routes/public.js:15` + `admin-licenses.js:13`
 
 Identische Funktion — in `helpers.js` auslagern.

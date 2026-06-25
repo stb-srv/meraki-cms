@@ -17,7 +17,13 @@ const checkTrialExpiry = async () => {
     try {
         const settings = await DB.getKV('settings', {});
         const lic = settings.license;
-        if (lic && lic.isTrial && lic.expiresAt && new Date(lic.expiresAt) < new Date() && lic.status !== 'expired') {
+        if (
+            lic &&
+            lic.isTrial &&
+            lic.expiresAt &&
+            new Date(lic.expiresAt) < new Date() &&
+            lic.status !== 'expired'
+        ) {
             logger.warn('Trial-Lizenz abgelaufen.');
             lic.status = 'expired';
             await DB.setKV('settings', settings);
@@ -35,27 +41,31 @@ const checkReminders = async () => {
     try {
         const now = new Date();
         // Nur um 10 Uhr morgens prüfen (Berlin Time)
-        const nowHour = parseInt(new Intl.DateTimeFormat('de-DE', { hour: 'numeric', hour12: false, timeZone: 'Europe/Berlin' }).format(now), 10);
+        const nowHour = parseInt(
+            new Intl.DateTimeFormat('de-DE', {
+                hour: 'numeric',
+                hour12: false,
+                timeZone: 'Europe/Berlin',
+            }).format(now),
+            10
+        );
         if (nowHour !== 10) return;
-        
+
         const reservations = await DB.getReservations();
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         // Format DD.MM.YYYY konsistent mit der App
-        const tomorrowStr = `${String(tomorrow.getDate()).padStart(2,'0')}.${String(tomorrow.getMonth()+1).padStart(2,'0')}.${tomorrow.getFullYear()}`;
-        
-        const toRemind = reservations.filter(r => 
-            r.date === tomorrowStr && 
-            r.status === 'Confirmed' && 
-            r.email &&
-            !r.reminderSent
+        const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}.${tomorrow.getFullYear()}`;
+
+        const toRemind = reservations.filter(
+            (r) => r.date === tomorrowStr && r.status === 'Confirmed' && r.email && !r.reminderSent
         );
-        
+
         if (toRemind.length > 0) {
             logger.info(`[Cron] Sende ${toRemind.length} Reservierungs-Erinnerungen...`);
         }
-        
+
         for (const r of toRemind) {
             try {
                 await Mailer.sendReminder(r, DB);
@@ -65,7 +75,7 @@ const checkReminders = async () => {
                 logger.error({ err: mailErr, name: r.name }, 'Fehler beim Senden der Erinnerung');
             }
         }
-    } catch(e) {
+    } catch (e) {
         logger.error({ err: e }, 'Reminder-Check Fehler');
     }
 };
@@ -78,7 +88,14 @@ const checkReminders = async () => {
 const cleanupOldBackups = () => {
     try {
         const now = new Date();
-        const nowHour = parseInt(new Intl.DateTimeFormat('de-DE', { hour: 'numeric', hour12: false, timeZone: 'Europe/Berlin' }).format(now), 10);
+        const nowHour = parseInt(
+            new Intl.DateTimeFormat('de-DE', {
+                hour: 'numeric',
+                hour12: false,
+                timeZone: 'Europe/Berlin',
+            }).format(now),
+            10
+        );
         if (nowHour !== 3) return;
 
         const backupDir = CONFIG.BACKUP_DIR;
@@ -87,25 +104,28 @@ const cleanupOldBackups = () => {
         const maxAgeMs = CONFIG.BACKUP_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
         const minCount = CONFIG.BACKUP_MIN_COUNT;
 
-        const files = fs.readdirSync(backupDir)
-            .map(f => {
+        const files = fs
+            .readdirSync(backupDir)
+            .map((f) => {
                 const filePath = path.join(backupDir, f);
                 const stat = fs.statSync(filePath);
                 return { name: f, path: filePath, time: stat.mtime.getTime(), stat };
             })
-            .filter(f => f.stat.isFile())
+            .filter((f) => f.stat.isFile())
             .sort((a, b) => a.time - b.time); // Älteste zuerst
 
         let deleted = 0;
         let remaining = files.length;
-        
+
         for (const file of files) {
             if (remaining <= minCount) break; // IMMER mindestens MIN_COUNT behalten
 
             const ageMs = now.getTime() - file.time;
             if (ageMs > maxAgeMs) {
                 fs.unlinkSync(file.path);
-                logger.info(`[Backup] Alte Datei gelöscht: ${file.name} (Alter: ${Math.floor(ageMs/86400000)} Tage)`);
+                logger.info(
+                    `[Backup] Alte Datei gelöscht: ${file.name} (Alter: ${Math.floor(ageMs / 86400000)} Tage)`
+                );
                 remaining--;
                 deleted++;
             }
@@ -118,7 +138,7 @@ const cleanupOldBackups = () => {
 
 const startCron = () => {
     logger.info('Background Jobs initialisiert.');
-    
+
     // Trial Check: Stündlich
     setInterval(checkTrialExpiry, 60 * 60 * 1000);
     checkTrialExpiry();

@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Projektübersicht
+
 Meraki CMS ist ein modulares Restaurant-CMS. Backend: Node.js/Express (CommonJS). Frontend: Vanilla JS (ES Modules, kein Framework). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
 
 ## Befehle
@@ -22,12 +23,14 @@ Es gibt keine automatisierten Unit-Tests und kein Build-System.
 Beim ersten Start ohne `server/config.json` wird jeder Nicht-API-Aufruf auf `/setup` umgeleitet.
 
 `server.js` generiert beim Start automatisch einen einmaligen **Setup-Token** (`global._setupToken`) und gibt ihn in der Konsole aus:
+
 ```
   Öffne:  http://localhost:5000/setup
   Token:  <32-Zeichen-Hex-Token>
 ```
 
 Der Setup-Wizard (`POST /api/setup`) validiert den Token (statt IP-Check) und erstellt:
+
 1. Den ersten Admin-User in der DB (Recovery-Codes werden generiert, nur einmalig im Browser angezeigt)
 2. `server/config.json` mit `ADMIN_SECRET` (auto-generiert), `DB_TYPE`, `SMTP`, `LICENSE_SERVER_URL`, `SETUP_COMPLETE: true`
 3. Branding-KV mit Restaurantname, Telefon, Adresse, Sprache, Zeitzone
@@ -42,30 +45,38 @@ Nach dem Setup wird `server/config.json` beim Serverstart geladen und `CONFIG.SE
 ## Architektur
 
 ### Server-Bootstrapping
+
 `server.js` → `server/app.js` (Express-App + alle Routen) + `server/socket.js` (Socket.IO) + `server/cron.js` (Background-Jobs) + `server/services/license-checker.js` (periodischer Token-Refresh)
 
 ### Konfiguration (`config.js`)
+
 Priorität: `.env/PORT` & `.env/ADMIN_SECRET` > `server/config.json` (Setup-Wizard) > `.env` > Defaults.
 **Nie `server/config.json` committen** – enthält den ADMIN_SECRET. Config-Pfad kann auch `config.json` im Root sein (Legacy-Fallback).
 
 ### Datenbank-Adapter
+
 `server/db/index.js` wählt automatisch: `DB_TYPE=mysql` → `server/db/mysql.js`, sonst `server/db/sqlite.js` (via `better-sqlite3`). Beide Adapter exportieren **exakt dasselbe Interface**, alle Methoden sind async-kompatibel (SQLite sync, MySQL async – `await` funktioniert mit beiden).
 
 **Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.**
 
 **Neue Spalten** als Migration eintragen:
+
 - SQLite: `migrations`-Array in `server/db/sqlite.js`
 - MySQL: `initSchema()`-try-Block mit `SHOW COLUMNS`-Check in `server/db/mysql.js`
 
 ### KV-Store
+
 Allgemeine Einstellungen (Settings, License, SMTP, Branding, Homepage, Plugins) werden als JSON in der `kv_store`-Tabelle gespeichert:
+
 ```js
-await DB.getKV('settings', {})   // zweites Argument: Default-Wert
-await DB.setKV('settings', obj)
+await DB.getKV('settings', {}); // zweites Argument: Default-Wert
+await DB.setKV('settings', obj);
 ```
+
 Wichtige KV-Keys: `settings`, `branding`, `homepage`, `plugins`
 
 ### Auth & Rollen
+
 - JWT via `x-admin-token` Header oder `?token` Query-Param
 - Token wird clientseitig in `sessionStorage` als `meraki_admin_token` gespeichert
 - Auto-Refresh wenn Token < 30 Minuten bis Ablauf (`/api/admin/refresh`)
@@ -73,6 +84,7 @@ Wichtige KV-Keys: `settings`, `branding`, `homepage`, `plugins`
 - `requireAuth` prüft Token-Gültigkeit, `requireRole('admin')` / `requireRole('admin', 'waiter')` prüft zusätzlich die Rolle
 
 ### Lizenz-System
+
 Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRISE`
 
 **Einzige Quelle der Wahrheit**: `@meraki/plans` — zentrales Repository `github:stb-srv/meraki-plans` (in `package.json` als Dependency referenziert, installiert nach `node_modules/@meraki/plans`). CMS und Lizenzserver nutzen dieselbe Quelle.
@@ -87,6 +99,7 @@ Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRIS
 `menu_edit`, `orders_kitchen`, `reservations`, `custom_design`, `analytics`, `qr_pay`, `online_orders`, `multilanguage`, `seasonal_menu`, `backup`, `image_ai`
 
 ### LicenseChecker (`server/services/license-checker.js`)
+
 - Startet 5s nach Boot, dann alle 72h
 - Lädt RSA Public Key vom Lizenzserver (`/api/v1/public-key`)
 - Refresht Token wenn < 60h Restlaufzeit (Token-Gültigkeit: 80h)
@@ -94,19 +107,25 @@ Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRIS
 - Wird in `server.js` instanziiert; SIGTERM/SIGINT stoppen ihn sauber
 
 ### Validierung
+
 Alle Route-Handler nutzen `validate(schema)` Middleware aus `server/validation/validate.js` mit Zod-Schemas aus `server/validation/schemas.js`. `.passthrough()` erlaubt Extra-Felder.
 
 ### Real-time (Socket.IO)
+
 `server/socket.js` – Socket-Verbindungen ohne Token werden als Gast zugelassen (`socket.admin = null`). Das `io`-Objekt wird an Orders- und Cart-Routes übergeben für Push-Updates an Kitchen-Display.
 
 ### Background-Jobs (`server/cron.js`)
+
 Stündlich (mit internem Stunden-Filter):
+
 - **Trial-Expiry**: Prüft ob Trial-Lizenz abgelaufen ist
 - **Reservation-Reminders**: Täglich um **10:00 Uhr Berlin** – E-Mail-Erinnerungen 24h vor Reservierung (nur wenn `status=Confirmed`, `email` vorhanden, `reminderSent=false`)
 - **Backup-Cleanup**: Täglich um **03:00 Uhr Berlin** – löscht alte Backups, behält mindestens `BACKUP_MIN_COUNT` (default: 7)
 
 ### Plugin-System
+
 Plugins liegen in `plugins/<id>/` mit:
+
 - `plugin.json` – Metadaten (id, name, version, entry-Points)
 - `server.js` (optional) – `module.exports = (app, { DB, requireAuth, requireLicense }) => {...}`
 - `cms.js` (optional) – CMS-Frontend-Erweiterung
@@ -114,50 +133,51 @@ Plugins liegen in `plugins/<id>/` mit:
 
 ## Wichtigste Dateien
 
-| Datei | Zweck |
-|---|---|
-| `server.js` | Entry Point, Plugin-Loader, HTTP-Server, Graceful Shutdown |
-| `config.js` | Konfiguration (Prio: config.json > .env) |
-| `server/app.js` | Express-App-Factory, alle Route-Mounts, Helmet/CORS |
-| `server/db/index.js` | DB-Adapter-Selector |
-| `server/db/sqlite.js` | SQLite-Adapter |
-| `server/db/mysql.js` | MySQL/MariaDB-Adapter |
-| `server/core/middleware.js` | `requireAuth`, `requireRole`, `requireLicense`, `requireMenuLimit`, Rate-Limiter |
-| `server/core/logger.js` | Pino-Logger (strukturiertes JSON-Logging) |
-| `server/services/license.js` | `getCurrentLicense`, `verifyLicenseToken`, `getPlan` |
-| `server/services/license-checker.js` | Periodischer Token-Refresh vom Lizenzserver |
-| `server/services/mailer.js` | E-Mail via Nodemailer |
-| `server/cron.js` | Background-Jobs (Trial, Reminders, Backup-Cleanup) |
-| `server/socket.js` | Socket.IO-Setup |
-| `server/validation/schemas.js` | Zod-Schemas für alle Routen |
+| Datei                                         | Zweck                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `server.js`                                   | Entry Point, Plugin-Loader, HTTP-Server, Graceful Shutdown                          |
+| `config.js`                                   | Konfiguration (Prio: config.json > .env)                                            |
+| `server/app.js`                               | Express-App-Factory, alle Route-Mounts, Helmet/CORS                                 |
+| `server/db/index.js`                          | DB-Adapter-Selector                                                                 |
+| `server/db/sqlite.js`                         | SQLite-Adapter                                                                      |
+| `server/db/mysql.js`                          | MySQL/MariaDB-Adapter                                                               |
+| `server/core/middleware.js`                   | `requireAuth`, `requireRole`, `requireLicense`, `requireMenuLimit`, Rate-Limiter    |
+| `server/core/logger.js`                       | Pino-Logger (strukturiertes JSON-Logging)                                           |
+| `server/services/license.js`                  | `getCurrentLicense`, `verifyLicenseToken`, `getPlan`                                |
+| `server/services/license-checker.js`          | Periodischer Token-Refresh vom Lizenzserver                                         |
+| `server/services/mailer.js`                   | E-Mail via Nodemailer                                                               |
+| `server/cron.js`                              | Background-Jobs (Trial, Reminders, Backup-Cleanup)                                  |
+| `server/socket.js`                            | Socket.IO-Setup                                                                     |
+| `server/validation/schemas.js`                | Zod-Schemas für alle Routen                                                         |
 | `@meraki/plans` (github:stb-srv/meraki-plans) | **Shared** PLAN_DEFINITIONS (CMS + Lizenzserver) – Upstream-Repo, nicht im CMS-Repo |
-| `test-integration.js` | Datenvertrag-Test CMS↔Lizenzserver |
-| `cms/app.js` | Admin-Panel Haupt-JS (ES Modules) |
-| `cms/modules/api.js` | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`) |
-| `menu-app/app.js` | Gäste-Frontend Haupt-JS |
-| `menu-app/cart.js` | Warenkorb-Logik (komplett clientseitig) |
-| `menu-app/i18n/` | Übersetzungsdateien (14 Sprachen) |
+| `test-integration.js`                         | Datenvertrag-Test CMS↔Lizenzserver                                                  |
+| `cms/app.js`                                  | Admin-Panel Haupt-JS (ES Modules)                                                   |
+| `cms/modules/api.js`                          | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`)              |
+| `menu-app/app.js`                             | Gäste-Frontend Haupt-JS                                                             |
+| `menu-app/cart.js`                            | Warenkorb-Logik (komplett clientseitig)                                             |
+| `menu-app/i18n/`                              | Übersetzungsdateien (14 Sprachen)                                                   |
 
 ## Routen-Übersicht
 
-| Prefix | Datei | Auth |
-|---|---|---|
-| `/api/admin` | `routes/auth.js` | Nein (Login-Endpunkt) |
-| `/api/v1/setup` | `routes/setup.js` | Nein (nur localhost) |
-| `/api/users` | `routes/users.js` | `requireAuth` |
-| `/api/menu`, `/api/categories` | `routes/menu.js` | `requireAuth` (schreiben), öffentlich (lesen) |
-| `/api/orders` | `routes/orders.js` | `requireAuth` + Socket.IO |
-| `/api/reservations` | `routes/reservations.js` | `requireAuth` + `requireLicense('reservations')` |
-| `/api` (tables) | `routes/tables.js` | `requireAuth` |
-| `/api` (settings, branding, license) | `routes/settings.js` | `requireAuth` + `requireRole('admin')` für Schreiben |
-| `/api/upload` | `routes/upload.js` | `requireAuth` |
-| `/api` (cookie) | `routes/cookie.js` | `requireAuth` |
-| `/api/cart` | `routes/cart.js` | Öffentlich (Gäste) + `requireLicense` |
-| `/api/image-ai` | `routes/image-ai.js` | `requireAuth` |
-| `/api/backup` | `routes/backup.js` | `requireAuth` |
-| `/api/plugins` | `app.js` inline | `requireAuth` |
+| Prefix                               | Datei                    | Auth                                                 |
+| ------------------------------------ | ------------------------ | ---------------------------------------------------- |
+| `/api/admin`                         | `routes/auth.js`         | Nein (Login-Endpunkt)                                |
+| `/api/v1/setup`                      | `routes/setup.js`        | Nein (nur localhost)                                 |
+| `/api/users`                         | `routes/users.js`        | `requireAuth`                                        |
+| `/api/menu`, `/api/categories`       | `routes/menu.js`         | `requireAuth` (schreiben), öffentlich (lesen)        |
+| `/api/orders`                        | `routes/orders.js`       | `requireAuth` + Socket.IO                            |
+| `/api/reservations`                  | `routes/reservations.js` | `requireAuth` + `requireLicense('reservations')`     |
+| `/api` (tables)                      | `routes/tables.js`       | `requireAuth`                                        |
+| `/api` (settings, branding, license) | `routes/settings.js`     | `requireAuth` + `requireRole('admin')` für Schreiben |
+| `/api/upload`                        | `routes/upload.js`       | `requireAuth`                                        |
+| `/api` (cookie)                      | `routes/cookie.js`       | `requireAuth`                                        |
+| `/api/cart`                          | `routes/cart.js`         | Öffentlich (Gäste) + `requireLicense`                |
+| `/api/image-ai`                      | `routes/image-ai.js`     | `requireAuth`                                        |
+| `/api/backup`                        | `routes/backup.js`       | `requireAuth`                                        |
+| `/api/plugins`                       | `app.js` inline          | `requireAuth`                                        |
 
 ## Static Serving
+
 - `/admin` → `cms/` (Admin-Panel)
 - `/` → `menu-app/` dann `public/`
 - `/uploads` → `uploads/` (mit strikten Security-Headern, kein inline CSP)

@@ -1,389 +1,652 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#1B3A5C" id="meta-theme-color">
-    <title>Meraki CMS</title>
-    <!-- Config: muss vor allen anderen Scripts stehen -->
-    <script>
-        window.MERAKI_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
-        window.MERAKI_CONFIG = {
-            licenseServer: window.MERAKI_LICENSE_SERVER,
-            version: '2.x'
-        };
-        // Theme früh setzen → kein Flash-of-Wrong-Theme (FOUC)
-        (function () {
-            try {
-                var saved = localStorage.getItem('meraki_theme');
-                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.setAttribute('data-theme', theme);
-                var mc = document.getElementById('meta-theme-color');
-                if (mc) mc.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1B3A5C');
-            } catch (e) {}
-        })();
-    </script>
-    <link rel="icon" href="/admin/assets/favicon.ico" sizes="any">
-    <link rel="icon" href="/admin/assets/favicon.svg" type="image/svg+xml">
-    <link rel="manifest" href="/admin/manifest.webmanifest">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/table-planner.css">
-    <link rel="stylesheet" href="nav.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="modules/qrcodes.js"></script>
-    <script src="/socket.io/socket.io.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.3/socket.io.min.js';document.head.appendChild(s);"></script>
-</head>
-<body>
-    <!-- Login Screen -->
-    <main class="login-container" id="login-container">
-        <div class="login-wrapper">
-            <div class="login-logo-container">
-                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
-            </div>
-            <!-- SEC-FIX: method="post" + action="javascript:void(0)" verhindert Credentials in URL falls JS nicht lädt -->
-            <form id="login-form" class="login-form" method="post" action="javascript:void(0)">
-                <p class="login-welcome-text">Willkommen zurück, Bitte loggen Sie sich ein.</p>
-                <h2 style="margin-bottom:24px; font-size:1.4rem; font-weight:700;">Login</h2>
-                <div class="input-group">
-                    <label for="username">Benutzername</label>
-                    <input type="text" name="username" id="username" placeholder="admin" required autocomplete="username">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="theme-color" content="#1B3A5C" id="meta-theme-color" />
+        <title>Meraki CMS</title>
+        <!-- Config: muss vor allen anderen Scripts stehen -->
+        <script>
+            window.MERAKI_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
+            window.MERAKI_CONFIG = {
+                licenseServer: window.MERAKI_LICENSE_SERVER,
+                version: '2.x',
+            };
+            // Theme früh setzen → kein Flash-of-Wrong-Theme (FOUC)
+            (function () {
+                try {
+                    var saved = localStorage.getItem('meraki_theme');
+                    var theme =
+                        saved ||
+                        (window.matchMedia('(prefers-color-scheme: dark)').matches
+                            ? 'dark'
+                            : 'light');
+                    document.documentElement.setAttribute('data-theme', theme);
+                    var mc = document.getElementById('meta-theme-color');
+                    if (mc) mc.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1B3A5C');
+                } catch (e) {}
+            })();
+        </script>
+        <link rel="icon" href="/admin/assets/favicon.ico" sizes="any" />
+        <link rel="icon" href="/admin/assets/favicon.svg" type="image/svg+xml" />
+        <link rel="manifest" href="/admin/manifest.webmanifest" />
+        <link rel="stylesheet" href="assets/css/style.css" />
+        <link rel="stylesheet" href="assets/css/table-planner.css" />
+        <link rel="stylesheet" href="nav.css" />
+        <link rel="stylesheet" href="assets/css/responsive.css" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Roboto:wght@300;400;500;700;900&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="modules/qrcodes.js"></script>
+        <script
+            src="/socket.io/socket.io.js"
+            onerror="
+                this.onerror = null;
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.3/socket.io.min.js';
+                document.head.appendChild(s);
+            "
+        ></script>
+    </head>
+    <body>
+        <!-- Login Screen -->
+        <main class="login-container" id="login-container">
+            <div class="login-wrapper">
+                <div class="login-logo-container">
+                    <img
+                        src="assets/logo.svg"
+                        alt="Meraki"
+                        class="login-logo"
+                        onerror="this.style.display = 'none'"
+                    />
                 </div>
-                <div class="input-group">
-                    <label for="password">Passwort</label>
-                    <input type="password" name="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-                </div>
-                <button type="submit" class="btn-login">Sicher anmelden</button>
-                <div style="margin-top:20px; text-align:center;">
-                    <a href="#" id="link-forgot-pass" style="color:var(--text); opacity:0.6; font-size:0.85rem; text-decoration:none;">Passwort vergessen?</a>
-                </div>
-            </form>
-        </div>
-    </main>
-
-    <!-- Forgot Password Screen -->
-    <main class="login-container" id="forgot-password-container" style="display:none;">
-        <div class="login-wrapper">
-            <div class="login-logo-container">
-                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
-            </div>
-            <form id="forgot-password-form" class="login-form" method="post" action="javascript:void(0)">
-                <p class="login-welcome-text" style="font-size:0.9rem">Passwort zurücksetzen</p>
-                <h2 style="margin-bottom:24px; font-size:1.4rem; font-weight:700;">Passwort vergessen</h2>
-                <div class="input-group">
-                    <label for="forgot-username">Benutzername oder E-Mail</label>
-                    <input type="text" id="forgot-username" placeholder="admin" required autocomplete="username">
-                </div>
-                <button type="submit" class="btn-login" id="btn-forgot-submit">Neues Passwort anfordern</button>
-                <div style="margin-top:20px; text-align:center; font-size:0.85rem; color:var(--text); opacity:0.7; line-height:1.5;">
-                    Kein Mail-Server?<br>Logge dich mit deinem 10-stelligen <br><strong>Backup-Code</strong> anstelle des Passworts ein.
-                </div>
-                <div style="margin-top:20px; text-align:center;">
-                    <a href="#" id="link-back-login" style="color:var(--primary); font-size:0.85rem; text-decoration:none; font-weight:600;"><i class="fas fa-arrow-left"></i> Zurück zum Login</a>
-                </div>
-            </form>
-        </div>
-    </main>
-
-    <!-- Force Password Change Screen -->
-    <main class="login-container" id="password-change-container" style="display:none;">
-        <div class="login-wrapper">
-            <div class="login-logo-container">
-                <img src="assets/logo.svg" alt="Meraki" class="login-logo" onerror="this.style.display='none'">
-            </div>
-            <form id="password-change-form" class="login-form" method="post" action="javascript:void(0)">
-                <p class="login-welcome-text" style="font-size:0.9rem">Bitte ändern Sie Ihr Passwort für den ersten Zugang.</p>
-                <h2 style="margin-bottom:24px; font-size:1.4rem; font-weight:700;">Sicherheit</h2>
-                <div class="input-group">
-                    <label for="new-password">Neues Passwort (min. 12 Zeichen)</label>
-                    <input type="password" id="new-password" placeholder="Neues Passwort" required minlength="12" autocomplete="new-password">
-                </div>
-                <button type="submit" class="btn-login">Passwort speichern &amp; Login</button>
-            </form>
-        </div>
-    </main>
-
-    <!-- Admin Dashboard -->
-    <main class="admin-dashboard" id="admin-dashboard" style="display:none;">
-        <div class="glass-app-shell">
-            <nav class="sidebar" id="cms-sidebar">
-
-                <div class="sidebar-header">
-                    <div>
-                        <h2 id="disp-res-name">Meraki CMS</h2>
-                        <p id="disp-res-slogan">Restaurant Management</p>
+                <!-- SEC-FIX: method="post" + action="javascript:void(0)" verhindert Credentials in URL falls JS nicht lädt -->
+                <form id="login-form" class="login-form" method="post" action="javascript:void(0)">
+                    <p class="login-welcome-text">Willkommen zurück, Bitte loggen Sie sich ein.</p>
+                    <h2 style="margin-bottom: 24px; font-size: 1.4rem; font-weight: 700">Login</h2>
+                    <div class="input-group">
+                        <label for="username">Benutzername</label>
+                        <input
+                            type="text"
+                            name="username"
+                            id="username"
+                            placeholder="admin"
+                            required
+                            autocomplete="username"
+                        />
                     </div>
-                    <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Sidebar einklappen" title="Sidebar einklappen">
-                        <i class="fas fa-bars" style="font-size:.85rem;"></i>
+                    <div class="input-group">
+                        <label for="password">Passwort</label>
+                        <input
+                            type="password"
+                            name="password"
+                            id="password"
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password"
+                        />
+                    </div>
+                    <button type="submit" class="btn-login">Sicher anmelden</button>
+                    <div style="margin-top: 20px; text-align: center">
+                        <a
+                            href="#"
+                            id="link-forgot-pass"
+                            style="
+                                color: var(--text);
+                                opacity: 0.6;
+                                font-size: 0.85rem;
+                                text-decoration: none;
+                            "
+                            >Passwort vergessen?</a
+                        >
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <!-- Forgot Password Screen -->
+        <main class="login-container" id="forgot-password-container" style="display: none">
+            <div class="login-wrapper">
+                <div class="login-logo-container">
+                    <img
+                        src="assets/logo.svg"
+                        alt="Meraki"
+                        class="login-logo"
+                        onerror="this.style.display = 'none'"
+                    />
+                </div>
+                <form
+                    id="forgot-password-form"
+                    class="login-form"
+                    method="post"
+                    action="javascript:void(0)"
+                >
+                    <p class="login-welcome-text" style="font-size: 0.9rem">
+                        Passwort zurücksetzen
+                    </p>
+                    <h2 style="margin-bottom: 24px; font-size: 1.4rem; font-weight: 700">
+                        Passwort vergessen
+                    </h2>
+                    <div class="input-group">
+                        <label for="forgot-username">Benutzername oder E-Mail</label>
+                        <input
+                            type="text"
+                            id="forgot-username"
+                            placeholder="admin"
+                            required
+                            autocomplete="username"
+                        />
+                    </div>
+                    <button type="submit" class="btn-login" id="btn-forgot-submit">
+                        Neues Passwort anfordern
                     </button>
+                    <div
+                        style="
+                            margin-top: 20px;
+                            text-align: center;
+                            font-size: 0.85rem;
+                            color: var(--text);
+                            opacity: 0.7;
+                            line-height: 1.5;
+                        "
+                    >
+                        Kein Mail-Server?<br />Logge dich mit deinem 10-stelligen <br /><strong
+                            >Backup-Code</strong
+                        >
+                        anstelle des Passworts ein.
+                    </div>
+                    <div style="margin-top: 20px; text-align: center">
+                        <a
+                            href="#"
+                            id="link-back-login"
+                            style="
+                                color: var(--primary);
+                                font-size: 0.85rem;
+                                text-decoration: none;
+                                font-weight: 600;
+                            "
+                            ><i class="fas fa-arrow-left"></i> Zurück zum Login</a
+                        >
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <!-- Force Password Change Screen -->
+        <main class="login-container" id="password-change-container" style="display: none">
+            <div class="login-wrapper">
+                <div class="login-logo-container">
+                    <img
+                        src="assets/logo.svg"
+                        alt="Meraki"
+                        class="login-logo"
+                        onerror="this.style.display = 'none'"
+                    />
                 </div>
-
-                <div class="nav-search-wrap">
-                  <i class="fas fa-search nav-search-icon"></i>
-                  <input type="text" id="nav-search" class="nav-search-input" placeholder="Suchen... (Strg+K)" data-i18n-ph="common.search">
-                </div>
-                <ul class="nav-search-results" id="nav-search-results"></ul>
-
-                <!-- Hauptnavigation -->
-                <ul class="nav-list">
-
-                  <!-- DASHBOARD -->
-                  <li class="nav-item" data-view="stats">
-                    <i class="fas fa-th-large"></i>
-                    <span data-i18n="nav.dashboard">Dashboard</span>
-                  </li>
-
-                  <li class="nav-divider"></li>
-
-                  <!-- 1. SPEISEKARTE -->
-                  <li class="nav-group">
-                    <div class="nav-group-header" data-view="menu">
-                      <i class="fas fa-utensils"></i>
-                      <span data-i18n="nav.menu">Speisekarte</span>
-                      <i class="fas fa-chevron-right nav-chevron"></i>
+                <form
+                    id="password-change-form"
+                    class="login-form"
+                    method="post"
+                    action="javascript:void(0)"
+                >
+                    <p class="login-welcome-text" style="font-size: 0.9rem">
+                        Bitte ändern Sie Ihr Passwort für den ersten Zugang.
+                    </p>
+                    <h2 style="margin-bottom: 24px; font-size: 1.4rem; font-weight: 700">
+                        Sicherheit
+                    </h2>
+                    <div class="input-group">
+                        <label for="new-password">Neues Passwort (min. 12 Zeichen)</label>
+                        <input
+                            type="password"
+                            id="new-password"
+                            placeholder="Neues Passwort"
+                            required
+                            minlength="12"
+                            autocomplete="new-password"
+                        />
                     </div>
-                    <ul class="nav-subnav">
-                      <li class="nav-subitem" data-view="menu" data-tab="dishes">
-                        <i class="fas fa-hamburger"></i><span data-i18n="nav.dishes">Gerichte</span>
-                      </li>
-                      <li class="nav-subitem" data-view="menu" data-tab="categories">
-                        <i class="fas fa-tags"></i><span data-i18n="nav.categories">Kategorien</span>
-                      </li>
-                      <li class="nav-subitem" data-view="menu" data-tab="daily">
-                        <i class="fas fa-star"></i><span data-i18n="nav.daily">Tagesgerichte</span>
-                      </li>
-                      <li class="nav-subitem nav-subitem--group-label"><span data-i18n="nav.declaration">Deklaration</span></li>
-                      <li class="nav-subitem" data-view="menu" data-tab="allergens">
-                        <i class="fas fa-exclamation-triangle"></i><span data-i18n="nav.allergens">Allergene</span>
-                      </li>
-                      <li class="nav-subitem" data-view="menu" data-tab="additives">
-                        <i class="fas fa-flask"></i><span data-i18n="nav.additives">Zusatzstoffe</span>
-                      </li>
-                    </ul>
-                  </li>
+                    <button type="submit" class="btn-login">Passwort speichern &amp; Login</button>
+                </form>
+            </div>
+        </main>
 
-                  <!-- 2. RESERVIERUNGEN & TISCHE -->
-                  <li class="nav-group">
-                    <div class="nav-group-header" data-view="reservations">
-                      <i class="fas fa-calendar-alt"></i>
-                      <span data-i18n="nav.reservations_tables">Reservierungen & Tische</span>
-                      <i class="fas fa-chevron-right nav-chevron"></i>
-                    </div>
-                    <ul class="nav-subnav">
-                      <li class="nav-subitem" data-view="reservations">
-                        <i class="fas fa-calendar-check"></i><span data-i18n="nav.reservations">Reservierungen</span>
-                      </li>
-                      <li class="nav-subitem" data-view="table-planner">
-                        <i class="fas fa-project-diagram"></i><span data-i18n="nav.table_planner">Tischplaner</span>
-                      </li>
-                      <li class="nav-subitem" data-view="tables">
-                        <i class="fas fa-chair"></i><span data-i18n="nav.tables_setup">Tische einrichten</span>
-                      </li>
-                      <li class="nav-subitem" data-view="settings" data-tab="reservations">
-                        <i class="fas fa-sliders-h"></i><span data-i18n="nav.reservation_settings">Reservierungs-Einstellungen</span>
-                      </li>
-                      <li class="nav-subitem" data-view="archive">
-                        <i class="fas fa-archive"></i><span data-i18n="nav.archive">Archiv</span>
-                      </li>
-                    </ul>
-                  </li>
-
-                  <!-- 3. ONLINE-BESTELLUNGEN -->
-                  <li class="nav-group" id="nav-orders-group">
-                    <div class="nav-group-header" data-view="orders">
-                      <i class="fas fa-shopping-bag"></i>
-                      <span data-i18n="nav.online_orders">Online-Bestellungen</span>
-                      <span class="nav-badge" id="nav-orders-badge" style="display:none">0</span>
-                      <i class="fas fa-chevron-right nav-chevron"></i>
-                    </div>
-                    <ul class="nav-subnav">
-                      <li class="nav-subitem" data-view="orders" id="nav-orders">
-                        <i class="fas fa-bell"></i><span data-i18n="nav.live_monitor">Live-Monitor</span>
-                      </li>
-                      <li class="nav-subitem" data-view="kassenbuch" id="nav-kassenbuch">
-                        <i class="fas fa-cash-register"></i><span data-i18n="nav.kassenbuch">Kassenbuch & Tagesabschluss</span>
-                      </li>
-                      <li class="nav-subitem" data-view="order-settings" id="nav-order-settings">
-                        <i class="fas fa-sliders-h"></i><span data-i18n="nav.order_settings">Bestellungen einrichten</span>
-                      </li>
-                    </ul>
-                  </li>
-
-                  <li class="nav-divider"></li>
-
-                  <!-- 4. MEIN RESTAURANT -->
-                  <li class="nav-group">
-                    <div class="nav-group-header">
-                      <i class="fas fa-store"></i>
-                      <span data-i18n="nav.my_restaurant">Mein Restaurant</span>
-                      <i class="fas fa-chevron-right nav-chevron"></i>
-                    </div>
-                    <ul class="nav-subnav">
-                      <li class="nav-subitem" data-view="settings" data-tab="branding">
-                        <i class="fas fa-palette"></i><span data-i18n="nav.branding">Profil & Branding</span>
-                      </li>
-                      <li class="nav-subitem" data-view="opening">
-                        <i class="fas fa-clock"></i><span data-i18n="nav.opening_hours">Öffnungszeiten</span>
-                      </li>
-                      <li class="nav-subitem" data-view="home-editor">
-                        <i class="fas fa-layer-group"></i><span data-i18n="nav.website">Website & Inhalte</span>
-                      </li>
-                      <li class="nav-subitem" data-view="home-editor" data-tab="location">
-                        <i class="fas fa-map-marker-alt"></i><span data-i18n="nav.location">Standort & Karte</span>
-                      </li>
-                      <li class="nav-subitem" data-view="home-editor" data-tab="vacation">
-                        <i class="fas fa-umbrella-beach"></i><span data-i18n="nav.vacation">Urlaub & Schließzeiten</span>
-                      </li>
-                      <li class="nav-subitem" data-view="home-editor" data-tab="holiday">
-                        <i class="fas fa-calendar-star"></i><span data-i18n="nav.holiday">Feiertage & Events</span>
-                      </li>
-                      <li class="nav-subitem" data-view="feedback">
-                        <i class="fas fa-star"></i><span data-i18n="nav.feedback">Gäste-Bewertungen</span>
-                      </li>
-                    </ul>
-                  </li>
-
-                  <!-- 5. VERWALTUNG -->
-                  <li class="nav-group">
-                    <div class="nav-group-header">
-                      <i class="fas fa-cog"></i>
-                      <span data-i18n="nav.management">Verwaltung</span>
-                      <i class="fas fa-chevron-right nav-chevron"></i>
-                    </div>
-                    <ul class="nav-subnav">
-
-                      <!-- Team -->
-                      <li class="nav-subitem nav-subitem--group-label"><span data-i18n="nav.team">Team</span></li>
-                      <li class="nav-subitem" data-view="settings" data-tab="users">
-                        <i class="fas fa-users-cog"></i><span data-i18n="nav.staff">Mitarbeiter & Zugänge</span>
-                      </li>
-                      <li class="nav-subitem" data-view="shifts">
-                        <i class="fas fa-calendar-week"></i><span data-i18n="nav.shifts">Schichtplan</span>
-                      </li>
-
-                      <!-- System -->
-                      <li class="nav-subitem nav-subitem--group-label"><span data-i18n="nav.system">System</span></li>
-                      <li class="nav-subitem" data-view="settings" data-tab="smtp">
-                        <i class="fas fa-envelope"></i><span data-i18n="nav.smtp">E-Mail & SMTP</span>
-                      </li>
-                      <li class="nav-subitem" data-view="settings" data-tab="order-emails">
-                        <i class="fas fa-file-alt"></i><span data-i18n="nav.order_emails">Bestell-E-Mail Vorlagen</span>
-                      </li>
-                      <li class="nav-subitem" data-view="settings" data-tab="image-ai">
-                        <i class="fas fa-robot"></i><span data-i18n="nav.image_ai">KI-Bildgenerierung</span>
-                      </li>
-                      <li class="nav-subitem" data-view="settings" data-tab="license">
-                        <i class="fas fa-key"></i><span data-i18n="nav.license">Lizenz & Module</span>
-                      </li>
-                      <li class="nav-subitem" data-view="settings" data-tab="plan_modules">
-                        <i class="fas fa-toggle-on"></i><span data-i18n="nav.plan_modules">Module aktivieren</span>
-                      </li>
-                      <li class="nav-subitem" data-view="audit-log">
-                        <i class="fas fa-clipboard-list"></i><span data-i18n="nav.audit_log">Änderungsprotokoll</span>
-                      </li>
-
-                      <!-- Werkzeuge -->
-                      <li class="nav-subitem nav-subitem--group-label"><span data-i18n="nav.tools">Werkzeuge</span></li>
-                      <li class="nav-subitem" data-view="qrcodes">
-                        <i class="fas fa-qrcode"></i><span data-i18n="nav.qrcodes">QR-Codes</span>
-                      </li>
-                      <li class="nav-subitem" data-view="backup">
-                        <i class="fas fa-database"></i><span data-i18n="nav.backup">Backup & Wiederherstellung</span>
-                      </li>
-                      <li class="nav-subitem" data-view="plugins-manager">
-                        <i class="fas fa-puzzle-piece"></i><span data-i18n="nav.plugins">Erweiterungen</span>
-                      </li>
-                      <li class="nav-subitem" onclick="window.open('kitchen.html','_blank','width=1280,height=800')" style="cursor:pointer;">
-                        <i class="fas fa-fire-burner"></i><span data-i18n="nav.kitchen_display">Küchen-Display</span>
-                        <i class="fas fa-external-link-alt" style="margin-left:auto; font-size:.65rem; opacity:.5;"></i>
-                      </li>
-
-                    </ul>
-                  </li>
-
-                </ul>
-
-                <!-- Mobile close -->
-                <button class="sidebar-close-btn" id="sidebar-close">
-                  <i class="fas fa-times"></i>
-                </button>
-
-                <div class="sidebar-footer">
-                    <div class="version-badge">v2.8.0 PRO</div>
-                </div>
-            </nav>
-
-            <!-- Mobile Hamburger -->
-            <button class="hamburger-btn" id="mobile-menu-toggle" aria-label="Menü öffnen">
-              <i class="fas fa-bars"></i>
-            </button>
-
-            <!-- Mobile Overlay -->
-            <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-            <section class="main-content">
-                <header class="content-header">
-                    <div class="header-left">
-                        <img id="cms-header-logo" src="assets/logo.svg" alt="Logo"
-                             style="height:28px; width:auto; object-fit:contain; display:none; margin-right:8px;">
-                        <h2 id="view-title">Dashboard</h2>
-                    </div>
-                    <div class="header-right">
-                        <button class="theme-toggle" id="notify-toggle" aria-label="Benachrichtigungen aktivieren" title="Benachrichtigungen aktivieren" style="display:none;">
-                            <i class="fas fa-bell"></i>
-                        </button>
-                        <button class="theme-toggle" id="theme-toggle" aria-label="Dark Mode umschalten" title="Hell/Dunkel umschalten">
-                            <i class="fas fa-moon"></i>
-                        </button>
-                        <select id="lang-switch" class="input-styled" title="Sprache / Language" style="width:auto; padding:8px 10px; font-size:.8rem; font-weight:700;">
-                            <option value="de">DE</option>
-                            <option value="en">EN</option>
-                        </select>
-                        <div class="user-profile">
-                            <span>Willkommen, <strong id="disp-user-name">–</strong></span>
-                            <img id="disp-user-avatar" src="" alt="Avatar" class="avatar"
-                                 style="background:var(--primary);">
-                            <button id="btn-logout" data-i18n="common.logout" style="background:none; border:none; cursor:pointer; color:var(--primary); font-weight:800; margin-left:15px;">Logout</button>
-                            <div id="license-badge" style="display:none; margin-left:12px; padding:4px 12px;
-                                 border-radius:20px; font-size:.75rem; font-weight:800; cursor:pointer;
-                                 border:1.5px solid transparent; transition:all .2s;"
-                                 onclick="window.switchTab('settings','license')">
-                                <i class="fas fa-key" style="margin-right:5px;"></i>
-                                <span id="license-badge-text">–</span>
-                            </div>
+        <!-- Admin Dashboard -->
+        <main class="admin-dashboard" id="admin-dashboard" style="display: none">
+            <div class="glass-app-shell">
+                <nav class="sidebar" id="cms-sidebar">
+                    <div class="sidebar-header">
+                        <div>
+                            <h2 id="disp-res-name">Meraki CMS</h2>
+                            <p id="disp-res-slogan">Restaurant Management</p>
                         </div>
+                        <button
+                            class="sidebar-toggle-btn"
+                            id="sidebar-toggle"
+                            aria-label="Sidebar einklappen"
+                            title="Sidebar einklappen"
+                        >
+                            <i class="fas fa-bars" style="font-size: 0.85rem"></i>
+                        </button>
                     </div>
-                </header>
 
-                <nav class="breadcrumb-bar" id="breadcrumb-bar" aria-label="Breadcrumb">
-                    <span class="breadcrumb-home" onclick="window.switchTab('stats')">
-                        <i class="fas fa-home"></i>
-                    </span>
-                    <span id="breadcrumb-trail"></span>
+                    <div class="nav-search-wrap">
+                        <i class="fas fa-search nav-search-icon"></i>
+                        <input
+                            type="text"
+                            id="nav-search"
+                            class="nav-search-input"
+                            placeholder="Suchen... (Strg+K)"
+                            data-i18n-ph="common.search"
+                        />
+                    </div>
+                    <ul class="nav-search-results" id="nav-search-results"></ul>
+
+                    <!-- Hauptnavigation -->
+                    <ul class="nav-list">
+                        <!-- DASHBOARD -->
+                        <li class="nav-item" data-view="stats">
+                            <i class="fas fa-th-large"></i>
+                            <span data-i18n="nav.dashboard">Dashboard</span>
+                        </li>
+
+                        <li class="nav-divider"></li>
+
+                        <!-- 1. SPEISEKARTE -->
+                        <li class="nav-group">
+                            <div class="nav-group-header" data-view="menu">
+                                <i class="fas fa-utensils"></i>
+                                <span data-i18n="nav.menu">Speisekarte</span>
+                                <i class="fas fa-chevron-right nav-chevron"></i>
+                            </div>
+                            <ul class="nav-subnav">
+                                <li class="nav-subitem" data-view="menu" data-tab="dishes">
+                                    <i class="fas fa-hamburger"></i
+                                    ><span data-i18n="nav.dishes">Gerichte</span>
+                                </li>
+                                <li class="nav-subitem" data-view="menu" data-tab="categories">
+                                    <i class="fas fa-tags"></i
+                                    ><span data-i18n="nav.categories">Kategorien</span>
+                                </li>
+                                <li class="nav-subitem" data-view="menu" data-tab="daily">
+                                    <i class="fas fa-star"></i
+                                    ><span data-i18n="nav.daily">Tagesgerichte</span>
+                                </li>
+                                <li class="nav-subitem nav-subitem--group-label">
+                                    <span data-i18n="nav.declaration">Deklaration</span>
+                                </li>
+                                <li class="nav-subitem" data-view="menu" data-tab="allergens">
+                                    <i class="fas fa-exclamation-triangle"></i
+                                    ><span data-i18n="nav.allergens">Allergene</span>
+                                </li>
+                                <li class="nav-subitem" data-view="menu" data-tab="additives">
+                                    <i class="fas fa-flask"></i
+                                    ><span data-i18n="nav.additives">Zusatzstoffe</span>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- 2. RESERVIERUNGEN & TISCHE -->
+                        <li class="nav-group">
+                            <div class="nav-group-header" data-view="reservations">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span data-i18n="nav.reservations_tables"
+                                    >Reservierungen & Tische</span
+                                >
+                                <i class="fas fa-chevron-right nav-chevron"></i>
+                            </div>
+                            <ul class="nav-subnav">
+                                <li class="nav-subitem" data-view="reservations">
+                                    <i class="fas fa-calendar-check"></i
+                                    ><span data-i18n="nav.reservations">Reservierungen</span>
+                                </li>
+                                <li class="nav-subitem" data-view="table-planner">
+                                    <i class="fas fa-project-diagram"></i
+                                    ><span data-i18n="nav.table_planner">Tischplaner</span>
+                                </li>
+                                <li class="nav-subitem" data-view="tables">
+                                    <i class="fas fa-chair"></i
+                                    ><span data-i18n="nav.tables_setup">Tische einrichten</span>
+                                </li>
+                                <li
+                                    class="nav-subitem"
+                                    data-view="settings"
+                                    data-tab="reservations"
+                                >
+                                    <i class="fas fa-sliders-h"></i
+                                    ><span data-i18n="nav.reservation_settings"
+                                        >Reservierungs-Einstellungen</span
+                                    >
+                                </li>
+                                <li class="nav-subitem" data-view="archive">
+                                    <i class="fas fa-archive"></i
+                                    ><span data-i18n="nav.archive">Archiv</span>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- 3. ONLINE-BESTELLUNGEN -->
+                        <li class="nav-group" id="nav-orders-group">
+                            <div class="nav-group-header" data-view="orders">
+                                <i class="fas fa-shopping-bag"></i>
+                                <span data-i18n="nav.online_orders">Online-Bestellungen</span>
+                                <span class="nav-badge" id="nav-orders-badge" style="display: none"
+                                    >0</span
+                                >
+                                <i class="fas fa-chevron-right nav-chevron"></i>
+                            </div>
+                            <ul class="nav-subnav">
+                                <li class="nav-subitem" data-view="orders" id="nav-orders">
+                                    <i class="fas fa-bell"></i
+                                    ><span data-i18n="nav.live_monitor">Live-Monitor</span>
+                                </li>
+                                <li class="nav-subitem" data-view="kassenbuch" id="nav-kassenbuch">
+                                    <i class="fas fa-cash-register"></i
+                                    ><span data-i18n="nav.kassenbuch"
+                                        >Kassenbuch & Tagesabschluss</span
+                                    >
+                                </li>
+                                <li
+                                    class="nav-subitem"
+                                    data-view="order-settings"
+                                    id="nav-order-settings"
+                                >
+                                    <i class="fas fa-sliders-h"></i
+                                    ><span data-i18n="nav.order_settings"
+                                        >Bestellungen einrichten</span
+                                    >
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-divider"></li>
+
+                        <!-- 4. MEIN RESTAURANT -->
+                        <li class="nav-group">
+                            <div class="nav-group-header">
+                                <i class="fas fa-store"></i>
+                                <span data-i18n="nav.my_restaurant">Mein Restaurant</span>
+                                <i class="fas fa-chevron-right nav-chevron"></i>
+                            </div>
+                            <ul class="nav-subnav">
+                                <li class="nav-subitem" data-view="settings" data-tab="branding">
+                                    <i class="fas fa-palette"></i
+                                    ><span data-i18n="nav.branding">Profil & Branding</span>
+                                </li>
+                                <li class="nav-subitem" data-view="opening">
+                                    <i class="fas fa-clock"></i
+                                    ><span data-i18n="nav.opening_hours">Öffnungszeiten</span>
+                                </li>
+                                <li class="nav-subitem" data-view="home-editor">
+                                    <i class="fas fa-layer-group"></i
+                                    ><span data-i18n="nav.website">Website & Inhalte</span>
+                                </li>
+                                <li class="nav-subitem" data-view="home-editor" data-tab="location">
+                                    <i class="fas fa-map-marker-alt"></i
+                                    ><span data-i18n="nav.location">Standort & Karte</span>
+                                </li>
+                                <li class="nav-subitem" data-view="home-editor" data-tab="vacation">
+                                    <i class="fas fa-umbrella-beach"></i
+                                    ><span data-i18n="nav.vacation">Urlaub & Schließzeiten</span>
+                                </li>
+                                <li class="nav-subitem" data-view="home-editor" data-tab="holiday">
+                                    <i class="fas fa-calendar-star"></i
+                                    ><span data-i18n="nav.holiday">Feiertage & Events</span>
+                                </li>
+                                <li class="nav-subitem" data-view="feedback">
+                                    <i class="fas fa-star"></i
+                                    ><span data-i18n="nav.feedback">Gäste-Bewertungen</span>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- 5. VERWALTUNG -->
+                        <li class="nav-group">
+                            <div class="nav-group-header">
+                                <i class="fas fa-cog"></i>
+                                <span data-i18n="nav.management">Verwaltung</span>
+                                <i class="fas fa-chevron-right nav-chevron"></i>
+                            </div>
+                            <ul class="nav-subnav">
+                                <!-- Team -->
+                                <li class="nav-subitem nav-subitem--group-label">
+                                    <span data-i18n="nav.team">Team</span>
+                                </li>
+                                <li class="nav-subitem" data-view="settings" data-tab="users">
+                                    <i class="fas fa-users-cog"></i
+                                    ><span data-i18n="nav.staff">Mitarbeiter & Zugänge</span>
+                                </li>
+                                <li class="nav-subitem" data-view="shifts">
+                                    <i class="fas fa-calendar-week"></i
+                                    ><span data-i18n="nav.shifts">Schichtplan</span>
+                                </li>
+
+                                <!-- System -->
+                                <li class="nav-subitem nav-subitem--group-label">
+                                    <span data-i18n="nav.system">System</span>
+                                </li>
+                                <li class="nav-subitem" data-view="settings" data-tab="smtp">
+                                    <i class="fas fa-envelope"></i
+                                    ><span data-i18n="nav.smtp">E-Mail & SMTP</span>
+                                </li>
+                                <li
+                                    class="nav-subitem"
+                                    data-view="settings"
+                                    data-tab="order-emails"
+                                >
+                                    <i class="fas fa-file-alt"></i
+                                    ><span data-i18n="nav.order_emails"
+                                        >Bestell-E-Mail Vorlagen</span
+                                    >
+                                </li>
+                                <li class="nav-subitem" data-view="settings" data-tab="image-ai">
+                                    <i class="fas fa-robot"></i
+                                    ><span data-i18n="nav.image_ai">KI-Bildgenerierung</span>
+                                </li>
+                                <li class="nav-subitem" data-view="settings" data-tab="license">
+                                    <i class="fas fa-key"></i
+                                    ><span data-i18n="nav.license">Lizenz & Module</span>
+                                </li>
+                                <li
+                                    class="nav-subitem"
+                                    data-view="settings"
+                                    data-tab="plan_modules"
+                                >
+                                    <i class="fas fa-toggle-on"></i
+                                    ><span data-i18n="nav.plan_modules">Module aktivieren</span>
+                                </li>
+                                <li class="nav-subitem" data-view="audit-log">
+                                    <i class="fas fa-clipboard-list"></i
+                                    ><span data-i18n="nav.audit_log">Änderungsprotokoll</span>
+                                </li>
+
+                                <!-- Werkzeuge -->
+                                <li class="nav-subitem nav-subitem--group-label">
+                                    <span data-i18n="nav.tools">Werkzeuge</span>
+                                </li>
+                                <li class="nav-subitem" data-view="qrcodes">
+                                    <i class="fas fa-qrcode"></i
+                                    ><span data-i18n="nav.qrcodes">QR-Codes</span>
+                                </li>
+                                <li class="nav-subitem" data-view="backup">
+                                    <i class="fas fa-database"></i
+                                    ><span data-i18n="nav.backup">Backup & Wiederherstellung</span>
+                                </li>
+                                <li class="nav-subitem" data-view="plugins-manager">
+                                    <i class="fas fa-puzzle-piece"></i
+                                    ><span data-i18n="nav.plugins">Erweiterungen</span>
+                                </li>
+                                <li
+                                    class="nav-subitem"
+                                    onclick="
+                                        window.open(
+                                            'kitchen.html',
+                                            '_blank',
+                                            'width=1280,height=800'
+                                        )
+                                    "
+                                    style="cursor: pointer"
+                                >
+                                    <i class="fas fa-fire-burner"></i
+                                    ><span data-i18n="nav.kitchen_display">Küchen-Display</span>
+                                    <i
+                                        class="fas fa-external-link-alt"
+                                        style="margin-left: auto; font-size: 0.65rem; opacity: 0.5"
+                                    ></i>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <!-- Mobile close -->
+                    <button class="sidebar-close-btn" id="sidebar-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+
+                    <div class="sidebar-footer">
+                        <div class="version-badge">v2.8.0 PRO</div>
+                    </div>
                 </nav>
 
-                <div class="toolbar" id="dashboard-toolbar" style="display:none; margin-bottom:30px;"></div>
+                <!-- Mobile Hamburger -->
+                <button class="hamburger-btn" id="mobile-menu-toggle" aria-label="Menü öffnen">
+                    <i class="fas fa-bars"></i>
+                </button>
 
-                <div class="content-body" id="content-view" style="display:block; width:100%;">
-                    <!-- Rendered by app.js -->
-                </div>
-            </section>
-        </div>
-    </main>
+                <!-- Mobile Overlay -->
+                <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <!-- Puter.js: clientseitige KI-Bildgenerierung (keyless, Browser-Login) -->
-    <script src="https://js.puter.com/v2/"></script>
-    <script src="modules/menu-core.js"></script>
-    <script src="modules/menu-categories.js"></script>
-    <script src="modules/menu-import-export.js"></script>
-    <script src="modules/menu-translate.js"></script>
-    <script src="modules/image-batch.js"></script>
-    <script type="module" src="app.js"></script>
-</body>
+                <section class="main-content">
+                    <header class="content-header">
+                        <div class="header-left">
+                            <img
+                                id="cms-header-logo"
+                                src="assets/logo.svg"
+                                alt="Logo"
+                                style="
+                                    height: 28px;
+                                    width: auto;
+                                    object-fit: contain;
+                                    display: none;
+                                    margin-right: 8px;
+                                "
+                            />
+                            <h2 id="view-title">Dashboard</h2>
+                        </div>
+                        <div class="header-right">
+                            <button
+                                class="theme-toggle"
+                                id="notify-toggle"
+                                aria-label="Benachrichtigungen aktivieren"
+                                title="Benachrichtigungen aktivieren"
+                                style="display: none"
+                            >
+                                <i class="fas fa-bell"></i>
+                            </button>
+                            <button
+                                class="theme-toggle"
+                                id="theme-toggle"
+                                aria-label="Dark Mode umschalten"
+                                title="Hell/Dunkel umschalten"
+                            >
+                                <i class="fas fa-moon"></i>
+                            </button>
+                            <select
+                                id="lang-switch"
+                                class="input-styled"
+                                title="Sprache / Language"
+                                style="
+                                    width: auto;
+                                    padding: 8px 10px;
+                                    font-size: 0.8rem;
+                                    font-weight: 700;
+                                "
+                            >
+                                <option value="de">DE</option>
+                                <option value="en">EN</option>
+                            </select>
+                            <div class="user-profile">
+                                <span>Willkommen, <strong id="disp-user-name">–</strong></span>
+                                <img
+                                    id="disp-user-avatar"
+                                    src=""
+                                    alt="Avatar"
+                                    class="avatar"
+                                    style="background: var(--primary)"
+                                />
+                                <button
+                                    id="btn-logout"
+                                    data-i18n="common.logout"
+                                    style="
+                                        background: none;
+                                        border: none;
+                                        cursor: pointer;
+                                        color: var(--primary);
+                                        font-weight: 800;
+                                        margin-left: 15px;
+                                    "
+                                >
+                                    Logout
+                                </button>
+                                <div
+                                    id="license-badge"
+                                    style="
+                                        display: none;
+                                        margin-left: 12px;
+                                        padding: 4px 12px;
+                                        border-radius: 20px;
+                                        font-size: 0.75rem;
+                                        font-weight: 800;
+                                        cursor: pointer;
+                                        border: 1.5px solid transparent;
+                                        transition: all 0.2s;
+                                    "
+                                    onclick="window.switchTab('settings', 'license')"
+                                >
+                                    <i class="fas fa-key" style="margin-right: 5px"></i>
+                                    <span id="license-badge-text">–</span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <nav class="breadcrumb-bar" id="breadcrumb-bar" aria-label="Breadcrumb">
+                        <span class="breadcrumb-home" onclick="window.switchTab('stats')">
+                            <i class="fas fa-home"></i>
+                        </span>
+                        <span id="breadcrumb-trail"></span>
+                    </nav>
+
+                    <div
+                        class="toolbar"
+                        id="dashboard-toolbar"
+                        style="display: none; margin-bottom: 30px"
+                    ></div>
+
+                    <div class="content-body" id="content-view" style="display: block; width: 100%">
+                        <!-- Rendered by app.js -->
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Puter.js: clientseitige KI-Bildgenerierung (keyless, Browser-Login) -->
+        <script src="https://js.puter.com/v2/"></script>
+        <script src="modules/menu-core.js"></script>
+        <script src="modules/menu-categories.js"></script>
+        <script src="modules/menu-import-export.js"></script>
+        <script src="modules/menu-translate.js"></script>
+        <script src="modules/image-batch.js"></script>
+        <script type="module" src="app.js"></script>
+    </body>
 </html>

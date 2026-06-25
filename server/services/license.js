@@ -6,7 +6,7 @@
  * Fallback-Key verwendet. LICENSE_PUBLIC_KEY in .env überschreibt beides.
  */
 
-const jwt    = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const logger = require('../core/logger.js');
 const { PLAN_DEFINITIONS: SHARED_PLANS } = require('@meraki/plans');
 
@@ -26,7 +26,9 @@ let MERAKI_PUBLIC_KEY = (process.env.LICENSE_PUBLIC_KEY || '').trim() || null;
 if (MERAKI_PUBLIC_KEY) {
     logger.info('RSA Public Key aus LICENSE_PUBLIC_KEY Env-Variable geladen.');
 } else {
-    logger.info('LICENSE_PUBLIC_KEY nicht gesetzt – Public Key wird beim Start vom Lizenzserver abgerufen.');
+    logger.info(
+        'LICENSE_PUBLIC_KEY nicht gesetzt – Public Key wird beim Start vom Lizenzserver abgerufen.'
+    );
     MERAKI_PUBLIC_KEY = MERAKI_PUBLIC_KEY_FALLBACK;
 }
 
@@ -74,9 +76,9 @@ const PLAN_DEFINITIONS = { ...SHARED_PLANS };
  */
 const initPlans = async (licenseServerUrl) => {
     const base = (licenseServerUrl || 'https://licens-prod.stb-srv.de').replace(/\/+$/, '');
-    const url  = `${base}/api/v1/plans`;
+    const url = `${base}/api/v1/plans`;
     try {
-        const res  = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!Array.isArray(data.plans)) throw new Error('Ungueltige Antwort – plans fehlt.');
@@ -85,14 +87,14 @@ const initPlans = async (licenseServerUrl) => {
         for (const p of data.plans) {
             if (!p.plan_id || !p.modules) continue;
             PLAN_DEFINITIONS[p.plan_id] = {
-                label:        p.label        ?? PLAN_DEFINITIONS[p.plan_id]?.label,
-                menu_items:   p.menu_items   ?? PLAN_DEFINITIONS[p.plan_id]?.menu_items,
-                max_tables:   p.max_tables   ?? PLAN_DEFINITIONS[p.plan_id]?.max_tables,
+                label: p.label ?? PLAN_DEFINITIONS[p.plan_id]?.label,
+                menu_items: p.menu_items ?? PLAN_DEFINITIONS[p.plan_id]?.menu_items,
+                max_tables: p.max_tables ?? PLAN_DEFINITIONS[p.plan_id]?.max_tables,
                 expires_days: p.expires_days ?? PLAN_DEFINITIONS[p.plan_id]?.expires_days,
-                modules:      p.modules,
-                price:        p.price,
-                currency:     p.currency ?? 'EUR',
-                features:     p.features ?? [],
+                modules: p.modules,
+                price: p.price,
+                currency: p.currency ?? 'EUR',
+                features: p.features ?? [],
             };
             updated++;
         }
@@ -106,20 +108,27 @@ const initPlans = async (licenseServerUrl) => {
 
 const getPlan = (type) => {
     if (!type) return PLAN_DEFINITIONS['FREE'];
-    const normalizedType = type.toUpperCase()
-        .replace(/\+/g, '_PLUS')
-        .replace(/\s+/g, '_');
+    const normalizedType = type.toUpperCase().replace(/\+/g, '_PLUS').replace(/\s+/g, '_');
     return PLAN_DEFINITIONS[normalizedType] || PLAN_DEFINITIONS['FREE'];
 };
 
 const FREE_RESULT = (extra = {}) => ({
-    key: null, status: 'free', customer: 'Testmodus',
-    type: 'FREE', label: 'Free',
-    expiresAt: null, isTrial: false, isExpired: false, trialDaysLeft: 0,
+    key: null,
+    status: 'free',
+    customer: 'Testmodus',
+    type: 'FREE',
+    label: 'Free',
+    expiresAt: null,
+    isTrial: false,
+    isExpired: false,
+    trialDaysLeft: 0,
     modules: PLAN_DEFINITIONS.FREE.modules,
-    limits: { max_dishes: PLAN_DEFINITIONS.FREE.menu_items, max_tables: PLAN_DEFINITIONS.FREE.max_tables },
+    limits: {
+        max_dishes: PLAN_DEFINITIONS.FREE.menu_items,
+        max_tables: PLAN_DEFINITIONS.FREE.max_tables,
+    },
     plan: PLAN_DEFINITIONS.FREE,
-    ...extra
+    ...extra,
 });
 
 const verifyLicenseToken = (token, host = null) => {
@@ -128,8 +137,8 @@ const verifyLicenseToken = (token, host = null) => {
         const payload = jwt.verify(token, MERAKI_PUBLIC_KEY, { algorithms: ['RS256'] });
         if (payload.domain && host) {
             const normalizeHost = (h) => (h || '').replace(/:\d+$/, '').toLowerCase().trim();
-            const tokenDomain  = normalizeHost(payload.domain);
-            const currentHost  = normalizeHost(host);
+            const tokenDomain = normalizeHost(payload.domain);
+            const currentHost = normalizeHost(host);
             const isLocal = ['localhost', '127.0.0.1', '::1'].includes(currentHost);
             if (!isLocal && tokenDomain !== currentHost) {
                 logger.warn({ tokenDomain, currentHost }, 'License domain mismatch');
@@ -150,62 +159,82 @@ const getLastKnownLicense = (lic) => {
     const type = lic.lastKnownType || lic.type || null;
     if (!type || type === 'FREE') return null;
 
-    const plan    = getPlan(type);
+    const plan = getPlan(type);
     const modules = lic.lastKnownModules || plan.modules;
-    const limits  = lic.lastKnownLimits  || { max_dishes: plan.menu_items, max_tables: plan.max_tables };
+    const limits = lic.lastKnownLimits || {
+        max_dishes: plan.menu_items,
+        max_tables: plan.max_tables,
+    };
 
-    logger.warn({ type, since: lic.lastKnownAt || 'unbekannt' }, '[Offline-Fallback] Lizenzserver nicht erreichbar – nutze letzten bekannten Plan.');
+    logger.warn(
+        { type, since: lic.lastKnownAt || 'unbekannt' },
+        '[Offline-Fallback] Lizenzserver nicht erreichbar – nutze letzten bekannten Plan.'
+    );
 
     return {
-        key:      lic.key,
-        status:   'active_offline',
+        key: lic.key,
+        status: 'active_offline',
         customer: lic.customer || 'Unbekannt',
-        type, label: plan.label + ' (Offline)',
+        type,
+        label: plan.label + ' (Offline)',
         expiresAt: lic.expiresAt || null,
-        modules, limits,
-        isTrial: false, isExpired: false, trialDaysLeft: 0, plan,
-        domain:  lic.domain || null,
-        offline: true
+        modules,
+        limits,
+        isTrial: false,
+        isExpired: false,
+        trialDaysLeft: 0,
+        plan,
+        domain: lic.domain || null,
+        offline: true,
     };
 };
 
 const getCurrentLicense = async (DB, host = null) => {
     const settings = await DB.getKV('settings', {});
-    const lic      = settings.license || {};
+    const lic = settings.license || {};
 
     // Gesperrtes CMS: Wenn locked=true, immer FREE zurückgeben
     if (lic.locked) {
-        logger.error({ reason: lic.lockedReason || 'unbekannt' }, '[LOCKED] CMS ist gesperrt – Lizenz deaktiviert.');
+        logger.error(
+            { reason: lic.lockedReason || 'unbekannt' },
+            '[LOCKED] CMS ist gesperrt – Lizenz deaktiviert.'
+        );
         return FREE_RESULT({ status: 'locked', isExpired: true });
     }
 
     if (lic.isTrial) {
-        const plan      = getPlan(lic.type);
-        const now       = new Date();
+        const plan = getPlan(lic.type);
+        const now = new Date();
         const expiresAt = lic.expiresAt ? new Date(lic.expiresAt) : null;
         const isExpired = expiresAt ? expiresAt < now : false;
-        const trialDaysLeft = !isExpired && expiresAt
-            ? Math.max(0, Math.ceil((expiresAt - now) / 86400000))
-            : 0;
+        const trialDaysLeft =
+            !isExpired && expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / 86400000)) : 0;
 
-        if (isExpired) return FREE_RESULT({ isTrial: true, isExpired: true, status: 'expired', key: lic.key });
+        if (isExpired)
+            return FREE_RESULT({ isTrial: true, isExpired: true, status: 'expired', key: lic.key });
 
         return {
-            key: lic.key, status: lic.status || 'trial',
-            customer: lic.customer || 'Trial', type: lic.type || 'FREE',
-            label: plan.label, expiresAt: lic.expiresAt,
+            key: lic.key,
+            status: lic.status || 'trial',
+            customer: lic.customer || 'Trial',
+            type: lic.type || 'FREE',
+            label: plan.label,
+            expiresAt: lic.expiresAt,
             modules: plan.modules,
             limits: { max_dishes: plan.menu_items, max_tables: plan.max_tables },
-            isTrial: true, isExpired: false, trialDaysLeft, plan
+            isTrial: true,
+            isExpired: false,
+            trialDaysLeft,
+            plan,
         };
     }
 
-    const token   = lic.licenseToken || null;
+    const token = lic.licenseToken || null;
     const payload = verifyLicenseToken(token, host);
 
     if (payload) {
-        const plan      = getPlan(payload.type);
-        const now       = new Date();
+        const plan = getPlan(payload.type);
+        const now = new Date();
         const expiresAt = payload.exp ? new Date(payload.exp * 1000) : null;
         const isExpired = expiresAt ? expiresAt < now : false;
 
@@ -213,25 +242,33 @@ const getCurrentLicense = async (DB, host = null) => {
             logger.warn({ expiresAt: expiresAt?.toISOString() }, 'License token expired.');
             const offline = getLastKnownLicense(lic);
             if (offline) return offline;
-            return FREE_RESULT({ isExpired: true, status: 'expired', key: payload.license_key || lic.key });
+            return FREE_RESULT({
+                isExpired: true,
+                status: 'expired',
+                key: payload.license_key || lic.key,
+            });
         }
 
         return {
-            key:      payload.license_key || lic.key,
-            status:   'active',
+            key: payload.license_key || lic.key,
+            status: 'active',
             customer: payload.customer_name || lic.customer || 'Unbekannt',
-            type:     payload.type     || 'FREE',
-            label:    plan.label,
+            type: payload.type || 'FREE',
+            label: plan.label,
             expiresAt: expiresAt?.toISOString() || null,
-            modules: (payload.allowed_modules && Object.keys(payload.allowed_modules).length > 0)
-                ? payload.allowed_modules
-                : plan.modules,
+            modules:
+                payload.allowed_modules && Object.keys(payload.allowed_modules).length > 0
+                    ? payload.allowed_modules
+                    : plan.modules,
             limits: {
                 max_dishes: payload.limits?.max_dishes ?? plan.menu_items,
-                max_tables: payload.limits?.max_tables ?? plan.max_tables
+                max_tables: payload.limits?.max_tables ?? plan.max_tables,
             },
-            isTrial: false, isExpired: false, trialDaysLeft: 0, plan,
-            domain:  payload.domain || null
+            isTrial: false,
+            isExpired: false,
+            trialDaysLeft: 0,
+            plan,
+            domain: payload.domain || null,
         };
     }
 
@@ -244,4 +281,12 @@ const getCurrentLicense = async (DB, host = null) => {
     return FREE_RESULT();
 };
 
-module.exports = { PLAN_DEFINITIONS, getPlan, getCurrentLicense, verifyLicenseToken, initPublicKey, initPlans, MERAKI_PUBLIC_KEY };
+module.exports = {
+    PLAN_DEFINITIONS,
+    getPlan,
+    getCurrentLicense,
+    verifyLicenseToken,
+    initPublicKey,
+    initPlans,
+    MERAKI_PUBLIC_KEY,
+};

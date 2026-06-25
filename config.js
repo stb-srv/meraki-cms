@@ -10,7 +10,9 @@
 const fs = require('fs');
 const path = require('path');
 
-try { require('dotenv').config(); } catch(e) {}
+try {
+    require('dotenv').config();
+} catch (e) {}
 
 let CONFIG_PATH = path.join(__dirname, 'server', 'config.json');
 if (!fs.existsSync(CONFIG_PATH) && fs.existsSync(path.join(__dirname, 'config.json'))) {
@@ -34,9 +36,9 @@ const DEFAULT_CONFIG = {
         secure: process.env.SMTP_SECURE !== 'false',
         user: process.env.SMTP_USER || '',
         pass: process.env.SMTP_PASS || '',
-        from: process.env.SMTP_FROM || ''
+        from: process.env.SMTP_FROM || '',
     },
-    SETUP_COMPLETE: false
+    SETUP_COMPLETE: false,
 };
 
 let CONFIG = { ...DEFAULT_CONFIG };
@@ -49,7 +51,7 @@ if (fs.existsSync(CONFIG_PATH)) {
         // SMTP aus config.json (Setup-Wizard) hat Vorrang vor .env
         const mergedSmtp = { ...DEFAULT_CONFIG.SMTP };
         if (loadedConfig.SMTP) {
-            Object.keys(loadedConfig.SMTP).forEach(key => {
+            Object.keys(loadedConfig.SMTP).forEach((key) => {
                 if (loadedConfig.SMTP[key] !== undefined && loadedConfig.SMTP[key] !== '') {
                     mergedSmtp[key] = loadedConfig.SMTP[key];
                 }
@@ -60,11 +62,12 @@ if (fs.existsSync(CONFIG_PATH)) {
             ...DEFAULT_CONFIG,
             ...loadedConfig,
             SMTP: mergedSmtp,
-            SETUP_COMPLETE: true
+            SETUP_COMPLETE: true,
         };
 
         if (!loadedConfig.LICENSE_SERVER_URL) {
-            CONFIG.LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de';
+            CONFIG.LICENSE_SERVER_URL =
+                process.env.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de';
         }
         // PORT & ADMIN_SECRET aus .env haben Vorrang (Security: nie in config.json überschreiben)
         if (process.env.PORT) CONFIG.PORT = parseInt(process.env.PORT);
@@ -83,13 +86,19 @@ if (!CONFIG.ADMIN_SECRET || CONFIG.ADMIN_SECRET === INSECURE_SECRET_DEFAULT) {
         console.error('\n❌❌❌ KRITISCHER SICHERHEITSFEHLER ❌❌❌');
         console.error('ADMIN_SECRET ist nicht gesetzt oder verwendet den unsicheren Default-Wert.');
         console.error('Der Server wird NICHT gestartet.');
-        console.error('Bitte ADMIN_SECRET in der .env Datei auf einen langen zufälligen String setzen.');
-        console.error('Beispiel: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+        console.error(
+            'Bitte ADMIN_SECRET in der .env Datei auf einen langen zufälligen String setzen.'
+        );
+        console.error(
+            "Beispiel: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+        );
         console.error('');
         process.exit(1);
     } else {
         // Vor dem Setup: Warnung genügt (Setup-Wizard setzt das Secret)
-        console.warn('⚠⚠⚠  WARNING: ADMIN_SECRET ist nicht gesetzt! Bitte Setup-Wizard ausführen oder ADMIN_SECRET in .env setzen.');
+        console.warn(
+            '⚠⚠⚠  WARNING: ADMIN_SECRET ist nicht gesetzt! Bitte Setup-Wizard ausführen oder ADMIN_SECRET in .env setzen.'
+        );
     }
 }
 

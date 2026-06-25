@@ -56,7 +56,7 @@ const DICT = {
         'nav.qrcodes': 'QR-Codes',
         'nav.backup': 'Backup & Wiederherstellung',
         'nav.plugins': 'Erweiterungen',
-        'nav.kitchen_display': 'Küchen-Display'
+        'nav.kitchen_display': 'Küchen-Display',
     },
     en: {
         'common.search': 'Search... (Ctrl+K)',
@@ -103,38 +103,52 @@ const DICT = {
         'nav.qrcodes': 'QR codes',
         'nav.backup': 'Backup & restore',
         'nav.plugins': 'Extensions',
-        'nav.kitchen_display': 'Kitchen display'
-    }
+        'nav.kitchen_display': 'Kitchen display',
+    },
 };
 
 export const AVAILABLE_LANGS = [
     { code: 'de', label: 'Deutsch' },
-    { code: 'en', label: 'English' }
+    { code: 'en', label: 'English' },
 ];
 
 let currentLang = 'de';
-try { currentLang = localStorage.getItem('meraki_cms_lang') || 'de'; } catch (e) {}
+try {
+    currentLang = localStorage.getItem('meraki_cms_lang') || 'de';
+} catch (e) {}
 if (!DICT[currentLang]) currentLang = 'de';
 
-export function getLang() { return currentLang; }
+export function getLang() {
+    return currentLang;
+}
 
 export function t(key, fallback) {
-    return (DICT[currentLang] && DICT[currentLang][key]) || (DICT.de && DICT.de[key]) || fallback || key;
+    return (
+        (DICT[currentLang] && DICT[currentLang][key]) ||
+        (DICT.de && DICT.de[key]) ||
+        fallback ||
+        key
+    );
 }
 
 export function applyTranslations(root = document) {
-    root.querySelectorAll('[data-i18n]').forEach(el => {
+    root.querySelectorAll('[data-i18n]').forEach((el) => {
         const v = t(el.getAttribute('data-i18n'), el.textContent);
         if (v) el.textContent = v;
     });
-    root.querySelectorAll('[data-i18n-ph]').forEach(el => {
-        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'), el.getAttribute('placeholder') || ''));
+    root.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+        el.setAttribute(
+            'placeholder',
+            t(el.getAttribute('data-i18n-ph'), el.getAttribute('placeholder') || '')
+        );
     });
     document.documentElement.setAttribute('lang', currentLang);
 }
 
 export function setLang(lang) {
     currentLang = DICT[lang] ? lang : 'de';
-    try { localStorage.setItem('meraki_cms_lang', currentLang); } catch (e) {}
+    try {
+        localStorage.setItem('meraki_cms_lang', currentLang);
+    } catch (e) {}
     applyTranslations();
 }

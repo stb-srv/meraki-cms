@@ -1,30 +1,37 @@
 window.OpaI18n = (function () {
-
     const LANGUAGES = {
-        de: { code: 'de', label: 'Deutsch',      flag: '🇩🇪', dir: 'ltr' },
-        en: { code: 'en', label: 'English',       flag: '🇬🇧', dir: 'ltr' },
-        es: { code: 'es', label: 'Español',       flag: '🇪🇸', dir: 'ltr' },
-        el: { code: 'el', label: 'Ελληνικά',      flag: '🇬🇷', dir: 'ltr' },
-        da: { code: 'da', label: 'Dansk',         flag: '🇩🇰', dir: 'ltr' },
-        pl: { code: 'pl', label: 'Polski',        flag: '🇵🇱', dir: 'ltr' },
-        pt: { code: 'pt', label: 'Português',     flag: '🇵🇹', dir: 'ltr' },
-        it: { code: 'it', label: 'Italiano',      flag: '🇮🇹', dir: 'ltr' },
-        nl: { code: 'nl', label: 'Nederlands',    flag: '🇳🇱', dir: 'ltr' },
-        fr: { code: 'fr', label: 'Français',      flag: '🇫🇷', dir: 'ltr' },
-        tr: { code: 'tr', label: 'Türkçe',        flag: '🇹🇷', dir: 'ltr' },
-        ru: { code: 'ru', label: 'Русский',       flag: '🇷🇺', dir: 'ltr' },
-        uk: { code: 'uk', label: 'Українська',    flag: '🇺🇦', dir: 'ltr' },
-        ar: { code: 'ar', label: 'العربية',       flag: '🇸🇦', dir: 'rtl' },
+        de: { code: 'de', label: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
+        en: { code: 'en', label: 'English', flag: '🇬🇧', dir: 'ltr' },
+        es: { code: 'es', label: 'Español', flag: '🇪🇸', dir: 'ltr' },
+        el: { code: 'el', label: 'Ελληνικά', flag: '🇬🇷', dir: 'ltr' },
+        da: { code: 'da', label: 'Dansk', flag: '🇩🇰', dir: 'ltr' },
+        pl: { code: 'pl', label: 'Polski', flag: '🇵🇱', dir: 'ltr' },
+        pt: { code: 'pt', label: 'Português', flag: '🇵🇹', dir: 'ltr' },
+        it: { code: 'it', label: 'Italiano', flag: '🇮🇹', dir: 'ltr' },
+        nl: { code: 'nl', label: 'Nederlands', flag: '🇳🇱', dir: 'ltr' },
+        fr: { code: 'fr', label: 'Français', flag: '🇫🇷', dir: 'ltr' },
+        tr: { code: 'tr', label: 'Türkçe', flag: '🇹🇷', dir: 'ltr' },
+        ru: { code: 'ru', label: 'Русский', flag: '🇷🇺', dir: 'ltr' },
+        uk: { code: 'uk', label: 'Українська', flag: '🇺🇦', dir: 'ltr' },
+        ar: { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
     };
 
     let currentLang = 'de';
     let translations = {};
 
     function safeLsGet(key, fallback = 'de') {
-        try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
+        try {
+            return localStorage.getItem(key) || fallback;
+        } catch {
+            return fallback;
+        }
     }
     function safeLsSet(key, val) {
-        try { localStorage.setItem(key, val); } catch { /* sandboxed iframe safety */ }
+        try {
+            localStorage.setItem(key, val);
+        } catch {
+            /* sandboxed iframe safety */
+        }
     }
 
     // Basis-URL automatisch ermitteln (relativ zur i18n.js Datei)
@@ -49,7 +56,9 @@ window.OpaI18n = (function () {
                 try {
                     const r = await fetch(`${base}de.json`);
                     if (r.ok) translations = await r.json();
-                } catch { /* silent */ }
+                } catch {
+                    /* silent */
+                }
                 code = 'de';
             }
         }
@@ -62,11 +71,11 @@ window.OpaI18n = (function () {
         const menu = document.getElementById('lang-dropdown-menu');
         const backdrop = document.getElementById('lang-backdrop');
         if (!dd || !menu) return;
-        
+
         if (open) {
             dd.classList.add('open');
             menu.classList.add('open');
-            
+
             if (window.innerWidth <= 768) {
                 if (backdrop) backdrop.style.display = 'block';
                 document.body.style.overflow = 'hidden';
@@ -79,8 +88,8 @@ window.OpaI18n = (function () {
                 if (btn) {
                     const rect = btn.getBoundingClientRect();
                     // Align menu right edge with button right edge
-                    menu.style.top = (rect.bottom + 10) + 'px';
-                    menu.style.right = (window.innerWidth - rect.right) + 'px';
+                    menu.style.top = rect.bottom + 10 + 'px';
+                    menu.style.right = window.innerWidth - rect.right + 'px';
                     menu.style.left = 'auto';
                 }
             }
@@ -102,16 +111,16 @@ window.OpaI18n = (function () {
 
     async function setLang(code) {
         await load(code);
-        document.documentElement.dir  = LANGUAGES[code]?.dir || 'ltr';
+        document.documentElement.dir = LANGUAGES[code]?.dir || 'ltr';
         document.documentElement.lang = code;
         window._opaCurrentLang = code;
-        
+
         safeLsSet('opa_lang', code);
         applyTranslations();
-        
+
         if (window.OpaRender) window.OpaRender();
         updateLangBtn(code);
-        
+
         const menu = document.getElementById('lang-dropdown-menu');
         if (menu) {
             menu.innerHTML = renderDropdown();
@@ -121,7 +130,7 @@ window.OpaI18n = (function () {
     }
 
     function applyTranslations() {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
             const val = t(el.dataset.i18n);
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 el.placeholder = val;
@@ -129,7 +138,7 @@ window.OpaI18n = (function () {
                 // Icons erhalten
                 const icon = el.querySelector('i');
                 if (icon) {
-                    el.childNodes.forEach(node => {
+                    el.childNodes.forEach((node) => {
                         if (node.nodeType === 3) node.textContent = val;
                     });
                 } else {
@@ -137,13 +146,13 @@ window.OpaI18n = (function () {
                 }
             }
         });
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
             el.placeholder = t(el.dataset.i18nPlaceholder);
         });
     }
 
     function updateLangBtn(code) {
-        const btn  = document.getElementById('lang-switcher-btn');
+        const btn = document.getElementById('lang-switcher-btn');
         const lang = LANGUAGES[code];
         if (btn && lang) {
             btn.innerHTML = `${lang.flag} <span>${code.toUpperCase()}</span> <i class="fas fa-chevron-down" style="font-size:.6rem;opacity:.6;"></i>`;
@@ -152,52 +161,71 @@ window.OpaI18n = (function () {
 
     function renderDropdown() {
         const handle = '<div class="lang-sheet-handle"></div>';
-        const options = Object.values(LANGUAGES).map(l => `
+        const options = Object.values(LANGUAGES)
+            .map(
+                (l) => `
             <button class="lang-option ${l.code === currentLang ? 'active' : ''}"
                     data-lang="${l.code}"
                     type="button">
                 <span class="lang-flag">${l.flag}</span>
                 <span class="lang-label">${l.label}</span>
                 ${l.code === currentLang ? '<i class="fas fa-check" style="margin-left:auto;color:var(--gold,#C8A96E);"></i>' : ''}
-            </button>`).join('');
+            </button>`
+            )
+            .join('');
         return handle + options;
     }
 
     function attachLangOptionListeners() {
         const menu = document.getElementById('lang-dropdown-menu');
         if (!menu) return;
-        menu.querySelectorAll('.lang-option[data-lang]').forEach(btn => {
+        menu.querySelectorAll('.lang-option[data-lang]').forEach((btn) => {
             // Remove any existing listeners by replacing the node
             const clone = btn.cloneNode(true);
             btn.parentNode.replaceChild(clone, btn);
-            
+
             let touchHandled = false;
             let touchStartY = 0;
             let isSwiping = false;
 
-            clone.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-                isSwiping = false;
-            }, { passive: true });
+            clone.addEventListener(
+                'touchstart',
+                (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    isSwiping = false;
+                },
+                { passive: true }
+            );
 
-            clone.addEventListener('touchmove', (e) => {
-                if (Math.abs(e.touches[0].clientY - touchStartY) > 8) {
-                    isSwiping = true;
-                }
-            }, { passive: true });
+            clone.addEventListener(
+                'touchmove',
+                (e) => {
+                    if (Math.abs(e.touches[0].clientY - touchStartY) > 8) {
+                        isSwiping = true;
+                    }
+                },
+                { passive: true }
+            );
 
-            clone.addEventListener('touchend', (e) => {
-                if (isSwiping) return; // User scrolled, ignore tap
-                
-                e.stopPropagation();       // don't bubble to document
-                touchHandled = true;
-                const code = clone.dataset.lang;
-                OpaI18n.setLang(code);     // setLang handles closing
-            }, { passive: true });
-            
+            clone.addEventListener(
+                'touchend',
+                (e) => {
+                    if (isSwiping) return; // User scrolled, ignore tap
+
+                    e.stopPropagation(); // don't bubble to document
+                    touchHandled = true;
+                    const code = clone.dataset.lang;
+                    OpaI18n.setLang(code); // setLang handles closing
+                },
+                { passive: true }
+            );
+
             clone.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (touchHandled) { touchHandled = false; return; } // already handled
+                if (touchHandled) {
+                    touchHandled = false;
+                    return;
+                } // already handled
                 const code = clone.dataset.lang;
                 OpaI18n.setLang(code);
             });
@@ -207,14 +235,14 @@ window.OpaI18n = (function () {
     async function init() {
         const saved = safeLsGet('opa_lang', null);
         const browserLang = navigator.language?.slice(0, 2) || 'de';
-        const startLang   = (saved && LANGUAGES[saved]) ? saved
-                          : (LANGUAGES[browserLang] ? browserLang : 'de');
+        const startLang =
+            saved && LANGUAGES[saved] ? saved : LANGUAGES[browserLang] ? browserLang : 'de';
         try {
             await load(startLang);
-        } catch(e) {
+        } catch (e) {
             console.warn('[OpaI18n] Ladefehler:', e);
         }
-        
+
         applyTranslations();
         updateLangBtn(startLang);
         window._opaCurrentLang = startLang;
@@ -226,7 +254,7 @@ window.OpaI18n = (function () {
         }
 
         document.addEventListener('click', (e) => {
-            const dd  = document.getElementById('lang-dropdown');
+            const dd = document.getElementById('lang-dropdown');
             const menu = document.getElementById('lang-dropdown-menu');
             if (!dd || !dd.classList.contains('open')) return;
             // Don't close if clicking the button itself or inside the menu
@@ -254,5 +282,15 @@ window.OpaI18n = (function () {
         });
     }
 
-    return { init, t, setLang, applyTranslations, renderDropdown, setDropdownOpen, attachLangOptionListeners, getLanguages: () => LANGUAGES, getCurrent: () => currentLang };
+    return {
+        init,
+        t,
+        setLang,
+        applyTranslations,
+        renderDropdown,
+        setDropdownOpen,
+        attachLangOptionListeners,
+        getLanguages: () => LANGUAGES,
+        getCurrent: () => currentLang,
+    };
 })();

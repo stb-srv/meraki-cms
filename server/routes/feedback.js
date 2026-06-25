@@ -14,8 +14,12 @@ const logger = require('../core/logger.js');
 
 module.exports = (requireAuth) => {
     router.get('/feedback', requireAuth, async (req, res) => {
-        try { res.json(await DB.getFeedback() || []); }
-        catch(e) { logger.error({ err: e }, 'GET /feedback Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        try {
+            res.json((await DB.getFeedback()) || []);
+        } catch (e) {
+            logger.error({ err: e }, 'GET /feedback Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     router.post('/feedback', feedbackLimiter, validate(feedbackSchema), async (req, res) => {
@@ -23,7 +27,10 @@ module.exports = (requireAuth) => {
             const { guest_name, rating, comment } = req.body || {};
             const r = parseInt(rating, 10);
             if (!r || r < 1 || r > 5) {
-                return res.status(400).json({ success: false, reason: 'Bewertung (rating) muss zwischen 1 und 5 liegen.' });
+                return res.status(400).json({
+                    success: false,
+                    reason: 'Bewertung (rating) muss zwischen 1 und 5 liegen.',
+                });
             }
             await DB.addFeedback({
                 guest_name: (guest_name || '').toString().slice(0, 255),
@@ -31,15 +38,29 @@ module.exports = (requireAuth) => {
                 comment: (comment || '').toString().slice(0, 2000),
             });
             res.json({ success: true });
-        } catch(e) { logger.error({ err: e }, 'POST /feedback Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        } catch (e) {
+            logger.error({ err: e }, 'POST /feedback Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     router.delete('/feedback/:id', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             await DB.deleteFeedback(req.params.id);
-            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || req.admin?.name || null, action: 'feedback.delete', entity: 'feedback', entity_id: req.params.id }); } catch (_) {}
+            try {
+                if (DB.addAuditLog)
+                    await DB.addAuditLog({
+                        actor: req.admin?.user || req.admin?.name || null,
+                        action: 'feedback.delete',
+                        entity: 'feedback',
+                        entity_id: req.params.id,
+                    });
+            } catch (_) {}
             res.json({ success: true });
-        } catch(e) { logger.error({ err: e }, 'DELETE /feedback/:id Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        } catch (e) {
+            logger.error({ err: e }, 'DELETE /feedback/:id Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     return router;

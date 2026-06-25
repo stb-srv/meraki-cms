@@ -1,0 +1,10 @@
+node_modules
+package-lock.json
+uploads
+backups
+data
+*.min.js
+cms/assets/favicon.*
+cms/assets/*.png
+cms/assets/*.jpg
+cms/assets/*.svg

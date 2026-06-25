@@ -18,7 +18,7 @@ async function resetPassword() {
 
     try {
         const users = DB.getUsers();
-        const admins = users.filter(u => u.role === 'admin');
+        const admins = users.filter((u) => u.role === 'admin');
 
         if (admins.length === 0) {
             console.log('[INFO] Kein Admin-Account gefunden.');
@@ -35,7 +35,7 @@ async function resetPassword() {
                 email: '',
                 role: 'admin',
                 require_password_change: 1,
-                recovery_codes: []
+                recovery_codes: [],
             });
 
             console.log('\n✅ Notfall-Admin erstellt!');
@@ -60,7 +60,6 @@ async function resetPassword() {
 
         console.log('\n⚠️  Bitte nach dem Login sofort ein neues Passwort setzen.');
         console.log('   Das Passwort wird beim nächsten Login automatisch abgefragt.\n');
-
     } catch (e) {
         console.error('\n❌ FEHLER: Datenbankzugriff fehlgeschlagen.');
         console.error(e.message);

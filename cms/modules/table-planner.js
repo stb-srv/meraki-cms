@@ -17,14 +17,19 @@ let state = {
     snapEnabled: true,
     reservations: [],
     selectedTableIds: [],
-    isDirty: false
+    isDirty: false,
 };
 
 const SNAP = 20;
 let ptr = { mode: null };
 let combineMode = false;
 
-export async function renderTablePlanner(container, titleEl, tab = 'overview', forceRefresh = false) {
+export async function renderTablePlanner(
+    container,
+    titleEl,
+    tab = 'overview',
+    forceRefresh = false
+) {
     // Bestehendes Overlay entfernen falls vorhanden
     document.getElementById('planner-fullscreen-overlay')?.remove();
 
@@ -101,14 +106,14 @@ export async function renderTablePlanner(container, titleEl, tab = 'overview', f
 
     titleEl.innerHTML = '<i class="fas fa-th"></i> Visueller Tischplaner';
 
-    const plan         = await apiGet('table-plan');
+    const plan = await apiGet('table-plan');
     const reservations = await apiGet('reservations');
 
-    state.areas        = plan.areas    || [];
-    state.tables       = plan.tables   || {};
-    state.combined     = plan.combined || {};
-    state.decors       = plan.decors   || {};
-    state.reservations = reservations  || [];
+    state.areas = plan.areas || [];
+    state.tables = plan.tables || {};
+    state.combined = plan.combined || {};
+    state.decors = plan.decors || {};
+    state.reservations = reservations || [];
 
     buildLayout(plannerContent);
     renderAll();
@@ -272,9 +277,9 @@ function buildLayout(container) {
     </div>`;
 
     // Tab switching
-    container.querySelectorAll('.ptab-btn').forEach(btn => {
+    container.querySelectorAll('.ptab-btn').forEach((btn) => {
         btn.onclick = () => {
-            container.querySelectorAll('.ptab-btn').forEach(b => {
+            container.querySelectorAll('.ptab-btn').forEach((b) => {
                 b.classList.remove('active');
                 b.style.color = '#666';
                 b.style.fontWeight = '600';
@@ -283,23 +288,25 @@ function buildLayout(container) {
             btn.style.color = 'var(--primary)';
             btn.style.fontWeight = '700';
             const tab = btn.dataset.tab;
-            container.querySelectorAll('.ptab-panel').forEach(p => p.style.display = 'none');
+            container.querySelectorAll('.ptab-panel').forEach((p) => (p.style.display = 'none'));
             const panel = container.querySelector(`#ptab-${tab}`);
             if (panel) panel.style.display = 'flex';
         };
     });
 
     // Wire up controls
-    container.querySelector('#btn-save-plan').onclick        = savePlan;
+    container.querySelector('#btn-save-plan').onclick = savePlan;
     container.querySelector('#btn-save-plan-layout').onclick = savePlan;
-    container.querySelector('#btn-toggle-edit').onclick      = toggleEditMode;
-    container.querySelector('#btn-toggle-select').onclick    = toggleCombineMode;
-    container.querySelector('#btn-add-table').onclick        = addNewTable;
-    container.querySelector('#btn-add-area').onclick         = () => showAreaModal();
+    container.querySelector('#btn-toggle-edit').onclick = toggleEditMode;
+    container.querySelector('#btn-toggle-select').onclick = toggleCombineMode;
+    container.querySelector('#btn-add-table').onclick = addNewTable;
+    container.querySelector('#btn-add-area').onclick = () => showAreaModal();
     container.querySelector('#btn-combine-selected').onclick = combineSelected;
-    container.querySelector('#snap-toggle').onchange        = (e) => { state.snapEnabled = e.target.checked; };
+    container.querySelector('#snap-toggle').onchange = (e) => {
+        state.snapEnabled = e.target.checked;
+    };
 
-    container.querySelectorAll('.tool-btn').forEach(btn => {
+    container.querySelectorAll('.tool-btn').forEach((btn) => {
         btn.onclick = () => selectTool(btn.dataset.tool);
     });
 
@@ -308,7 +315,10 @@ function buildLayout(container) {
     addQuickRow(5, 4);
 
     window.addEventListener('beforeunload', (e) => {
-        if (state.isDirty) { e.preventDefault(); e.returnValue = ''; }
+        if (state.isDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
 
     buildAreaTabs();
@@ -319,7 +329,8 @@ function addQuickRow(count = 4, seats = 4) {
     const rows = document.getElementById('quick-rows');
     if (!rows) return;
     const row = document.createElement('div');
-    row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 28px; gap:6px; align-items:center;';
+    row.style.cssText =
+        'display:grid; grid-template-columns:1fr 1fr 28px; gap:6px; align-items:center;';
     row.innerHTML = `
         <div class="form-group" style="margin:0;">
             <label style="font-size:9px;">Anzahl</label>
@@ -337,7 +348,7 @@ function addQuickRow(count = 4, seats = 4) {
 }
 
 function generateQuickTables() {
-    const areaId   = document.getElementById('quick-area-sel')?.value;
+    const areaId = document.getElementById('quick-area-sel')?.value;
     const startNum = parseInt(document.getElementById('quick-start-num')?.value) || 1;
     if (!areaId) return showToast('Bitte erst einen Bereich wählen');
 
@@ -345,7 +356,7 @@ function generateQuickTables() {
     if (rows.length === 0) return showToast('Bitte mindestens eine Zeile hinzufügen');
 
     const groups = [];
-    rows.forEach(row => {
+    rows.forEach((row) => {
         const count = parseInt(row.querySelector('.qr-count')?.value) || 0;
         const seats = parseInt(row.querySelector('.qr-seats')?.value) || 4;
         if (count > 0) groups.push({ count, seats });
@@ -354,9 +365,9 @@ function generateQuickTables() {
 
     if (!state.tables[areaId]) state.tables[areaId] = [];
 
-    const COLS     = 6;        // Tische pro Reihe
-    const CELL_W   = 80;       // Zellbreite inkl. Abstand
-    const CELL_H   = 80;       // Zellhöhe inkl. Abstand
+    const COLS = 6; // Tische pro Reihe
+    const CELL_W = 80; // Zellbreite inkl. Abstand
+    const CELL_H = 80; // Zellhöhe inkl. Abstand
     const OFFSET_X = 20;
     const OFFSET_Y = 20;
 
@@ -370,18 +381,22 @@ function generateQuickTables() {
             let shape = 'square';
             if (seats >= 6) shape = 'rect-h';
             else if (seats === 2) shape = 'round';
-            let w = 60, h = 60;
-            if (shape === 'rect-h') { w = 100; h = 60; }
+            let w = 60,
+                h = 60;
+            if (shape === 'rect-h') {
+                w = 100;
+                h = 60;
+            }
 
             state.tables[areaId].push({
-                id:    'T' + Date.now() + '_' + pos,
-                num:   String(counter),
+                id: 'T' + Date.now() + '_' + pos,
+                num: String(counter),
                 seats,
                 shape,
-                x:     OFFSET_X + col * CELL_W,
-                y:     OFFSET_Y + row * CELL_H,
+                x: OFFSET_X + col * CELL_W,
+                y: OFFSET_Y + row * CELL_H,
                 w,
-                h
+                h,
             });
             counter++;
             pos++;
@@ -399,12 +414,13 @@ function buildAreaTabs() {
     const tabs = document.getElementById('planner-tabs');
     if (!tabs) return;
     tabs.innerHTML = `<div class="nav-subitem ${state.currentView === 'all' ? 'active' : ''}" onclick="window.switchPlannerView('all')">Alle</div>`;
-    state.areas.forEach(a => {
+    state.areas.forEach((a) => {
         tabs.innerHTML += `<div class="nav-subitem ${state.currentView === a.id ? 'active' : ''}" onclick="window.switchPlannerView('${a.id}')">${a.icon || ''} ${a.name}</div>`;
     });
-    tabs.innerHTML += `<div style="margin-left:auto; border-left:1px solid rgba(0,0,0,0.05); padding-left:15px; display:flex; align-items:center;">` +
-                      `<div class="nav-subitem" onclick="window.switchTab('tables', 'qrcodes')" style="font-size:11px; opacity:.7;"><i class="fas fa-qrcode"></i> QR-Codes</div>` +
-                      `</div>`;
+    tabs.innerHTML +=
+        `<div style="margin-left:auto; border-left:1px solid rgba(0,0,0,0.05); padding-left:15px; display:flex; align-items:center;">` +
+        `<div class="nav-subitem" onclick="window.switchTab('tables', 'qrcodes')" style="font-size:11px; opacity:.7;"><i class="fas fa-qrcode"></i> QR-Codes</div>` +
+        `</div>`;
     window.switchPlannerView = (v) => {
         state.currentView = v;
         buildAreaTabs();
@@ -414,11 +430,11 @@ function buildAreaTabs() {
 
 function buildAreaSideList() {
     const list = document.getElementById('area-list');
-    const sel  = document.getElementById('add-area-sel');
+    const sel = document.getElementById('add-area-sel');
     if (!list) return;
     list.innerHTML = '';
     if (sel) sel.innerHTML = '';
-    state.areas.forEach(a => {
+    state.areas.forEach((a) => {
         list.innerHTML += `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:12px; border-bottom:1px solid rgba(0,0,0,0.05);">
                 <span>${a.icon || '🏠'} ${a.name}</span>
@@ -436,7 +452,7 @@ function renderAll() {
     const content = document.getElementById('planner-content');
     if (!content) return;
     content.innerHTML = '';
-    state.areas.forEach(a => {
+    state.areas.forEach((a) => {
         if (state.currentView !== 'all' && state.currentView !== a.id) return;
         const wrap = document.createElement('div');
         wrap.className = 'planner-plan-wrapper';
@@ -465,15 +481,17 @@ function renderAll() {
 function renderTables(areaId) {
     const canvas = document.getElementById(`canvas-${areaId}`);
     if (!canvas) return;
-    canvas.querySelectorAll('.table-el').forEach(el => el.remove());
-    canvas.querySelectorAll('.combo-container').forEach(el => el.remove());
+    canvas.querySelectorAll('.table-el').forEach((el) => el.remove());
+    canvas.querySelectorAll('.combo-container').forEach((el) => el.remove());
     const tables = state.tables[areaId] || [];
-    tables.forEach(t => {
+    tables.forEach((t) => {
         if (t.hidden) return;
-        const status     = getLiveStatus(t.id, areaId);
+        const status = getLiveStatus(t.id, areaId);
         const isSelected = state.selectedTableIds.includes(t.id);
-        const activeRes  = getActiveReservation(t.id, areaId);
-        const guestHint  = activeRes ? `<div class="t-guest">${activeRes.name.split(' ')[0]}</div>` : '';
+        const activeRes = getActiveReservation(t.id, areaId);
+        const guestHint = activeRes
+            ? `<div class="t-guest">${activeRes.name.split(' ')[0]}</div>`
+            : '';
         const el = document.createElement('div');
         el.className = `table-el t-${status} ${t.shape === 'round' ? 'round' : ''} ${isSelected ? 'selected' : ''}`;
         el.style.cssText = `left:${t.x}px; top:${t.y}px; width:${t.w}px; height:${t.h}px;`;
@@ -483,7 +501,8 @@ function renderTables(areaId) {
             e.stopPropagation();
             if (Math.abs(e.clientX - (ptr.startX || 0)) < 5) {
                 if (combineMode) {
-                    if (isSelected) state.selectedTableIds = state.selectedTableIds.filter(id => id !== t.id);
+                    if (isSelected)
+                        state.selectedTableIds = state.selectedTableIds.filter((id) => id !== t.id);
                     else state.selectedTableIds.push(t.id);
                     renderTables(areaId);
                     updateSelectionButtons();
@@ -492,17 +511,20 @@ function renderTables(areaId) {
                 }
             }
         };
-        el.ondblclick = (e) => { e.stopPropagation(); if (!combineMode) showTableEditModal(t, areaId); };
+        el.ondblclick = (e) => {
+            e.stopPropagation();
+            if (!combineMode) showTableEditModal(t, areaId);
+        };
         canvas.appendChild(el);
     });
     const combined = state.combined[areaId] || [];
-    combined.forEach(c => {
-        const memberTables = tables.filter(t => c.tableIds.includes(t.id));
+    combined.forEach((c) => {
+        const memberTables = tables.filter((t) => c.tableIds.includes(t.id));
         if (memberTables.length < 2) return;
-        const minX = Math.min(...memberTables.map(t => t.x));
-        const minY = Math.min(...memberTables.map(t => t.y));
-        const maxX = Math.max(...memberTables.map(t => t.x + t.w));
-        const maxY = Math.max(...memberTables.map(t => t.y + t.h));
+        const minX = Math.min(...memberTables.map((t) => t.x));
+        const minY = Math.min(...memberTables.map((t) => t.y));
+        const maxX = Math.max(...memberTables.map((t) => t.x + t.w));
+        const maxY = Math.max(...memberTables.map((t) => t.y + t.h));
         const pad = 10;
         const el = document.createElement('div');
         el.className = `combo-container combo-${getLiveStatus('C' + c.id, areaId)}`;
@@ -515,9 +537,9 @@ function renderTables(areaId) {
 function renderDecors(areaId) {
     const canvas = document.getElementById(`canvas-${areaId}`);
     if (!canvas) return;
-    canvas.querySelectorAll('.dec').forEach(el => el.remove());
+    canvas.querySelectorAll('.dec').forEach((el) => el.remove());
     const decs = state.decors[areaId] || [];
-    decs.forEach(d => {
+    decs.forEach((d) => {
         const el = document.createElement('div');
         el.className = 'dec';
         el.style.cssText = `left:${d.x}px; top:${d.y}px; width:${d.w}px; height:${d.h}px;`;
@@ -535,65 +557,98 @@ function renderDecors(areaId) {
 
 // ─── Status Helpers ─────────────────────────────────────────────────────────
 function getLiveStatus(tableId, areaId) {
-    const now     = new Date();
+    const now = new Date();
     const curTime = now.getHours() * 60 + now.getMinutes();
-    const curDate = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`;
+    const curDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
     const isBlocked = (r) => {
         if (r.assigned_tables.includes(tableId)) return true;
         if (tableId.startsWith('C')) {
-            const cid   = parseInt(tableId.substring(1));
-            const combo = (state.combined[areaId] || []).find(c => c.id === cid);
-            if (combo && combo.tableIds.some(tid => r.assigned_tables.includes(tid))) return true;
+            const cid = parseInt(tableId.substring(1));
+            const combo = (state.combined[areaId] || []).find((c) => c.id === cid);
+            if (combo && combo.tableIds.some((tid) => r.assigned_tables.includes(tid))) return true;
         }
-        const parentCombo = (state.combined[areaId] || []).find(c => c.tableIds.includes(tableId));
+        const parentCombo = (state.combined[areaId] || []).find((c) =>
+            c.tableIds.includes(tableId)
+        );
         if (parentCombo && r.assigned_tables.includes('C' + parentCombo.id)) return true;
         return false;
     };
-    const res = state.reservations.find(r => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r) && isTimeInRange(curTime, r.start_time, r.end_time));
+    const res = state.reservations.find(
+        (r) =>
+            r.date === curDate &&
+            r.status !== 'Cancelled' &&
+            isBlocked(r) &&
+            isTimeInRange(curTime, r.start_time, r.end_time)
+    );
     if (res) return 'occupied';
-    const future = state.reservations.find(r => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r) && parseTimeToMins(r.start_time) > curTime);
+    const future = state.reservations.find(
+        (r) =>
+            r.date === curDate &&
+            r.status !== 'Cancelled' &&
+            isBlocked(r) &&
+            parseTimeToMins(r.start_time) > curTime
+    );
     if (future) return 'reserved';
     return 'free';
 }
 
 function getActiveReservation(tableId, areaId) {
-    const now     = new Date();
+    const now = new Date();
     const curTime = now.getHours() * 60 + now.getMinutes();
-    const curDate = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`;
+    const curDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
     const isBlocked = (r) => {
         if (r.assigned_tables.includes(tableId)) return true;
         if (tableId.startsWith('C')) {
-            const cid   = parseInt(tableId.substring(1));
-            const combo = (state.combined[areaId] || []).find(c => c.id === cid);
-            if (combo && combo.tableIds.some(tid => r.assigned_tables.includes(tid))) return true;
+            const cid = parseInt(tableId.substring(1));
+            const combo = (state.combined[areaId] || []).find((c) => c.id === cid);
+            if (combo && combo.tableIds.some((tid) => r.assigned_tables.includes(tid))) return true;
         }
-        const parentCombo = (state.combined[areaId] || []).find(c => c.tableIds.includes(tableId));
+        const parentCombo = (state.combined[areaId] || []).find((c) =>
+            c.tableIds.includes(tableId)
+        );
         if (parentCombo && r.assigned_tables.includes('C' + parentCombo.id)) return true;
         return false;
     };
-    const active = state.reservations.find(r => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r) && isTimeInRange(curTime, r.start_time, r.end_time));
+    const active = state.reservations.find(
+        (r) =>
+            r.date === curDate &&
+            r.status !== 'Cancelled' &&
+            isBlocked(r) &&
+            isTimeInRange(curTime, r.start_time, r.end_time)
+    );
     if (active) return active;
-    return state.reservations
-        .filter(r => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r) && parseTimeToMins(r.start_time) > curTime)
-        .sort((a, b) => parseTimeToMins(a.start_time) - parseTimeToMins(b.start_time))[0] || null;
+    return (
+        state.reservations
+            .filter(
+                (r) =>
+                    r.date === curDate &&
+                    r.status !== 'Cancelled' &&
+                    isBlocked(r) &&
+                    parseTimeToMins(r.start_time) > curTime
+            )
+            .sort((a, b) => parseTimeToMins(a.start_time) - parseTimeToMins(b.start_time))[0] ||
+        null
+    );
 }
 
 function getAllReservationsForTable(tableId, areaId) {
-    const now     = new Date();
-    const curDate = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`;
+    const now = new Date();
+    const curDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
     const isBlocked = (r) => {
         if (r.assigned_tables.includes(tableId)) return true;
         if (tableId.startsWith('C')) {
-            const cid   = parseInt(tableId.substring(1));
-            const combo = (state.combined[areaId] || []).find(c => c.id === cid);
-            if (combo && combo.tableIds.some(tid => r.assigned_tables.includes(tid))) return true;
+            const cid = parseInt(tableId.substring(1));
+            const combo = (state.combined[areaId] || []).find((c) => c.id === cid);
+            if (combo && combo.tableIds.some((tid) => r.assigned_tables.includes(tid))) return true;
         }
-        const parentCombo = (state.combined[areaId] || []).find(c => c.tableIds.includes(tableId));
+        const parentCombo = (state.combined[areaId] || []).find((c) =>
+            c.tableIds.includes(tableId)
+        );
         if (parentCombo && r.assigned_tables.includes('C' + parentCombo.id)) return true;
         return false;
     };
     return state.reservations
-        .filter(r => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r))
+        .filter((r) => r.date === curDate && r.status !== 'Cancelled' && isBlocked(r))
         .sort((a, b) => parseTimeToMins(a.start_time) - parseTimeToMins(b.start_time));
 }
 
@@ -603,42 +658,74 @@ function isTimeInRange(now, start, end) {
 
 function parseTimeToMins(str) {
     if (!str) return 0;
-    const [h, m] = str.replace(/[^0-9:]/g, '').split(':').map(Number);
+    const [h, m] = str
+        .replace(/[^0-9:]/g, '')
+        .split(':')
+        .map(Number);
     return h * 60 + (m || 0);
 }
 
 function statusLabel(s) {
-    return { Confirmed: 'Bestätigt', Pending: 'Ausstehend', Inquiry: 'Anfrage', Blocked: 'Gesperrt' }[s] || s;
+    return (
+        { Confirmed: 'Bestätigt', Pending: 'Ausstehend', Inquiry: 'Anfrage', Blocked: 'Gesperrt' }[
+            s
+        ] || s
+    );
 }
 
 function statusColor(s) {
-    return { Confirmed: '#059669', Pending: '#d97706', Inquiry: '#7c3aed', Blocked: '#64748b' }[s] || '#64748b';
+    return (
+        { Confirmed: '#059669', Pending: '#d97706', Inquiry: '#7c3aed', Blocked: '#64748b' }[s] ||
+        '#64748b'
+    );
 }
 
 // ─── Interaction ────────────────────────────────────────────────────────────
 function onTableDown(e, t, areaId) {
     if (e.button !== 0) return;
     e.stopPropagation();
-    ptr = { mode: 'table', t, areaId, startX: e.clientX, startY: e.clientY, offX: e.clientX - t.x, offY: e.clientY - t.y };
+    ptr = {
+        mode: 'table',
+        t,
+        areaId,
+        startX: e.clientX,
+        startY: e.clientY,
+        offX: e.clientX - t.x,
+        offY: e.clientY - t.y,
+    };
     document.onmousemove = onGlobalMove;
-    document.onmouseup   = onGlobalUp;
+    document.onmouseup = onGlobalUp;
 }
 
 function onDecorDown(e, d, areaId) {
     if (e.button !== 0 || !state.roomEditMode) return;
     e.stopPropagation();
-    ptr = { mode: 'decor', d, areaId, startX: e.clientX, startY: e.clientY, offX: e.clientX - d.x, offY: e.clientY - d.y };
+    ptr = {
+        mode: 'decor',
+        d,
+        areaId,
+        startX: e.clientX,
+        startY: e.clientY,
+        offX: e.clientX - d.x,
+        offY: e.clientY - d.y,
+    };
     document.onmousemove = onGlobalMove;
-    document.onmouseup   = onGlobalUp;
+    document.onmouseup = onGlobalUp;
 }
 
 function onCanvasDown(e, areaId) {
     if (!state.roomEditMode || !state.activeTool) return;
     const canvas = document.getElementById(`canvas-${areaId}`);
     const rect = canvas.getBoundingClientRect();
-    ptr = { mode: 'draw', areaId, tool: state.activeTool, startX: snap(e.clientX - rect.left), startY: snap(e.clientY - rect.top) };
+    ptr = {
+        mode: 'draw',
+        areaId,
+        tool: state.activeTool,
+        startX: snap(e.clientX - rect.left),
+        startY: snap(e.clientY - rect.top),
+    };
     document.onmousemove = onGlobalMove;
-    document.onmouseup   = onGlobalUp;
+    document.onmouseup = onGlobalUp;
 }
 
 function onResizeDown(e, areaId) {
@@ -646,7 +733,7 @@ function onResizeDown(e, areaId) {
     e.stopPropagation();
     ptr = { mode: 'room', areaId, startX: e.clientX, startY: e.clientY };
     document.onmousemove = onGlobalMove;
-    document.onmouseup   = onGlobalUp;
+    document.onmouseup = onGlobalUp;
 }
 
 function onGlobalMove(e) {
@@ -663,25 +750,25 @@ function onGlobalMove(e) {
         renderDecors(ptr.areaId);
     } else if (ptr.mode === 'draw') {
         const canvas = document.getElementById(`canvas-${ptr.areaId}`);
-        const rect   = canvas.getBoundingClientRect();
+        const rect = canvas.getBoundingClientRect();
         const cx = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
         const cy = Math.min(Math.max(e.clientY - rect.top, 0), rect.height);
         const prev = document.getElementById(`preview-${ptr.areaId}`);
         if (prev) {
             prev.style.display = 'block';
-            prev.style.left    = Math.min(ptr.startX, cx) + 'px';
-            prev.style.top     = Math.min(ptr.startY, cy) + 'px';
-            prev.style.width   = Math.abs(cx - ptr.startX) + 'px';
-            prev.style.height  = Math.abs(cy - ptr.startY) + 'px';
+            prev.style.left = Math.min(ptr.startX, cx) + 'px';
+            prev.style.top = Math.min(ptr.startY, cy) + 'px';
+            prev.style.width = Math.abs(cx - ptr.startX) + 'px';
+            prev.style.height = Math.abs(cy - ptr.startY) + 'px';
         }
     } else if (ptr.mode === 'room') {
         const canvas = document.getElementById(`canvas-${ptr.areaId}`);
-        const rect   = canvas.getBoundingClientRect();
-        const a = state.areas.find(x => x.id === ptr.areaId);
+        const rect = canvas.getBoundingClientRect();
+        const a = state.areas.find((x) => x.id === ptr.areaId);
         if (a) {
             a.w = snap(Math.max(300, e.clientX - rect.left));
             a.h = snap(Math.max(200, e.clientY - rect.top));
-            canvas.style.width  = a.w + 'px';
+            canvas.style.width = a.w + 'px';
             canvas.style.height = a.h + 'px';
             canvas.parentElement.style.width = a.w + 'px';
         }
@@ -691,13 +778,15 @@ function onGlobalMove(e) {
 function onGlobalUp(e) {
     if (ptr.mode === 'draw') {
         const canvas = document.getElementById(`canvas-${ptr.areaId}`);
-        const rect   = canvas.getBoundingClientRect();
-        const prev   = document.getElementById(`preview-${ptr.areaId}`);
+        const rect = canvas.getBoundingClientRect();
+        const prev = document.getElementById(`preview-${ptr.areaId}`);
         if (prev) prev.style.display = 'none';
         const cx = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
         const cy = Math.min(Math.max(e.clientY - rect.top, 0), rect.height);
-        const x = snap(Math.min(ptr.startX, cx)), y = snap(Math.min(ptr.startY, cy));
-        const w = snap(Math.abs(cx - ptr.startX)),  h = snap(Math.abs(cy - ptr.startY));
+        const x = snap(Math.min(ptr.startX, cx)),
+            y = snap(Math.min(ptr.startY, cy));
+        const w = snap(Math.abs(cx - ptr.startX)),
+            h = snap(Math.abs(cy - ptr.startY));
         if (w > 10 && h > 4) {
             if (!state.decors[ptr.areaId]) state.decors[ptr.areaId] = [];
             state.decors[ptr.areaId].push({ id: Date.now(), type: ptr.tool, x, y, w, h });
@@ -707,7 +796,7 @@ function onGlobalUp(e) {
     }
     ptr.mode = null;
     document.onmousemove = null;
-    document.onmouseup   = null;
+    document.onmouseup = null;
     updateStats();
 }
 
@@ -717,8 +806,16 @@ function snap(v) {
 
 // ─── Actions ────────────────────────────────────────────────────────────────
 async function savePlan() {
-    const res = await apiPost('table-plan', { areas: state.areas, tables: state.tables, combined: state.combined, decors: state.decors });
-    if (res.success) { state.isDirty = false; showToast('Planer gespeichert und synchronisiert'); }
+    const res = await apiPost('table-plan', {
+        areas: state.areas,
+        tables: state.tables,
+        combined: state.combined,
+        decors: state.decors,
+    });
+    if (res.success) {
+        state.isDirty = false;
+        showToast('Planer gespeichert und synchronisiert');
+    }
 }
 
 function toggleEditMode() {
@@ -726,7 +823,9 @@ function toggleEditMode() {
     const btn = document.getElementById('btn-toggle-edit');
     document.getElementById('edit-tools').style.display = state.roomEditMode ? 'block' : 'none';
     if (btn) {
-        btn.textContent = state.roomEditMode ? '✅ Layout-Modus aktiv' : '✏️ Layout-Modus aktivieren';
+        btn.textContent = state.roomEditMode
+            ? '✅ Layout-Modus aktiv'
+            : '✏️ Layout-Modus aktivieren';
         btn.classList.toggle('btn-premium', state.roomEditMode);
     }
     renderAll();
@@ -734,19 +833,28 @@ function toggleEditMode() {
 
 function selectTool(tool) {
     state.activeTool = state.activeTool === tool ? null : tool;
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === state.activeTool));
+    document
+        .querySelectorAll('.tool-btn')
+        .forEach((b) => b.classList.toggle('active', b.dataset.tool === state.activeTool));
 }
 
 function addNewTable() {
     const areaId = document.getElementById('add-area-sel').value;
-    const num    = document.getElementById('add-num').value.trim();
-    const seats  = parseInt(document.getElementById('add-seats').value) || 4;
-    const shape  = document.getElementById('add-shape').value;
+    const num = document.getElementById('add-num').value.trim();
+    const seats = parseInt(document.getElementById('add-seats').value) || 4;
+    const shape = document.getElementById('add-shape').value;
     if (!num) return showToast('Bitte Tischnummer eingeben');
     if (!state.tables[areaId]) state.tables[areaId] = [];
-    let w = 60, h = 60;
-    if (shape === 'rect-h') { w = 100; h = 60; }
-    if (shape === 'rect-v') { w = 60;  h = 100; }
+    let w = 60,
+        h = 60;
+    if (shape === 'rect-h') {
+        w = 100;
+        h = 60;
+    }
+    if (shape === 'rect-v') {
+        w = 60;
+        h = 100;
+    }
     state.tables[areaId].push({ id: 'T' + Date.now(), num, seats, shape, x: 20, y: 20, w, h });
     state.isDirty = true;
     renderTables(areaId);
@@ -758,7 +866,7 @@ function addNewTable() {
 function toggleCombineMode() {
     combineMode = !combineMode;
     state.selectedTableIds = [];
-    document.getElementById('selection-tools').style.display   = combineMode ? 'block' : 'none';
+    document.getElementById('selection-tools').style.display = combineMode ? 'block' : 'none';
     const btn = document.getElementById('btn-toggle-select');
     if (btn) {
         btn.textContent = combineMode ? '❌ Auswahl beenden' : '🖱️ Auswahl-Modus';
@@ -778,18 +886,30 @@ async function combineSelected() {
     if (state.selectedTableIds.length < 2) return;
     let areaId = null;
     const selectedTables = [];
-    Object.keys(state.tables).forEach(aid => {
-        state.tables[aid].forEach(t => {
-            if (state.selectedTableIds.includes(t.id)) { areaId = aid; selectedTables.push(t); }
+    Object.keys(state.tables).forEach((aid) => {
+        state.tables[aid].forEach((t) => {
+            if (state.selectedTableIds.includes(t.id)) {
+                areaId = aid;
+                selectedTables.push(t);
+            }
         });
     });
     if (!areaId) return;
-    const defaultNum = selectedTables.map(t => t.num).join('+');
-    const num = await showPrompt('Tischkombination', 'Neue Tischnummer für diese Kombination:', defaultNum);
+    const defaultNum = selectedTables.map((t) => t.num).join('+');
+    const num = await showPrompt(
+        'Tischkombination',
+        'Neue Tischnummer für diese Kombination:',
+        defaultNum
+    );
     if (num === null) return;
     const id = Date.now();
     if (!state.combined[areaId]) state.combined[areaId] = [];
-    state.combined[areaId].push({ id, num: num || defaultNum, seats: selectedTables.reduce((s, t) => s + t.seats, 0), tableIds: [...state.selectedTableIds] });
+    state.combined[areaId].push({
+        id,
+        num: num || defaultNum,
+        seats: selectedTables.reduce((s, t) => s + t.seats, 0),
+        tableIds: [...state.selectedTableIds],
+    });
     state.isDirty = true;
     state.selectedTableIds = [];
     toggleCombineMode();
@@ -799,16 +919,18 @@ async function combineSelected() {
 
 window.unlinkCombo = (id, areaId) => {
     if (!state.combined[areaId]) return;
-    state.combined[areaId] = state.combined[areaId].filter(c => c.id !== id);
+    state.combined[areaId] = state.combined[areaId].filter((c) => c.id !== id);
     state.isDirty = true;
     renderTables(areaId);
     showToast('Kombination aufgehoben.');
 };
 
 function updateStats() {
-    let free = 0, res = 0, occ = 0;
-    Object.keys(state.tables).forEach(area => {
-        state.tables[area].forEach(t => {
+    let free = 0,
+        res = 0,
+        occ = 0;
+    Object.keys(state.tables).forEach((area) => {
+        state.tables[area].forEach((t) => {
             const s = getLiveStatus(t.id, area);
             if (s === 'free') free++;
             else if (s === 'reserved') res++;
@@ -816,16 +938,18 @@ function updateStats() {
         });
     });
     const sFree = document.getElementById('stat-free');
-    const sRes  = document.getElementById('stat-res');
-    const sOcc  = document.getElementById('stat-occ');
+    const sRes = document.getElementById('stat-res');
+    const sOcc = document.getElementById('stat-occ');
     if (sFree) sFree.textContent = free;
-    if (sRes)  sRes.textContent  = res;
-    if (sOcc)  sOcc.textContent  = occ;
+    if (sRes) sRes.textContent = res;
+    if (sOcc) sOcc.textContent = occ;
 }
 
 // ─── Modals ──────────────────────────────────────────────────────────────────
 async function showAreaModal(id = null) {
-    const a = id ? state.areas.find(x => x.id === id) : { id: 'A' + Date.now(), name: '', icon: '🏠', w: 600, h: 450 };
+    const a = id
+        ? state.areas.find((x) => x.id === id)
+        : { id: 'A' + Date.now(), name: '', icon: '🏠', w: 600, h: 450 };
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -848,9 +972,13 @@ async function showAreaModal(id = null) {
     modal.querySelector('#area-save').onclick = () => {
         a.name = modal.querySelector('#area-name').value;
         a.icon = modal.querySelector('#area-icon').value;
-        a.w    = parseInt(modal.querySelector('#area-w').value);
-        a.h    = parseInt(modal.querySelector('#area-h').value);
-        if (!id) { state.areas.push(a); state.tables[a.id] = []; state.decors[a.id] = []; }
+        a.w = parseInt(modal.querySelector('#area-w').value);
+        a.h = parseInt(modal.querySelector('#area-h').value);
+        if (!id) {
+            state.areas.push(a);
+            state.tables[a.id] = [];
+            state.decors[a.id] = [];
+        }
         modal.remove();
         buildAreaTabs();
         buildAreaSideList();
@@ -859,7 +987,7 @@ async function showAreaModal(id = null) {
     if (id) {
         modal.querySelector('#btn-del-area').onclick = async () => {
             if (await showConfirm('Bereich wirklich löschen? Alle Tische gehen verloren.')) {
-                state.areas = state.areas.filter(x => x.id !== id);
+                state.areas = state.areas.filter((x) => x.id !== id);
                 delete state.tables[id];
                 state.isDirty = true;
                 modal.remove();
@@ -869,24 +997,30 @@ async function showAreaModal(id = null) {
             }
         };
     }
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
 }
 
 function showTableInfo(t, areaId) {
-    const status           = getLiveStatus(t.id, areaId);
+    const status = getLiveStatus(t.id, areaId);
     const todayReservations = getAllReservationsForTable(t.id, areaId);
-    const now     = new Date();
+    const now = new Date();
     const curTime = now.getHours() * 60 + now.getMinutes();
     let resHTML = '';
     if (todayReservations.length === 0) {
         resHTML = `<div style="text-align:center; padding:20px; opacity:0.5; font-size:13px;"><i class="fas fa-calendar-check" style="font-size:24px; display:block; margin-bottom:8px;"></i>Keine Reservierungen heute</div>`;
     } else {
-        todayReservations.forEach(r => {
-            const isNow  = isTimeInRange(curTime, r.start_time, r.end_time);
+        todayReservations.forEach((r) => {
+            const isNow = isTimeInRange(curTime, r.start_time, r.end_time);
             const isPast = parseTimeToMins(r.end_time) < curTime;
-            const hl     = isNow ? 'border-left:4px solid #059669;' : isPast ? 'opacity:0.5;' : 'border-left:4px solid #d97706;';
-            const tl     = isNow ? '● Jetzt' : isPast ? 'Vergangen' : 'Kommend';
-            const tc     = isNow ? '#059669' : isPast ? '#94a3b8' : '#d97706';
+            const hl = isNow
+                ? 'border-left:4px solid #059669;'
+                : isPast
+                  ? 'opacity:0.5;'
+                  : 'border-left:4px solid #d97706;';
+            const tl = isNow ? '● Jetzt' : isPast ? 'Vergangen' : 'Kommend';
+            const tc = isNow ? '#059669' : isPast ? '#94a3b8' : '#d97706';
             resHTML += `
                 <div style="background:#f8fafc; border-radius:12px; padding:15px; margin-bottom:10px; ${hl}">
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
@@ -907,8 +1041,9 @@ function showTableInfo(t, areaId) {
                 </div>`;
         });
     }
-    const statusBadge = status === 'free' ? 'badge-free' : status === 'reserved' ? 'badge-res' : 'badge-occ';
-    const statusText  = status === 'free' ? 'Frei' : status === 'reserved' ? 'Reserviert' : 'Belegt';
+    const statusBadge =
+        status === 'free' ? 'badge-free' : status === 'reserved' ? 'badge-res' : 'badge-occ';
+    const statusText = status === 'free' ? 'Frei' : status === 'reserved' ? 'Reserviert' : 'Belegt';
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -936,25 +1071,34 @@ function showTableInfo(t, areaId) {
             </div>
         </div>`;
     document.body.appendChild(modal);
-    modal.querySelector('#table-close').onclick    = () => modal.remove();
-    modal.querySelector('#btn-edit-table').onclick  = () => { modal.remove(); showTableEditModal(t, areaId); };
+    modal.querySelector('#table-close').onclick = () => modal.remove();
+    modal.querySelector('#btn-edit-table').onclick = () => {
+        modal.remove();
+        showTableEditModal(t, areaId);
+    };
     modal.querySelector('#btn-block-table').onclick = async () => {
         const time = await showPrompt('Tisch sperren', 'Ab wann sperren? (HH:mm)', '18:00');
         if (!time) return;
         const ok = await apiPost('reservations/submit', {
             name: 'GESPERRT',
-            date: `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`,
-            time, guests: 0, note: 'Manuell gesperrt via Tischplaner', status: 'Blocked', areaId
+            date: `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`,
+            time,
+            guests: 0,
+            note: 'Manuell gesperrt via Tischplaner',
+            status: 'Blocked',
+            areaId,
         });
         if (ok.success) {
             showToast('Tisch gesperrt.');
             modal.remove();
-            state.reservations = await apiGet('reservations') || [];
+            state.reservations = (await apiGet('reservations')) || [];
             renderTables(areaId);
             updateStats();
         }
     };
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
 }
 
 function showTableEditModal(t, areaId) {
@@ -968,10 +1112,10 @@ function showTableEditModal(t, areaId) {
             <div class="form-group" style="margin-bottom:24px;">
                 <label>Form</label>
                 <select id="edit-shape" class="input-styled">
-                    <option value="square" ${t.shape==='square'?'selected':''}>Quadrat</option>
-                    <option value="rect-h" ${t.shape==='rect-h'?'selected':''}>Rechteck ↔</option>
-                    <option value="rect-v" ${t.shape==='rect-v'?'selected':''}>Rechteck ↕</option>
-                    <option value="round"  ${t.shape==='round' ?'selected':''}>Rund</option>
+                    <option value="square" ${t.shape === 'square' ? 'selected' : ''}>Quadrat</option>
+                    <option value="rect-h" ${t.shape === 'rect-h' ? 'selected' : ''}>Rechteck ↔</option>
+                    <option value="rect-v" ${t.shape === 'rect-v' ? 'selected' : ''}>Rechteck ↕</option>
+                    <option value="round"  ${t.shape === 'round' ? 'selected' : ''}>Rund</option>
                 </select>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -984,13 +1128,20 @@ function showTableEditModal(t, areaId) {
         </div>`;
     document.body.appendChild(modal);
     modal.querySelector('#edit-cancel').onclick = () => modal.remove();
-    modal.querySelector('#edit-save').onclick   = () => {
-        t.num   = modal.querySelector('#edit-num').value;
+    modal.querySelector('#edit-save').onclick = () => {
+        t.num = modal.querySelector('#edit-num').value;
         t.seats = parseInt(modal.querySelector('#edit-seats').value) || 4;
         t.shape = modal.querySelector('#edit-shape').value;
-        if (t.shape === 'rect-h') { t.w = 100; t.h = 60; }
-        else if (t.shape === 'rect-v') { t.w = 60; t.h = 100; }
-        else { t.w = 60; t.h = 60; }
+        if (t.shape === 'rect-h') {
+            t.w = 100;
+            t.h = 60;
+        } else if (t.shape === 'rect-v') {
+            t.w = 60;
+            t.h = 100;
+        } else {
+            t.w = 60;
+            t.h = 60;
+        }
         state.isDirty = true;
         modal.remove();
         renderTables(areaId);
@@ -998,12 +1149,14 @@ function showTableEditModal(t, areaId) {
     };
     modal.querySelector('#btn-del-table').onclick = async () => {
         if (await showConfirm('Tisch wirklich entfernen?')) {
-            state.tables[areaId] = state.tables[areaId].filter(x => x.id !== t.id);
+            state.tables[areaId] = state.tables[areaId].filter((x) => x.id !== t.id);
             state.isDirty = true;
             modal.remove();
             renderTables(areaId);
             updateStats();
         }
     };
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
 }

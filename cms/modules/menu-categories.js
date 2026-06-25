@@ -1,12 +1,12 @@
 // menu-categories.js
 window.MenuCategories = {
     state: {
-        editingCategoryIndex: -1
+        editingCategoryIndex: -1,
     },
 
-    render: function(categories) {
+    render: function (categories) {
         const safeCats = Array.isArray(categories) ? categories : [];
-        safeCats.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
+        safeCats.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
         return `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
@@ -31,12 +31,14 @@ window.MenuCategories = {
 
             <div class="glass-panel" style="padding:30px;">
                 <div style="display:flex;flex-wrap:wrap;gap:12px;">
-                    ${safeCats.length === 0
-                        ? '<p style="opacity:.5;">Noch keine Kategorien vorhanden. Oben eine neue hinzuf&uuml;gen.</p>'
-                        : safeCats.map((c, i) => {
-                            const label = window.MenuCore.getCatLabel(c);
-                            const sort = c.sort_order || 0;
-                            return `
+                    ${
+                        safeCats.length === 0
+                            ? '<p style="opacity:.5;">Noch keine Kategorien vorhanden. Oben eine neue hinzuf&uuml;gen.</p>'
+                            : safeCats
+                                  .map((c, i) => {
+                                      const label = window.MenuCore.getCatLabel(c);
+                                      const sort = c.sort_order || 0;
+                                      return `
                                 <div class="glass-pill" style="padding:10px 20px; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.8); border:1px solid rgba(0,0,0,0.05); border-radius:100px;">
                                     <span style="font-size:.7rem; opacity:.4; font-weight:700;" title="Sortier-Reihenfolge">${sort}</span>
                                     <span style="font-weight:700; color:var(--primary);">${label}</span>
@@ -46,96 +48,131 @@ window.MenuCategories = {
                                     </div>
                                 </div>
                             `;
-                        }).join('')
+                                  })
+                                  .join('')
                     }
                 </div>
             </div>
         `;
     },
 
-    closeCatForm: function() {
+    closeCatForm: function () {
         const form = document.getElementById('cat-form');
         const toggleBtn = document.getElementById('toggle-cat-form');
         if (form) form.style.display = 'none';
         if (toggleBtn) toggleBtn.style.display = 'inline-flex';
     },
 
-    editCategory: function(idx) {
+    editCategory: function (idx) {
         const categories = window.MenuCore.state.cachedMenuData?.categories || [];
         const c = categories[idx];
         if (!c) return;
-        
+
         this.state.editingCategoryIndex = idx;
         const form = document.getElementById('cat-form');
         const toggleBtn = document.getElementById('toggle-cat-form');
-        
+
         form.style.display = 'block';
         if (toggleBtn) toggleBtn.style.display = 'none';
         document.getElementById('cat-form-title').textContent = 'Kategorie bearbeiten';
         document.getElementById('cf-label').value = c.label || '';
-        document.getElementById('cf-sort').value  = c.sort_order || 0;
+        document.getElementById('cf-sort').value = c.sort_order || 0;
         form.scrollIntoView({ behavior: 'smooth' });
     },
 
-    deleteCategory: async function(idx) {
+    deleteCategory: async function (idx) {
         const categories = window.MenuCore.state.cachedMenuData?.categories || [];
         const c = categories[idx];
         if (!c) return;
 
-        if (!await window.MenuCore.utils.showConfirm('Kategorie löschen?', `Möchten Sie "${c.label}" wirklich löschen? Alle Gerichte in dieser Kategorie bleiben erhalten, aber die Kategorie-Zuordnung geht verloren.`)) return;
-        
+        if (
+            !(await window.MenuCore.utils.showConfirm(
+                'Kategorie löschen?',
+                `Möchten Sie "${c.label}" wirklich löschen? Alle Gerichte in dieser Kategorie bleiben erhalten, aber die Kategorie-Zuordnung geht verloren.`
+            ))
+        )
+            return;
+
         const res = await window.MenuCore.api.del(`categories/${c.id}`);
         if (res?.success) {
             window.MenuCore.state.cachedMenuData = null;
-            window.MenuCore.renderMenu(document.getElementById('content-view'), document.getElementById('view-title'), 'categories', true);
+            window.MenuCore.renderMenu(
+                document.getElementById('content-view'),
+                document.getElementById('view-title'),
+                'categories',
+                true
+            );
             window.MenuCore.utils.showToast('Kategorie gelöscht.');
         }
     },
 
-    attachHandlers: function(container) {
+    attachHandlers: function (container) {
         const categories = window.MenuCore.state.cachedMenuData?.categories || [];
         const toggleBtn = container.querySelector('#toggle-cat-form');
-        const form      = container.querySelector('#cat-form');
-        const labelInp  = container.querySelector('#cf-label');
-        const sortInp   = container.querySelector('#cf-sort');
-        const saveBtn   = container.querySelector('#cf-save');
+        const form = container.querySelector('#cat-form');
+        const labelInp = container.querySelector('#cf-label');
+        const sortInp = container.querySelector('#cf-sort');
+        const saveBtn = container.querySelector('#cf-save');
 
-        if (toggleBtn) toggleBtn.onclick = () => {
-            this.state.editingCategoryIndex = -1;
-            form.style.display   = 'block';
-            toggleBtn.style.display = 'none';
-            container.querySelector('#cat-form-title').textContent = 'Neue Kategorie';
-            labelInp.value = '';
-            sortInp.value  = categories.length;
-        };
-
-        if (saveBtn) saveBtn.onclick = async () => {
-            const label = labelInp.value.trim();
-            const sort  = parseInt(sortInp.value) || 0;
-            if (!label) return window.MenuCore.utils.showToast('Bitte einen Namen eingeben', 'error');
-
-            const cat = {
-                id:         this.state.editingCategoryIndex !== -1 ? categories[this.state.editingCategoryIndex].id : label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_'),
-                label,
-                sort_order: sort,
-                icon:       this.state.editingCategoryIndex !== -1 ? (categories[this.state.editingCategoryIndex].icon || 'utensils') : 'utensils',
-                active:     this.state.editingCategoryIndex !== -1 ? (categories[this.state.editingCategoryIndex].active !== false) : true
+        if (toggleBtn)
+            toggleBtn.onclick = () => {
+                this.state.editingCategoryIndex = -1;
+                form.style.display = 'block';
+                toggleBtn.style.display = 'none';
+                container.querySelector('#cat-form-title').textContent = 'Neue Kategorie';
+                labelInp.value = '';
+                sortInp.value = categories.length;
             };
 
-            let res;
-            if (this.state.editingCategoryIndex !== -1) {
-                res = await window.MenuCore.api.put(`categories/${cat.id}`, cat);
-            } else {
-                res = await window.MenuCore.api.post('categories', cat);
-            }
+        if (saveBtn)
+            saveBtn.onclick = async () => {
+                const label = labelInp.value.trim();
+                const sort = parseInt(sortInp.value) || 0;
+                if (!label)
+                    return window.MenuCore.utils.showToast('Bitte einen Namen eingeben', 'error');
 
-            if (res?.success) {
-                window.MenuCore.state.cachedMenuData = null;
-                window.MenuCore.utils.showToast('Kategorie gespeichert! \u2705');
-                window.MenuCore.renderMenu(container, document.getElementById('view-title'), 'categories', true);
-            } else {
-                window.MenuCore.utils.showToast(res?.reason || 'Fehler beim Speichern', 'error');
-            }
-        };
-    }
+                const cat = {
+                    id:
+                        this.state.editingCategoryIndex !== -1
+                            ? categories[this.state.editingCategoryIndex].id
+                            : label
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9]/g, '_')
+                                  .replace(/_+/g, '_'),
+                    label,
+                    sort_order: sort,
+                    icon:
+                        this.state.editingCategoryIndex !== -1
+                            ? categories[this.state.editingCategoryIndex].icon || 'utensils'
+                            : 'utensils',
+                    active:
+                        this.state.editingCategoryIndex !== -1
+                            ? categories[this.state.editingCategoryIndex].active !== false
+                            : true,
+                };
+
+                let res;
+                if (this.state.editingCategoryIndex !== -1) {
+                    res = await window.MenuCore.api.put(`categories/${cat.id}`, cat);
+                } else {
+                    res = await window.MenuCore.api.post('categories', cat);
+                }
+
+                if (res?.success) {
+                    window.MenuCore.state.cachedMenuData = null;
+                    window.MenuCore.utils.showToast('Kategorie gespeichert! \u2705');
+                    window.MenuCore.renderMenu(
+                        container,
+                        document.getElementById('view-title'),
+                        'categories',
+                        true
+                    );
+                } else {
+                    window.MenuCore.utils.showToast(
+                        res?.reason || 'Fehler beim Speichern',
+                        'error'
+                    );
+                }
+            };
+    },
 };

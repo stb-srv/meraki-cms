@@ -39,16 +39,17 @@ const parseTime = (timeStr, dateStr = null) => {
 const buildEndTime = (startTime, durationMinutes) => {
     const d = parseTime(startTime);
     d.setMinutes(d.getMinutes() + durationMinutes);
-    const h = d.getHours(), m = d.getMinutes();
+    const h = d.getHours(),
+        m = d.getMinutes();
     if (h >= 24) return '23:59';
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
 const checkOverlap = (date, start1, end1, start2, end2, buffer = 15) => {
     const s1 = parseTime(start1, date).getTime();
-    const e1 = parseTime(end1, date).getTime() + (buffer * 60000);
+    const e1 = parseTime(end1, date).getTime() + buffer * 60000;
     const s2 = parseTime(start2, date).getTime();
-    const e2 = parseTime(end2, date).getTime() + (buffer * 60000);
+    const e2 = parseTime(end2, date).getTime() + buffer * 60000;
     return s1 < e2 && s2 < e1;
 };
 
@@ -58,50 +59,67 @@ const findAvailableTables = async (date, startTime, duration, guestCount, areaId
     const homepage = await DB.getKV('homepage', {});
     const oh = homepage.openingHours || {};
     const d = new Date(date.split('.').reverse().join('-'));
-    const dayKey = ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+    const dayKey = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()];
     const dayConfig = oh[dayKey];
     if (dayConfig) {
-        if (dayConfig.closed) return { success: false, reason: `Wir haben am ${dayKey} leider Ruhetag.` };
+        if (dayConfig.closed)
+            return { success: false, reason: `Wir haben am ${dayKey} leider Ruhetag.` };
         const start = parseTime(startTime, date).getTime();
-        const open  = parseTime(dayConfig.open, date).getTime();
+        const open = parseTime(dayConfig.open, date).getTime();
         const close = parseTime(dayConfig.close, date).getTime();
         if (start < open || start > close)
-            return { success: false, reason: `Reservierung außerhalb der Öffnungszeiten (${dayConfig.open} - ${dayConfig.close} Uhr).` };
+            return {
+                success: false,
+                reason: `Reservierung außerhalb der Öffnungszeiten (${dayConfig.open} - ${dayConfig.close} Uhr).`,
+            };
     }
     const endTime = buildEndTime(startTime, duration);
     const tables = (await DB.getTables()) || [];
-    let activeTables = tables.filter(t => t.active);
+    let activeTables = tables.filter((t) => t.active);
     const plan = await DB.getKV('table_plan', { combined: {} });
-    const combinedMapping = {}, parentMapping = {};
-    Object.values(plan.combined || {}).forEach(areaCombos => {
-        areaCombos.forEach(c => {
-            const pid = 'C' + c.id, tids = c.tableIds || [];
+    const combinedMapping = {},
+        parentMapping = {};
+    Object.values(plan.combined || {}).forEach((areaCombos) => {
+        areaCombos.forEach((c) => {
+            const pid = 'C' + c.id,
+                tids = c.tableIds || [];
             parentMapping[pid] = tids;
-            tids.forEach(tid => { if (!combinedMapping[tid]) combinedMapping[tid] = []; combinedMapping[tid].push(pid); });
+            tids.forEach((tid) => {
+                if (!combinedMapping[tid]) combinedMapping[tid] = [];
+                combinedMapping[tid].push(pid);
+            });
         });
     });
-    if (areaId) activeTables = activeTables.filter(t => t.area_id === areaId);
-    const blockedStatuses = ['Confirmed','Pending','Blocked','Inquiry'];
-    const existingReservations = ((await DB.getReservations()) || []).filter(r =>
-        r.date === date && blockedStatuses.includes(r.status) && r.start_time && r.end_time
+    if (areaId) activeTables = activeTables.filter((t) => t.area_id === areaId);
+    const blockedStatuses = ['Confirmed', 'Pending', 'Blocked', 'Inquiry'];
+    const existingReservations = ((await DB.getReservations()) || []).filter(
+        (r) => r.date === date && blockedStatuses.includes(r.status) && r.start_time && r.end_time
     );
     const unavailableTableIds = new Set();
-    existingReservations.forEach(res => {
+    existingReservations.forEach((res) => {
         if (checkOverlap(date, startTime, endTime, res.start_time, res.end_time, rc.buffer)) {
-            (res.assigned_tables || []).forEach(id => {
+            (res.assigned_tables || []).forEach((id) => {
                 unavailableTableIds.add(id);
-                if (parentMapping[id]) parentMapping[id].forEach(cid => unavailableTableIds.add(cid));
-                if (combinedMapping[id]) combinedMapping[id].forEach(pid => unavailableTableIds.add(pid));
+                if (parentMapping[id])
+                    parentMapping[id].forEach((cid) => unavailableTableIds.add(cid));
+                if (combinedMapping[id])
+                    combinedMapping[id].forEach((pid) => unavailableTableIds.add(pid));
             });
         }
     });
-    const availableTables = activeTables.filter(t => !unavailableTableIds.has(t.id));
-    let fit = availableTables.filter(t => t.capacity >= guestCount).sort((a,b) => a.capacity - b.capacity)[0];
+    const availableTables = activeTables.filter((t) => !unavailableTableIds.has(t.id));
+    let fit = availableTables
+        .filter((t) => t.capacity >= guestCount)
+        .sort((a, b) => a.capacity - b.capacity)[0];
     if (fit) return { success: true, tables: [fit.id], endTime };
-    const combinable = availableTables.filter(t => t.combinable).sort((a,b) => b.capacity - a.capacity);
-    let combinedCapacity = 0, selectedIds = [];
+    const combinable = availableTables
+        .filter((t) => t.combinable)
+        .sort((a, b) => b.capacity - a.capacity);
+    let combinedCapacity = 0,
+        selectedIds = [];
     for (const t of combinable) {
-        combinedCapacity += t.capacity; selectedIds.push(t.id);
+        combinedCapacity += t.capacity;
+        selectedIds.push(t.id);
         if (combinedCapacity >= guestCount) return { success: true, tables: selectedIds, endTime };
     }
     return { success: false, reason: `Keine Kapazität im Bereich ${areaId || 'Gesamt'} verfügbar` };
@@ -113,12 +131,13 @@ function extractDomain(req) {
     return (req.hostname || 'localhost').toLowerCase();
 }
 
-const _escHtml = (s) => String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+const _escHtml = (s) =>
+    String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 
 const tokenResponsePage = async (DB, title, message, color, emoji) => {
     const branding = await DB.getKV('branding', {});
@@ -159,4 +178,13 @@ const tokenResponsePage = async (DB, title, message, color, emoji) => {
 </html>`;
 };
 
-module.exports = { sanitizeText, calculateDuration, parseTime, buildEndTime, checkOverlap, findAvailableTables, tokenResponsePage, extractDomain };
+module.exports = {
+    sanitizeText,
+    calculateDuration,
+    parseTime,
+    buildEndTime,
+    checkOverlap,
+    findAvailableTables,
+    tokenResponsePage,
+    extractDomain,
+};

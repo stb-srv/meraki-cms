@@ -18,8 +18,14 @@ export async function renderFeedback(container, titleEl) {
     if (!Array.isArray(reviews)) reviews = [];
 
     const draw = () => {
-        const avg = reviews.length ? (reviews.reduce((s, r) => s + (parseInt(r.rating) || 0), 0) / reviews.length).toFixed(1) : '—';
-        const rows = reviews.map(r => `
+        const avg = reviews.length
+            ? (reviews.reduce((s, r) => s + (parseInt(r.rating) || 0), 0) / reviews.length).toFixed(
+                  1
+              )
+            : '—';
+        const rows = reviews
+            .map(
+                (r) => `
             <tr>
                 <td data-label="Gast"><strong>${r.guest_name || 'Anonymer Gast'}</strong></td>
                 <td data-label="Bewertung">${stars(r.rating)}</td>
@@ -28,7 +34,9 @@ export async function renderFeedback(container, titleEl) {
                 <td data-label="" style="text-align:right;">
                     <button class="btn-icon danger" data-del="${r.id}"><i class="fas fa-trash"></i></button>
                 </td>
-            </tr>`).join('');
+            </tr>`
+            )
+            .join('');
 
         container.innerHTML = `
             <div class="glass-panel" style="padding:30px;">
@@ -39,20 +47,28 @@ export async function renderFeedback(container, titleEl) {
                     </div>
                     <div class="badge-status active" style="font-size:1rem;"><i class="fas fa-star"></i> ${avg} / 5.0 · ${reviews.length} Bewertungen</div>
                 </div>
-                ${reviews.length === 0
-                    ? `<div style="padding:60px; text-align:center; opacity:.4;"><i class="fas fa-star fa-3x" style="margin-bottom:14px;"></i><br>Noch keine Bewertungen erhalten.</div>`
-                    : `<table class="cms-table">
+                ${
+                    reviews.length === 0
+                        ? `<div style="padding:60px; text-align:center; opacity:.4;"><i class="fas fa-star fa-3x" style="margin-bottom:14px;"></i><br>Noch keine Bewertungen erhalten.</div>`
+                        : `<table class="cms-table">
                         <thead><tr><th>Gast</th><th>Bewertung</th><th>Kommentar</th><th>Datum</th><th style="text-align:right;">Aktion</th></tr></thead>
                         <tbody>${rows}</tbody>
-                    </table>`}
+                    </table>`
+                }
             </div>`;
 
-        container.querySelectorAll('[data-del]').forEach(btn => {
+        container.querySelectorAll('[data-del]').forEach((btn) => {
             btn.onclick = async () => {
-                if (!await showConfirm('Bewertung löschen?', 'Diese Bewertung wird unwiderruflich entfernt.')) return;
+                if (
+                    !(await showConfirm(
+                        'Bewertung löschen?',
+                        'Diese Bewertung wird unwiderruflich entfernt.'
+                    ))
+                )
+                    return;
                 const res = await apiDelete('feedback/' + btn.dataset.del);
                 if (res?.success) {
-                    reviews = reviews.filter(r => String(r.id) !== String(btn.dataset.del));
+                    reviews = reviews.filter((r) => String(r.id) !== String(btn.dataset.del));
                     showToast('Bewertung gelöscht.');
                     draw();
                 } else {

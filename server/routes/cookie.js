@@ -16,13 +16,14 @@
 
 const router = require('express').Router();
 const crypto = require('crypto');
-const DB     = require('../db');
+const DB = require('../db');
 
 // Standard-Config – wird beim ersten Aufruf in DB gespeichert
 const DEFAULT_CONFIG = {
     version: '1.0',
     privacy_url: '/datenschutz',
-    banner_text: 'Wir setzen Cookies und ähnliche Technologien ein. ' +
+    banner_text:
+        'Wir setzen Cookies und ähnliche Technologien ein. ' +
         'Technisch notwendige Cookies gewährleisten die Grundfunktionen der Website. ' +
         'Mit Ihrer Einwilligung aktivieren wir optionale Cookies für Funktionen, ' +
         'Analyse und externe Dienste (z.B. Google Maps). ' +
@@ -31,35 +32,49 @@ const DEFAULT_CONFIG = {
         necessary: {
             id: 'necessary',
             label: 'Technisch notwendig',
-            description: 'Diese Cookies sind für den Betrieb der Website zwingend erforderlich und können nicht deaktiviert werden.',
+            description:
+                'Diese Cookies sind für den Betrieb der Website zwingend erforderlich und können nicht deaktiviert werden.',
             required: true,
             enabled: true,
             cookies: [
-                { name: 'meraki_consent', purpose: 'Speichert Ihre Cookie-Einstellungen', duration: '12 Monate', provider: 'Meraki CMS' }
-            ]
+                {
+                    name: 'meraki_consent',
+                    purpose: 'Speichert Ihre Cookie-Einstellungen',
+                    duration: '12 Monate',
+                    provider: 'Meraki CMS',
+                },
+            ],
         },
         functional: {
             id: 'functional',
             label: 'Funktional',
-            description: 'Diese Cookies ermöglichen erweiterte Funktionen wie gespeicherte Spracheinstellungen oder Tischpräferenzen.',
+            description:
+                'Diese Cookies ermöglichen erweiterte Funktionen wie gespeicherte Spracheinstellungen oder Tischpräferenzen.',
             required: false,
             enabled: true,
             cookies: [
-                { name: 'meraki_lang', purpose: 'Gespeicherte Spracheinstellung', duration: '12 Monate', provider: 'Meraki CMS' }
-            ]
+                {
+                    name: 'meraki_lang',
+                    purpose: 'Gespeicherte Spracheinstellung',
+                    duration: '12 Monate',
+                    provider: 'Meraki CMS',
+                },
+            ],
         },
         analytics: {
             id: 'analytics',
             label: 'Analyse',
-            description: 'Helfen uns zu verstehen, wie Besucher mit der Website interagieren, um sie zu verbessern. Keine personenbezogenen Daten.',
+            description:
+                'Helfen uns zu verstehen, wie Besucher mit der Website interagieren, um sie zu verbessern. Keine personenbezogenen Daten.',
             required: false,
             enabled: false,
-            cookies: []
+            cookies: [],
         },
         marketing: {
             id: 'marketing',
             label: 'Marketing & Externe Medien',
-            description: 'Werden von externen Diensten wie Google Maps benötigt. ' +
+            description:
+                'Werden von externen Diensten wie Google Maps benötigt. ' +
                 'Bei Aktivierung werden Daten (inkl. IP-Adresse) an Google LLC (USA) übertragen. ' +
                 'Grundlage: Einwilligung gem. DSGVO Art. 6 Abs. 1 lit. a i.V.m. Art. 49 Abs. 1 lit. a (Drittlandtransfer).',
             required: false,
@@ -69,18 +84,22 @@ const DEFAULT_CONFIG = {
                     name: 'NID, 1P_JAR, CONSENT',
                     purpose: 'Google Maps Kartendarstellung und Standortdienste',
                     duration: '6 Monate – 2 Jahre',
-                    provider: 'Google LLC, USA (Datenschutz: https://policies.google.com/privacy)'
-                }
-            ]
-        }
-    }
+                    provider: 'Google LLC, USA (Datenschutz: https://policies.google.com/privacy)',
+                },
+            ],
+        },
+    },
 };
 
 const MAX_LOG_ENTRIES = 5000;
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000; // DSGVO Art. 5 Abs. 1e – Speicherbegrenzung
 
 function getClientIp(req) {
-    return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+    return (
+        (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+        req.socket?.remoteAddress ||
+        'unknown'
+    );
 }
 
 function hashValue(val) {
@@ -104,10 +123,12 @@ router.get('/cookie-config', async (req, res) => {
                     label: cat.label,
                     description: cat.description,
                     required: cat.required || false,
-                    cookies: (cat.cookies || []).map(c => ({
-                        name: c.name, purpose: c.purpose,
-                        duration: c.duration, provider: c.provider
-                    }))
+                    cookies: (cat.cookies || []).map((c) => ({
+                        name: c.name,
+                        purpose: c.purpose,
+                        duration: c.duration,
+                        provider: c.provider,
+                    })),
                 };
             }
         }
@@ -115,7 +136,7 @@ router.get('/cookie-config', async (req, res) => {
             version: config.version,
             banner_text: config.banner_text,
             privacy_url: config.privacy_url,
-            categories: publicCategories
+            categories: publicCategories,
         });
     } catch (e) {
         console.error('cookie-config error:', e.message);
@@ -131,23 +152,23 @@ router.post('/cookie-consent', async (req, res) => {
             return res.status(400).json({ success: false, reason: 'choices fehlt' });
         }
 
-        const ip   = getClientIp(req);
-        const ua   = req.headers['user-agent'] || '';
+        const ip = getClientIp(req);
+        const ua = req.headers['user-agent'] || '';
         const entry = {
-            id:             crypto.randomUUID(),
-            timestamp:      new Date().toISOString(),
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
             config_version: config_version || '1.0',
-            ip_hash:        hashValue(ip),
-            ua_hash:        hashValue(ua),
+            ip_hash: hashValue(ip),
+            ua_hash: hashValue(ua),
             choices,
-            source:         source || 'banner'
+            source: source || 'banner',
         };
 
         const log = await DB.getKV('consent_log', { entries: [] });
         log.entries.unshift(entry);
         // DSGVO Art. 5 Abs. 1e – Einträge älter als 3 Jahre automatisch löschen
         const now = Date.now();
-        log.entries = log.entries.filter(e => {
+        log.entries = log.entries.filter((e) => {
             const age = now - new Date(e.timestamp).getTime();
             return age < THREE_YEARS_MS;
         });
@@ -173,7 +194,9 @@ module.exports = (requireAuth) => {
                 await DB.setKV('cookie_config', config);
             }
             res.json(config);
-        } catch (e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     // ── Admin: Config speichern ─────────────────────────────────────────────
@@ -186,39 +209,50 @@ module.exports = (requireAuth) => {
             // necessary.required darf nie false sein
             if (incoming.categories.necessary) {
                 incoming.categories.necessary.required = true;
-                incoming.categories.necessary.enabled  = true;
+                incoming.categories.necessary.enabled = true;
             }
             await DB.setKV('cookie_config', incoming);
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     // ── Admin: Re-Consent auslösen (Version erhöhen) ────────────────────────
     router.post('/cookie-consent/recons', requireAuth, async (req, res) => {
         try {
             const config = await DB.getKV('cookie_config', DEFAULT_CONFIG);
-            const parts  = (config.version || '1.0').split('.');
-            parts[1]     = String((parseInt(parts[1]) || 0) + 1);
+            const parts = (config.version || '1.0').split('.');
+            parts[1] = String((parseInt(parts[1]) || 0) + 1);
             config.version = parts.join('.');
             await DB.setKV('cookie_config', config);
-            res.json({ success: true, new_version: config.version, message: 'Alle Besucher werden beim nächsten Aufruf erneut gefragt.' });
-        } catch (e) { res.status(500).json({ success: false, reason: e.message }); }
+            res.json({
+                success: true,
+                new_version: config.version,
+                message: 'Alle Besucher werden beim nächsten Aufruf erneut gefragt.',
+            });
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     // ── Admin: Consent-Log abrufen ──────────────────────────────────────────
     router.get('/cookie-consent/log', requireAuth, async (req, res) => {
         try {
-            const log    = await DB.getKV('consent_log', { entries: [] });
-            const page   = parseInt(req.query.page)  || 1;
-            const limit  = parseInt(req.query.limit) || 50;
-            const start  = (page - 1) * limit;
-            const slice  = log.entries.slice(start, start + limit);
+            const log = await DB.getKV('consent_log', { entries: [] });
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 50;
+            const start = (page - 1) * limit;
+            const slice = log.entries.slice(start, start + limit);
             res.json({
                 total: log.entries.length,
-                page, limit,
-                entries: slice
+                page,
+                limit,
+                entries: slice,
             });
-        } catch (e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     // ── Admin: Consent-Log leeren ───────────────────────────────────────────
@@ -226,7 +260,9 @@ module.exports = (requireAuth) => {
         try {
             await DB.setKV('consent_log', { entries: [] });
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ success: false, reason: e.message }); }
+        } catch (e) {
+            res.status(500).json({ success: false, reason: e.message });
+        }
     });
 
     return router;

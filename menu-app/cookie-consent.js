@@ -22,43 +22,52 @@
 (function () {
     'use strict';
 
-    const STORAGE_KEY   = 'meraki_consent';
-    const CONFIG_URL    = '/api/cookie-config';
-    const LOG_URL       = '/api/cookie-consent';
-    const MAX_AGE_MS    = 365 * 24 * 60 * 60 * 1000; // 12 Monate
+    const STORAGE_KEY = 'meraki_consent';
+    const CONFIG_URL = '/api/cookie-config';
+    const LOG_URL = '/api/cookie-consent';
+    const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 12 Monate
 
-    let _config   = null;
-    let _choices  = null;
+    let _config = null;
+    let _choices = null;
     let _handlers = {};
 
     // ── Hilfsfunktionen ──────────────────────────────────────────────────────
 
     function emit(event, data) {
-        (_handlers[event] || []).forEach(fn => { try { fn(data); } catch(e) {} });
+        (_handlers[event] || []).forEach((fn) => {
+            try {
+                fn(data);
+            } catch (e) {}
+        });
     }
 
     function loadStored() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             return raw ? JSON.parse(raw) : null;
-        } catch(e) { return null; }
+        } catch (e) {
+            return null;
+        }
     }
 
     function saveStored(choices, version, consentId) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                version:   version || (_config && _config.version) || '1.0',
-                timestamp: Date.now(),
-                choices,
-                consent_id: consentId || null
-            }));
-        } catch(e) {}
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({
+                    version: version || (_config && _config.version) || '1.0',
+                    timestamp: Date.now(),
+                    choices,
+                    consent_id: consentId || null,
+                })
+            );
+        } catch (e) {}
     }
 
     function needsConsent(stored) {
         if (!stored) return true;
         if (stored.version !== ((_config && _config.version) || '1.0')) return true;
-        if ((Date.now() - stored.timestamp) > MAX_AGE_MS) return true;
+        if (Date.now() - stored.timestamp > MAX_AGE_MS) return true;
         return false;
     }
 
@@ -73,7 +82,7 @@
 
     // ── Script-Blocking: Activate deferred scripts ──────────────────────────
     function activateScripts(category) {
-        document.querySelectorAll(`[data-consent-category="${category}"]`).forEach(el => {
+        document.querySelectorAll(`[data-consent-category="${category}"]`).forEach((el) => {
             if (el.dataset.activated) return;
             el.dataset.activated = 'true';
             const src = el.dataset.src;
@@ -85,7 +94,9 @@
             }
             // Inline-Script
             if (el.textContent.trim()) {
-                try { eval(el.textContent); } catch(e) {}
+                try {
+                    eval(el.textContent);
+                } catch (e) {}
             }
         });
     }
@@ -108,8 +119,8 @@
                 body: JSON.stringify({
                     choices,
                     config_version: _config ? _config.version : '1.0',
-                    source: source || 'banner'
-                })
+                    source: source || 'banner',
+                }),
             });
             if (res.ok) {
                 const data = await res.json();
@@ -119,17 +130,23 @@
                         const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
                         stored.consent_id = data.id;
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-                    } catch(e) {}
+                    } catch (e) {}
                 }
             }
-        } catch(e) {}
+        } catch (e) {}
     }
 
     // ── Banner UI ─────────────────────────────────────────────────────────────
 
-    function getBanner()   { return document.getElementById('cookie-banner'); }
-    function getOverview() { return document.getElementById('cookie-view-overview'); }
-    function getSettings() { return document.getElementById('cookie-view-settings'); }
+    function getBanner() {
+        return document.getElementById('cookie-banner');
+    }
+    function getOverview() {
+        return document.getElementById('cookie-view-overview');
+    }
+    function getSettings() {
+        return document.getElementById('cookie-view-settings');
+    }
 
     function renderCategories() {
         const container = document.getElementById('cookie-categories-dynamic');
@@ -140,8 +157,11 @@
         const stored = loadStored();
         if (stored && stored.timestamp) {
             const dateStr = new Date(stored.timestamp).toLocaleDateString('de-DE', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
             });
             const existingInfo = container.parentElement.querySelector('.consent-date-info');
             if (!existingInfo) {
@@ -150,22 +170,27 @@
                 infoEl.style.cssText = 'font-size:0.75rem;color:#999;margin-bottom:12px;';
                 infoEl.textContent = `Letzte Einwilligung: ${dateStr} Uhr`;
                 if (stored.consent_id) {
-                    infoEl.textContent += ` · ID: ${stored.consent_id.slice(0,8)}…`;
+                    infoEl.textContent += ` · ID: ${stored.consent_id.slice(0, 8)}…`;
                 }
                 container.parentElement.insertBefore(infoEl, container);
             }
         }
 
         for (const [id, cat] of Object.entries(_config.categories || {})) {
-            const checked  = cat.required ? true : ((_choices && _choices[id]) || false);
+            const checked = cat.required ? true : (_choices && _choices[id]) || false;
             const disabled = cat.required ? 'disabled' : '';
             const labelClass = cat.required ? 'switch disabled' : 'switch';
 
-            const cookieDetails = (cat.cookies || []).map(c =>
-                `<span class="cookie-detail-item">${c.name} · ${c.provider} · ${c.duration}</span>`
-            ).join('');
+            const cookieDetails = (cat.cookies || [])
+                .map(
+                    (c) =>
+                        `<span class="cookie-detail-item">${c.name} · ${c.provider} · ${c.duration}</span>`
+                )
+                .join('');
 
-            container.insertAdjacentHTML('beforeend', `
+            container.insertAdjacentHTML(
+                'beforeend',
+                `
                 <div class="cookie-cat-item" data-cat="${id}">
                     <div class="cat-info">
                         <strong>${cat.label}</strong>
@@ -178,7 +203,8 @@
                         ${cat.required ? '<span class="always-on-label">Immer aktiv</span>' : ''}
                     </label>
                 </div>
-            `);
+            `
+            );
         }
     }
 
@@ -190,8 +216,10 @@
         if (textEl && _config && _config.banner_text) textEl.textContent = _config.banner_text;
         banner.style.display = 'flex';
         banner.setAttribute('aria-hidden', 'false');
-        document.getElementById('cookie-view-overview') && (document.getElementById('cookie-view-overview').style.display = '');
-        document.getElementById('cookie-view-settings') && (document.getElementById('cookie-view-settings').style.display = 'none');
+        document.getElementById('cookie-view-overview') &&
+            (document.getElementById('cookie-view-overview').style.display = '');
+        document.getElementById('cookie-view-settings') &&
+            (document.getElementById('cookie-view-settings').style.display = 'none');
         renderCategories();
         // Fokus für Accessibility
         setTimeout(() => {
@@ -256,7 +284,9 @@
     }
 
     function revokeAll() {
-        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
         _choices = null;
         logConsent(buildDefaultChoices(), 'revoked');
         emit('consent:revoked', {});
@@ -273,11 +303,11 @@
     }
 
     // ── Globale Handler (kompatibel mit bestehendem HTML) ────────────────────
-    window.acceptAllCookies    = acceptAll;
-    window.rejectNonEssential  = rejectNonEssential;
-    window.saveCustomCookies   = saveCustom;
-    window.toggleCookieView    = toggleView;
-    window.showCookieBanner    = (force) => {
+    window.acceptAllCookies = acceptAll;
+    window.rejectNonEssential = rejectNonEssential;
+    window.saveCustomCookies = saveCustom;
+    window.toggleCookieView = toggleView;
+    window.showCookieBanner = (force) => {
         if (force) {
             const trigger = document.getElementById('cookie-settings-trigger');
             if (trigger) trigger.style.display = 'none';
@@ -303,24 +333,34 @@
             if (!_handlers[event]) _handlers[event] = [];
             _handlers[event].push(fn);
         },
-        getChoices() { return _choices ? { ..._choices } : null; },
-        getConfig()  { return _config  ? { ..._config }  : null; }
+        getChoices() {
+            return _choices ? { ..._choices } : null;
+        },
+        getConfig() {
+            return _config ? { ..._config } : null;
+        },
     };
 
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
         try {
             const res = await fetch(CONFIG_URL);
-            _config   = res.ok ? await res.json() : null;
-        } catch(e) {
+            _config = res.ok ? await res.json() : null;
+        } catch (e) {
             // Fallback: Banner ohne Server-Config anzeigen
             _config = {
                 version: '1.0',
                 banner_text: 'Wir nutzen Cookies, um das Nutzererlebnis zu verbessern.',
                 privacy_url: '',
                 categories: {
-                    necessary: { id: 'necessary', label: 'Technisch notwendig', description: 'Für den Betrieb der Website erforderlich.', required: true, cookies: [] }
-                }
+                    necessary: {
+                        id: 'necessary',
+                        label: 'Technisch notwendig',
+                        description: 'Für den Betrieb der Website erforderlich.',
+                        required: true,
+                        cookies: [],
+                    },
+                },
             };
         }
 
@@ -349,5 +389,4 @@
     } else {
         init();
     }
-
 })();

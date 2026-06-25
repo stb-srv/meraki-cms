@@ -8,8 +8,10 @@ import { showToast } from './utils.js';
 export async function renderFeedbackWidget(container) {
     let reviews = [];
     try {
-        reviews = await apiGet('feedback') || [];
-    } catch(e) { return; }
+        reviews = (await apiGet('feedback')) || [];
+    } catch (e) {
+        return;
+    }
 
     if (reviews.length === 0) return;
 
@@ -30,7 +32,10 @@ export async function renderFeedbackWidget(container) {
             </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto;">
-            ${reviews.slice(0, 10).map(r => `
+            ${reviews
+                .slice(0, 10)
+                .map(
+                    (r) => `
                 <div style="padding:12px 14px; background:var(--bg-inset); border-radius:10px;
                             border:1px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
@@ -46,7 +51,9 @@ export async function renderFeedbackWidget(container) {
                         ${new Date(r.created_at).toLocaleDateString('de-DE')}
                     </div>
                 </div>
-            `).join('')}
+            `
+                )
+                .join('')}
         </div>
     `;
 

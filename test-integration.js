@@ -23,8 +23,15 @@ function test(name, fn) {
     try {
         const result = fn();
         if (result && typeof result.then === 'function') {
-            return result.then(() => { console.log(`  ✓ ${name}`); passed++; })
-                         .catch(e => { console.error(`  ✗ ${name}: ${e.message}`); failed++; });
+            return result
+                .then(() => {
+                    console.log(`  ✓ ${name}`);
+                    passed++;
+                })
+                .catch((e) => {
+                    console.error(`  ✗ ${name}: ${e.message}`);
+                    failed++;
+                });
         }
         console.log(`  ✓ ${name}`);
         passed++;
@@ -56,9 +63,17 @@ async function run() {
     });
 
     const CANONICAL_MODULES = [
-        'menu_edit', 'orders_kitchen', 'reservations', 'custom_design',
-        'analytics', 'qr_pay', 'online_orders', 'multilanguage',
-        'seasonal_menu', 'backup', 'image_ai'
+        'menu_edit',
+        'orders_kitchen',
+        'reservations',
+        'custom_design',
+        'analytics',
+        'qr_pay',
+        'online_orders',
+        'multilanguage',
+        'seasonal_menu',
+        'backup',
+        'image_ai',
     ];
 
     await test('ENTERPRISE plan has all canonical modules', () => {
@@ -72,7 +87,10 @@ async function run() {
         const legacyKeys = ['reservations_online', 'reservations_phone', 'custom_branding'];
         for (const [planName, plan] of Object.entries(PLAN_DEFINITIONS || {})) {
             for (const key of legacyKeys) {
-                assert(!(key in (plan.modules || {})), `Plan ${planName} still uses legacy key '${key}'`);
+                assert(
+                    !(key in (plan.modules || {})),
+                    `Plan ${planName} still uses legacy key '${key}'`
+                );
             }
         }
     });
@@ -106,12 +124,15 @@ async function run() {
         let publicKey;
         await test('GET /api/v1/public-key returns PEM', async () => {
             const res = await fetch(`${licenseServerUrl}/api/v1/public-key`, {
-                signal: AbortSignal.timeout(8000)
+                signal: AbortSignal.timeout(8000),
             });
             assert(res.ok, `HTTP ${res.status}`);
             const data = await res.json();
             publicKey = data.publicKey || data.public_key || data.key;
-            assert(publicKey && publicKey.includes('BEGIN'), 'Response must contain a PEM public key');
+            assert(
+                publicKey && publicKey.includes('BEGIN'),
+                'Response must contain a PEM public key'
+            );
         });
 
         if (publicKey) {
@@ -120,14 +141,21 @@ async function run() {
                 assert.doesNotThrow(() => {
                     // We can't sign here, but we can at least check the key parses
                     // by trying to verify a dummy token (it will fail with "invalid signature", not "invalid key")
-                    try { jwt.verify('a.b.c', publicKey, { algorithms: ['RS256'] }); } catch (e) {
-                        assert(e.message !== 'secretOrPublicKey must be an asymmetric key', `Key parse error: ${e.message}`);
+                    try {
+                        jwt.verify('a.b.c', publicKey, { algorithms: ['RS256'] });
+                    } catch (e) {
+                        assert(
+                            e.message !== 'secretOrPublicKey must be an asymmetric key',
+                            `Key parse error: ${e.message}`
+                        );
                     }
                 });
             });
         }
     } else {
-        console.log('\n3. License server connectivity — SKIPPED (set LICENSE_SERVER_URL to enable)');
+        console.log(
+            '\n3. License server connectivity — SKIPPED (set LICENSE_SERVER_URL to enable)'
+        );
     }
 
     // ── Summary ─────────────────────────────────────────────────────────────
@@ -141,4 +169,7 @@ async function run() {
     }
 }
 
-run().catch(e => { console.error('Unexpected error:', e); process.exit(1); });
+run().catch((e) => {
+    console.error('Unexpected error:', e);
+    process.exit(1);
+});

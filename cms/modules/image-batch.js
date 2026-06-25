@@ -12,7 +12,9 @@ window.ImageBatch = {
     running: false,
     stopRequested: false,
 
-    token() { return sessionStorage.getItem('meraki_admin_token'); },
+    token() {
+        return sessionStorage.getItem('meraki_admin_token');
+    },
 
     log(logEl, msg, color = 'inherit') {
         if (!logEl) return;
@@ -24,7 +26,9 @@ window.ImageBatch = {
         logEl.scrollTop = logEl.scrollHeight;
     },
 
-    sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+    sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+    },
 
     buildPrompt(dish) {
         const parts = [dish.name, dish.desc].filter(Boolean).join(', ');
@@ -41,14 +45,18 @@ window.ImageBatch = {
     // Lädt eine Data-URL (vom Browser erzeugt) als Datei zum Server hoch -> gibt /uploads/... zurück
     async uploadDataUrl(dataUrl) {
         const blob = await (await fetch(dataUrl)).blob();
-        const ext = (blob.type && blob.type.includes('jpeg')) ? 'jpg'
-                  : (blob.type && blob.type.includes('webp')) ? 'webp' : 'png';
+        const ext =
+            blob.type && blob.type.includes('jpeg')
+                ? 'jpg'
+                : blob.type && blob.type.includes('webp')
+                  ? 'webp'
+                  : 'png';
         const fd = new FormData();
         fd.append('image', blob, `puter-${Date.now()}.${ext}`);
         const r = await fetch('/api/upload', {
             method: 'POST',
             headers: { 'x-admin-token': this.token() },
-            body: fd
+            body: fd,
         });
         const res = await r.json().catch(() => ({}));
         if (!res.success || !res.url) throw new Error(res.reason || 'Upload fehlgeschlagen');
@@ -77,7 +85,7 @@ window.ImageBatch = {
             const r = await fetch('/api/image-ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-admin-token': this.token() },
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify({ prompt }),
             });
             const res = await r.json().catch(() => ({}));
             if (!res.success || !res.results || !res.results[0]) {
@@ -93,23 +101,29 @@ window.ImageBatch = {
         const r = await fetch(`/api/menu/${dish.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'x-admin-token': this.token() },
-            body: JSON.stringify({ image: url })
+            body: JSON.stringify({ image: url }),
         });
         const res = await r.json().catch(() => ({}));
-        if (!res.success) throw new Error(res.reason || `Gericht-Update fehlgeschlagen (${r.status})`);
+        if (!res.success)
+            throw new Error(res.reason || `Gericht-Update fehlgeschlagen (${r.status})`);
     },
 
     // Verdrahtet die Buttons im Image-AI-Settings-Tab
     attach(container) {
         const startBtn = container.querySelector('#batch-start');
-        const stopBtn  = container.querySelector('#batch-stop');
+        const stopBtn = container.querySelector('#batch-stop');
         if (!startBtn) return;
 
         startBtn.onclick = () => this.run(container);
-        if (stopBtn) stopBtn.onclick = () => {
-            this.stopRequested = true;
-            this.log(container.querySelector('#batch-log'), '⏹️  Stop angefordert – nach aktuellem Bild...', '#f59e0b');
-        };
+        if (stopBtn)
+            stopBtn.onclick = () => {
+                this.stopRequested = true;
+                this.log(
+                    container.querySelector('#batch-log'),
+                    '⏹️  Stop angefordert – nach aktuellem Bild...',
+                    '#f59e0b'
+                );
+            };
 
         this.refreshCount(container);
     },
@@ -119,9 +133,10 @@ window.ImageBatch = {
         const maxInput = container.querySelector('#batch-count');
         try {
             const menu = await this.fetchMenu();
-            const without = menu.filter(d => !d.image || !String(d.image).trim());
+            const without = menu.filter((d) => !d.image || !String(d.image).trim());
             if (countEl) countEl.textContent = without.length;
-            if (maxInput && (!maxInput.value || maxInput.value === '0')) maxInput.value = without.length;
+            if (maxInput && (!maxInput.value || maxInput.value === '0'))
+                maxInput.value = without.length;
         } catch (_) {
             if (countEl) countEl.textContent = '?';
         }
@@ -130,13 +145,13 @@ window.ImageBatch = {
     async run(container) {
         if (this.running) return;
 
-        const logEl    = container.querySelector('#batch-log');
+        const logEl = container.querySelector('#batch-log');
         const provider = container.querySelector('#batch-provider').value;
-        const max      = parseInt(container.querySelector('#batch-count').value, 10) || 0;
+        const max = parseInt(container.querySelector('#batch-count').value, 10) || 0;
         const delaySec = parseFloat(container.querySelector('#batch-delay').value) || 0;
-        const delayMs  = Math.max(0, delaySec * 1000);
+        const delayMs = Math.max(0, delaySec * 1000);
         const startBtn = container.querySelector('#batch-start');
-        const stopBtn  = container.querySelector('#batch-stop');
+        const stopBtn = container.querySelector('#batch-stop');
 
         if (max <= 0) {
             this.log(logEl, '⚠️  Bitte eine Anzahl > 0 wählen.', '#f59e0b');
@@ -151,12 +166,17 @@ window.ImageBatch = {
         if (stopBtn) stopBtn.style.display = 'inline-flex';
 
         const providerLabel = provider === 'puter' ? 'Puter (Browser)' : 'Google Gemini (Server)';
-        this.log(logEl, `🚀 Start – Provider: ${providerLabel}, max. ${max} Bild(er), ${delaySec}s Pause/Bild`, '#818cf8');
+        this.log(
+            logEl,
+            `🚀 Start – Provider: ${providerLabel}, max. ${max} Bild(er), ${delaySec}s Pause/Bild`,
+            '#818cf8'
+        );
 
-        let ok = 0, fail = 0;
+        let ok = 0,
+            fail = 0;
         try {
             const menu = await this.fetchMenu();
-            const todo = menu.filter(d => !d.image || !String(d.image).trim()).slice(0, max);
+            const todo = menu.filter((d) => !d.image || !String(d.image).trim()).slice(0, max);
 
             if (todo.length === 0) {
                 this.log(logEl, '✅ Alle Gerichte haben bereits ein Bild.', '#10b981');
@@ -189,7 +209,11 @@ window.ImageBatch = {
                 }
             }
 
-            this.log(logEl, `\n🏁 Fertig: ${ok} erstellt, ${fail} Fehler.`, ok > 0 ? '#10b981' : '#f59e0b');
+            this.log(
+                logEl,
+                `\n🏁 Fertig: ${ok} erstellt, ${fail} Fehler.`,
+                ok > 0 ? '#10b981' : '#f59e0b'
+            );
             if (ok > 0 && window.MenuCore) window.MenuCore.state.cachedMenuData = null;
         } catch (e) {
             this.log(logEl, `❌ ${e.message}`, '#ef4444');
@@ -200,5 +224,5 @@ window.ImageBatch = {
             if (stopBtn) stopBtn.style.display = 'none';
             this.refreshCount(container);
         }
-    }
+    },
 };

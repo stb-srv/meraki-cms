@@ -11,7 +11,6 @@ const validate = require('../validation/validate.js');
 const { anyObjectSchema } = require('../validation/schemas.js');
 const { requireRole } = require('../core/middleware.js');
 
-
 /**
  * Tiefes Merge zweier Objekte (nur plain objects, keine Arrays).
  * Arrays werden direkt ersetzt (nicht konkateniert).
@@ -41,33 +40,69 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const settings = await DB.getKV('settings', {});
             const homepage = await DB.getKV('homepage', {});
             res.json({ ...homepage, activeModules: settings.activeModules });
-        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        } catch (e) {
+            logger.error({ err: e }, 'Settings route Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
-    router.post('/homepage', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const { activeModules, ...homepageData } = req.body;
-            await DB.setKV('homepage', homepageData);
-            res.json({ success: true });
-        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
-    });
+    router.post(
+        '/homepage',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const { activeModules, ...homepageData } = req.body;
+                await DB.setKV('homepage', homepageData);
+                res.json({ success: true });
+            } catch (e) {
+                logger.error({ err: e }, 'Settings route Fehler');
+                res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+            }
+        }
+    );
 
     router.get('/branding', async (req, res) => {
-        try { res.json(await DB.getKV('branding', {})); }
-        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
-    });
-    router.post('/branding', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
         try {
-            await DB.setKV('branding', req.body);
-            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'branding.update', entity: 'branding', entity_id: null }); } catch (_) {}
-            res.json({ success: true });
+            res.json(await DB.getKV('branding', {}));
+        } catch (e) {
+            logger.error({ err: e }, 'Settings route Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
-        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
     });
+    router.post(
+        '/branding',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                await DB.setKV('branding', req.body);
+                try {
+                    if (DB.addAuditLog)
+                        await DB.addAuditLog({
+                            actor: req.admin?.user || null,
+                            action: 'branding.update',
+                            entity: 'branding',
+                            entity_id: null,
+                        });
+                } catch (_) {}
+                res.json({ success: true });
+            } catch (e) {
+                logger.error({ err: e }, 'Settings route Fehler');
+                res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+            }
+        }
+    );
 
     router.get('/settings', requireAuth, requireRole('admin'), async (req, res) => {
-        try { res.json(await DB.getKV('settings', {})); }
-        catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        try {
+            res.json(await DB.getKV('settings', {}));
+        } catch (e) {
+            logger.error({ err: e }, 'Settings route Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     // Audit-Log (wer hat wann was geändert) – nur Admin
@@ -76,7 +111,10 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
             const limit = Math.min(parseInt(req.query.limit) || 100, 500);
             const log = DB.getAuditLog ? await DB.getAuditLog(limit) : [];
             res.json(Array.isArray(log) ? log : []);
-        } catch(e) { logger.error({ err: e }, 'Audit-Log route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
+        } catch (e) {
+            logger.error({ err: e }, 'Audit-Log route Fehler');
+            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+        }
     });
 
     /**
@@ -84,182 +122,275 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
      * Liest erst den aktuellen Stand aus der DB und merged tief,
      * damit Teilupdates (z.B. nur smtp) nicht andere Keys (license, reservationConfig) löschen.
      */
-    router.post('/settings', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const existing = await DB.getKV('settings', {});
-            const merged   = deepMerge(existing, req.body);
-            await DB.setKV('settings', merged);
-            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'settings.update', entity: 'settings', entity_id: null, detail: { keys: Object.keys(req.body || {}) } }); } catch (_) {}
-            res.json({ success: true });
-        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
-    });
+    router.post(
+        '/settings',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const existing = await DB.getKV('settings', {});
+                const merged = deepMerge(existing, req.body);
+                await DB.setKV('settings', merged);
+                try {
+                    if (DB.addAuditLog)
+                        await DB.addAuditLog({
+                            actor: req.admin?.user || null,
+                            action: 'settings.update',
+                            entity: 'settings',
+                            entity_id: null,
+                            detail: { keys: Object.keys(req.body || {}) },
+                        });
+                } catch (_) {}
+                res.json({ success: true });
+            } catch (e) {
+                logger.error({ err: e }, 'Settings route Fehler');
+                res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+            }
+        }
+    );
 
     /**
      * POST /settings/test-smtp
      * req.body.email hat Priorität – Fallback auf User-Account-Email.
      */
-    router.post('/settings/test-smtp', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const toEmail = req.body?.email || (await (async () => {
-                const users  = await DB.getUsers();
-                const target = (users || []).find(u => u.user === req.admin.user);
-                return target?.email || null;
-            })());
+    router.post(
+        '/settings/test-smtp',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const toEmail =
+                    req.body?.email ||
+                    (await (async () => {
+                        const users = await DB.getUsers();
+                        const target = (users || []).find((u) => u.user === req.admin.user);
+                        return target?.email || null;
+                    })());
 
-            if (!toEmail) return res.status(400).json({
-                success: false,
-                reason: 'Keine Ziel-E-Mail-Adresse angegeben. Bitte im Testmail-Feld eine Adresse eingeben.'
-            });
+                if (!toEmail)
+                    return res.status(400).json({
+                        success: false,
+                        reason: 'Keine Ziel-E-Mail-Adresse angegeben. Bitte im Testmail-Feld eine Adresse eingeben.',
+                    });
 
-            await Mailer.sendTestMail(toEmail, DB);
-            res.json({ success: true, sentTo: toEmail });
-        } catch (e) {
-            res.status(500).json({ success: false, reason: `SMTP Fehler: ${e.message}` });
+                await Mailer.sendTestMail(toEmail, DB);
+                res.json({ success: true, sentTo: toEmail });
+            } catch (e) {
+                res.status(500).json({ success: false, reason: `SMTP Fehler: ${e.message}` });
+            }
         }
-    });
+    );
 
     router.get('/license/info', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             const domain = extractDomain(req);
-            const lic    = await getCurrentLicense(DB, domain);
-            const menu   = await DB.getMenu();
-            res.json({ ...lic, menu_items_used: (menu || []).length, trialDaysLeft: lic.trialDaysLeft, plans: PLAN_DEFINITIONS });
-        } catch(e) { logger.error({ err: e }, 'Settings route Fehler'); res.status(500).json({ success: false, reason: 'Interner Serverfehler.' }); }
-    });
-
-    router.post('/license/validate', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const domain = extractDomain(req);
-            logger.info({ key: req.body.key, domain }, 'Lizenz-Validierung angefordert');
-
-            const ENFORCED_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
-            // Nutze ab hier ausschließlich ENFORCED_LICENSE_SERVER statt LICENSE_SERVER
-
-            const response = await fetch(`${ENFORCED_LICENSE_SERVER}/api/v1/validate`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ license_key: req.body.key, domain })
+            const lic = await getCurrentLicense(DB, domain);
+            const menu = await DB.getMenu();
+            res.json({
+                ...lic,
+                menu_items_used: (menu || []).length,
+                trialDaysLeft: lic.trialDaysLeft,
+                plans: PLAN_DEFINITIONS,
             });
-
-            const r = await response.json();
-
-            if (!response.ok) {
-                logger.warn({ status: response.status, response: r }, 'Lizenzserver hat Anfrage abgelehnt');
-                return res.status(response.status).json({
-                    success: false,
-                    status:  r.status  || 'error',
-                    reason:  r.message || 'Lizenzserver hat die Anfrage abgelehnt.',
-                    debug:   { domain, licenseServer: ENFORCED_LICENSE_SERVER }
-                });
-            }
-
-            if (r.status === 'active') {
-                const licenseToken = r.license_token || r.token || null;
-                if (!licenseToken) {
-                    logger.error('Lizenzserver gab status=active zurück, aber kein signiertes Token');
-                    return res.status(500).json({
-                        success: false,
-                        reason: 'Lizenzserver hat kein signiertes Token zurückgegeben. Bitte sicherstellen dass RSA_PRIVATE_KEY auf dem Lizenzserver gesetzt ist.'
-                    });
-                }
-                const settings = await DB.getKV('settings', {});
-                const plan = getPlan(r.type);
-                const resolvedModules = (r.allowed_modules && Object.keys(r.allowed_modules).length > 0)
-                    ? r.allowed_modules
-                    : plan.modules;
-                settings.license = {
-                    key:          req.body.key,
-                    isTrial:      false,
-                    licenseToken: licenseToken,
-                    status:       'active',
-                    customer:     r.customer_name,
-                    type:         r.type || 'FREE',
-                    label:        r.plan_label || plan.label,
-                    expiresAt:    r.expires_at,
-                    modules:      resolvedModules,
-                    limits: {
-                        max_dishes: r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
-                        max_tables: r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables
-                    },
-                    lastKnownType:    r.type || 'FREE',
-                    lastKnownModules: resolvedModules,
-                    lastKnownLimits:  {
-                        max_dishes: r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
-                        max_tables: r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables
-                    },
-                    lastKnownAt: new Date().toISOString()
-                };
-                await DB.setKV('settings', settings);
-                logger.info({ key: req.body.key, type: r.type, domain }, 'Lizenz erfolgreich aktiviert');
-                try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'license.activate', entity: 'license', entity_id: null, detail: { type: r.type, label: settings.license.label } }); } catch (_) {}
-                return res.json({ success: true, license: settings.license });
-            }
-
-            res.status(403).json({ success: false, status: r.status, reason: r.message });
         } catch (e) {
-            logger.error({ err: e }, 'Lizenz-Validierung Fehler');
-            res.status(500).json({ success: false, reason: 'Lizenzserver nicht erreichbar: ' + e.message });
-        }
-    });
-
-    router.post('/settings/modules', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const { enabledModules } = req.body;
-            if (!enabledModules || typeof enabledModules !== 'object') {
-                return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });
-            }
-            
-            // orders_kitchen und online_orders sind immer synchron
-            if (enabledModules.orders_kitchen !== undefined) {
-                enabledModules.online_orders = enabledModules.orders_kitchen;
-            }
-
-            const settings = await DB.getKV('settings', {});
-            settings.enabledModules = enabledModules;
-
-            // Abwärtskompatibilität für das Gast-Frontend
-            settings.activeModules = {
-                orders: enabledModules.orders_kitchen,
-                reservations: enabledModules.reservations
-            };
-            settings.dailySpecialsEnabled = enabledModules.daily_specials;
-            
-            await DB.setKV('settings', settings);
-            try { if (DB.addAuditLog) await DB.addAuditLog({ actor: req.admin?.user || null, action: 'settings.modules', entity: 'settings', entity_id: null, detail: enabledModules }); } catch (_) {}
-            res.json({ success: true, enabledModules: settings.enabledModules });
-        } catch(e) {
-            res.status(500).json({ success: false, reason: e.message });
-        }
-    });
-
-    router.post('/license/modules', requireAuth, requireRole('admin'), validate(anyObjectSchema), async (req, res) => {
-        try {
-            const { modules } = req.body;
-            if (!modules || typeof modules !== 'object') return res.status(400).json({ success: false, reason: 'Ungültige Module-Daten.' });
-
-            // Validate: only allow enabling modules that are in the current license plan
-            const domain = extractDomain(req);
-            const currentLic = await getCurrentLicense(DB, domain);
-            const allowedByLicense = currentLic.modules || {};
-            const invalidModules = Object.entries(modules)
-                .filter(([key, val]) => val === true && !allowedByLicense[key])
-                .map(([key]) => key);
-            if (invalidModules.length > 0) {
-                return res.status(403).json({
-                    success: false,
-                    reason: `Folgende Module sind in Ihrem ${currentLic.label || currentLic.type}-Plan nicht enthalten: ${invalidModules.join(', ')}`
-                });
-            }
-
-            const settings = await DB.getKV('settings', {});
-            if (!settings.license) settings.license = {};
-            settings.license.modules = { ...(settings.license.modules || {}), ...modules };
-            await DB.setKV('settings', settings);
-            res.json({ success: true, modules: settings.license.modules });
-        } catch(e) {
-            logger.error({ err: e }, 'POST /license/modules Fehler');
+            logger.error({ err: e }, 'Settings route Fehler');
             res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
     });
+
+    router.post(
+        '/license/validate',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const domain = extractDomain(req);
+                logger.info({ key: req.body.key, domain }, 'Lizenz-Validierung angefordert');
+
+                const ENFORCED_LICENSE_SERVER = 'https://licens-prod.stb-srv.de';
+                // Nutze ab hier ausschließlich ENFORCED_LICENSE_SERVER statt LICENSE_SERVER
+
+                const response = await fetch(`${ENFORCED_LICENSE_SERVER}/api/v1/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ license_key: req.body.key, domain }),
+                });
+
+                const r = await response.json();
+
+                if (!response.ok) {
+                    logger.warn(
+                        { status: response.status, response: r },
+                        'Lizenzserver hat Anfrage abgelehnt'
+                    );
+                    return res.status(response.status).json({
+                        success: false,
+                        status: r.status || 'error',
+                        reason: r.message || 'Lizenzserver hat die Anfrage abgelehnt.',
+                        debug: { domain, licenseServer: ENFORCED_LICENSE_SERVER },
+                    });
+                }
+
+                if (r.status === 'active') {
+                    const licenseToken = r.license_token || r.token || null;
+                    if (!licenseToken) {
+                        logger.error(
+                            'Lizenzserver gab status=active zurück, aber kein signiertes Token'
+                        );
+                        return res.status(500).json({
+                            success: false,
+                            reason: 'Lizenzserver hat kein signiertes Token zurückgegeben. Bitte sicherstellen dass RSA_PRIVATE_KEY auf dem Lizenzserver gesetzt ist.',
+                        });
+                    }
+                    const settings = await DB.getKV('settings', {});
+                    const plan = getPlan(r.type);
+                    const resolvedModules =
+                        r.allowed_modules && Object.keys(r.allowed_modules).length > 0
+                            ? r.allowed_modules
+                            : plan.modules;
+                    settings.license = {
+                        key: req.body.key,
+                        isTrial: false,
+                        licenseToken: licenseToken,
+                        status: 'active',
+                        customer: r.customer_name,
+                        type: r.type || 'FREE',
+                        label: r.plan_label || plan.label,
+                        expiresAt: r.expires_at,
+                        modules: resolvedModules,
+                        limits: {
+                            max_dishes:
+                                r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
+                            max_tables:
+                                r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables,
+                        },
+                        lastKnownType: r.type || 'FREE',
+                        lastKnownModules: resolvedModules,
+                        lastKnownLimits: {
+                            max_dishes:
+                                r.limits?.max_dishes ?? r.limits?.maxDishes ?? plan.menu_items,
+                            max_tables:
+                                r.limits?.max_tables ?? r.limits?.maxTables ?? plan.max_tables,
+                        },
+                        lastKnownAt: new Date().toISOString(),
+                    };
+                    await DB.setKV('settings', settings);
+                    logger.info(
+                        { key: req.body.key, type: r.type, domain },
+                        'Lizenz erfolgreich aktiviert'
+                    );
+                    try {
+                        if (DB.addAuditLog)
+                            await DB.addAuditLog({
+                                actor: req.admin?.user || null,
+                                action: 'license.activate',
+                                entity: 'license',
+                                entity_id: null,
+                                detail: { type: r.type, label: settings.license.label },
+                            });
+                    } catch (_) {}
+                    return res.json({ success: true, license: settings.license });
+                }
+
+                res.status(403).json({ success: false, status: r.status, reason: r.message });
+            } catch (e) {
+                logger.error({ err: e }, 'Lizenz-Validierung Fehler');
+                res.status(500).json({
+                    success: false,
+                    reason: 'Lizenzserver nicht erreichbar: ' + e.message,
+                });
+            }
+        }
+    );
+
+    router.post(
+        '/settings/modules',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const { enabledModules } = req.body;
+                if (!enabledModules || typeof enabledModules !== 'object') {
+                    return res
+                        .status(400)
+                        .json({ success: false, reason: 'Ungültige Module-Daten.' });
+                }
+
+                // orders_kitchen und online_orders sind immer synchron
+                if (enabledModules.orders_kitchen !== undefined) {
+                    enabledModules.online_orders = enabledModules.orders_kitchen;
+                }
+
+                const settings = await DB.getKV('settings', {});
+                settings.enabledModules = enabledModules;
+
+                // Abwärtskompatibilität für das Gast-Frontend
+                settings.activeModules = {
+                    orders: enabledModules.orders_kitchen,
+                    reservations: enabledModules.reservations,
+                };
+                settings.dailySpecialsEnabled = enabledModules.daily_specials;
+
+                await DB.setKV('settings', settings);
+                try {
+                    if (DB.addAuditLog)
+                        await DB.addAuditLog({
+                            actor: req.admin?.user || null,
+                            action: 'settings.modules',
+                            entity: 'settings',
+                            entity_id: null,
+                            detail: enabledModules,
+                        });
+                } catch (_) {}
+                res.json({ success: true, enabledModules: settings.enabledModules });
+            } catch (e) {
+                res.status(500).json({ success: false, reason: e.message });
+            }
+        }
+    );
+
+    router.post(
+        '/license/modules',
+        requireAuth,
+        requireRole('admin'),
+        validate(anyObjectSchema),
+        async (req, res) => {
+            try {
+                const { modules } = req.body;
+                if (!modules || typeof modules !== 'object')
+                    return res
+                        .status(400)
+                        .json({ success: false, reason: 'Ungültige Module-Daten.' });
+
+                // Validate: only allow enabling modules that are in the current license plan
+                const domain = extractDomain(req);
+                const currentLic = await getCurrentLicense(DB, domain);
+                const allowedByLicense = currentLic.modules || {};
+                const invalidModules = Object.entries(modules)
+                    .filter(([key, val]) => val === true && !allowedByLicense[key])
+                    .map(([key]) => key);
+                if (invalidModules.length > 0) {
+                    return res.status(403).json({
+                        success: false,
+                        reason: `Folgende Module sind in Ihrem ${currentLic.label || currentLic.type}-Plan nicht enthalten: ${invalidModules.join(', ')}`,
+                    });
+                }
+
+                const settings = await DB.getKV('settings', {});
+                if (!settings.license) settings.license = {};
+                settings.license.modules = { ...(settings.license.modules || {}), ...modules };
+                await DB.setKV('settings', settings);
+                res.json({ success: true, modules: settings.license.modules });
+            } catch (e) {
+                logger.error({ err: e }, 'POST /license/modules Fehler');
+                res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
+            }
+        }
+    );
 
     return router;
 };

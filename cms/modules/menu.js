@@ -1,6 +1,13 @@
 // cms/modules/menu.js
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from './api.js';
-import { showToast, showConfirm, showPrompt, showSelect, renderHelpIcon, compressImage } from './utils.js';
+import {
+    showToast,
+    showConfirm,
+    showPrompt,
+    showSelect,
+    renderHelpIcon,
+    compressImage,
+} from './utils.js';
 
 /**
  * Orchestrator for the Menu module.
@@ -12,18 +19,18 @@ import { showToast, showConfirm, showPrompt, showSelect, renderHelpIcon, compres
  */
 export async function renderMenu(container, titleEl, tab = 'dishes', forceRefresh = false) {
     if (!window.MenuCore) {
-        console.error("MenuCore not loaded! Check index.html script tags.");
+        console.error('MenuCore not loaded! Check index.html script tags.');
         return;
     }
-    
+
     // Initialize if not done yet
     if (!window.MenuCore.isInitialized) {
-        const api = { 
-            get: apiGet, 
-            post: apiPost, 
-            put: apiPut, 
-            del: apiDelete, 
-            upload: apiUpload 
+        const api = {
+            get: apiGet,
+            post: apiPost,
+            put: apiPut,
+            del: apiDelete,
+            upload: apiUpload,
         };
         const utils = {
             showToast,
@@ -31,13 +38,13 @@ export async function renderMenu(container, titleEl, tab = 'dishes', forceRefres
             showPrompt,
             showSelect,
             renderHelpIcon,
-            compressImage
+            compressImage,
         };
-        
+
         window.MenuCore.init(api, utils);
         window.MenuCore.isInitialized = true;
     }
-    
+
     // Delegate to core
     return window.MenuCore.renderMenu(container, titleEl, tab, forceRefresh);
 }

@@ -11,32 +11,32 @@ const MAIL_TYPES = [
         key: 'tpl_confirmation',
         label: 'Reservierungsbestätigung (Eingang)',
         default_subject: 'Reservierungsbestätigung – {{date}}',
-        placeholders: ['name', 'date', 'start_time', 'guests', 'restaurantName']
+        placeholders: ['name', 'date', 'start_time', 'guests', 'restaurantName'],
     },
     {
         key: 'tpl_confirmed',
         label: 'Reservierung bestätigt',
         default_subject: 'BESTÄTIGT: Ihr Tisch am {{date}}',
-        placeholders: ['name', 'date', 'start_time', 'restaurantName']
+        placeholders: ['name', 'date', 'start_time', 'restaurantName'],
     },
     {
         key: 'tpl_cancelled',
         label: 'Reservierung storniert',
         default_subject: 'ABSAGE: Ihre Reservierung am {{date}}',
-        placeholders: ['name', 'date', 'start_time', 'restaurantName']
+        placeholders: ['name', 'date', 'start_time', 'restaurantName'],
     },
     {
         key: 'tpl_inquiry',
         label: 'Warteliste / Anfrage',
         default_subject: 'Warteliste – Anfrage für {{date}}',
-        placeholders: ['name', 'date', 'start_time', 'guests', 'restaurantName']
+        placeholders: ['name', 'date', 'start_time', 'guests', 'restaurantName'],
     },
     {
         key: 'tpl_credentials',
         label: 'Zugangsdaten (neuer Nutzer)',
         default_subject: 'Ihre Zugangsdaten für das CMS',
-        placeholders: ['name', 'username', 'password', 'restaurantName']
-    }
+        placeholders: ['name', 'username', 'password', 'restaurantName'],
+    },
 ];
 
 let settingsTab = 'license';
@@ -44,10 +44,10 @@ let settingsTab = 'license';
 export async function renderSettings(container, titleEl, tab) {
     if (tab) settingsTab = tab;
     titleEl.innerHTML = '<i class="fas fa-cog"></i> Einstellungen';
-    const settings = await apiGet('settings') || {};
-    const branding = await apiGet('branding') || {};
-    const users = await apiGet('users') || [];
-    const licInfo = await apiGet('license/info') || {};
+    const settings = (await apiGet('settings')) || {};
+    const branding = (await apiGet('branding')) || {};
+    const users = (await apiGet('users')) || [];
+    const licInfo = (await apiGet('license/info')) || {};
 
     container.innerHTML = `
         <div class="glass-panel" style="padding:40px;">
@@ -56,7 +56,7 @@ export async function renderSettings(container, titleEl, tab) {
                 ${renderSettingsTab(settings, branding, users, licInfo)}
             </div>
 
-            <div id="settings-save-bar" style="display:${(settingsTab === 'license' || settingsTab === 'plan_modules') ? 'none' : 'flex'}; justify-content:flex-end; margin-top:30px;">
+            <div id="settings-save-bar" style="display:${settingsTab === 'license' || settingsTab === 'plan_modules' ? 'none' : 'flex'}; justify-content:flex-end; margin-top:30px;">
                 <button class="btn-primary" id="save-settings"><i class="fas fa-save"></i> Einstellungen speichern</button>
             </div>
         </div>
@@ -67,22 +67,92 @@ export async function renderSettings(container, titleEl, tab) {
 
 const MODULE_LABELS = {
     // Bereits vorhanden – beibehalten:
-    menu_edit:          { label: 'Speisekarte bearbeiten',   icon: 'utensils',       desc: 'Gerichte hinzufügen, bearbeiten & löschen', group: 'Speisekarte' },
-    orders_kitchen:     { label: 'Online-Bestellungen',      icon: 'shopping-bag',   desc: 'Kunden können online bestellen', group: 'Bestellungen' },
-    reservations:       { label: 'Online-Reservierung',      icon: 'calendar-check', desc: 'Gäste können online reservieren', group: 'Reservierungen' },
-    custom_design:      { label: 'Design anpassen',          icon: 'paint-brush',    desc: 'Farben, Logo & Homepage bearbeiten', group: 'Auftritt' },
-    analytics:          { label: 'Statistiken',              icon: 'chart-bar',      desc: 'Umsatz- und Bestellstatistiken', group: 'Dashboard' },
-    qr_pay:             { label: 'QR-Pay am Tisch',          icon: 'qrcode',         desc: 'Bezahlung per QR-Code am Tisch (Premium)', group: 'Bestellungen' },
-    
+    menu_edit: {
+        label: 'Speisekarte bearbeiten',
+        icon: 'utensils',
+        desc: 'Gerichte hinzufügen, bearbeiten & löschen',
+        group: 'Speisekarte',
+    },
+    orders_kitchen: {
+        label: 'Online-Bestellungen',
+        icon: 'shopping-bag',
+        desc: 'Kunden können online bestellen',
+        group: 'Bestellungen',
+    },
+    reservations: {
+        label: 'Online-Reservierung',
+        icon: 'calendar-check',
+        desc: 'Gäste können online reservieren',
+        group: 'Reservierungen',
+    },
+    custom_design: {
+        label: 'Design anpassen',
+        icon: 'paint-brush',
+        desc: 'Farben, Logo & Homepage bearbeiten',
+        group: 'Auftritt',
+    },
+    analytics: {
+        label: 'Statistiken',
+        icon: 'chart-bar',
+        desc: 'Umsatz- und Bestellstatistiken',
+        group: 'Dashboard',
+    },
+    qr_pay: {
+        label: 'QR-Pay am Tisch',
+        icon: 'qrcode',
+        desc: 'Bezahlung per QR-Code am Tisch (Premium)',
+        group: 'Bestellungen',
+    },
+
     // NEU hinzufügen:
-    kitchen_display:    { label: 'Küchen-Display',           icon: 'fire-burner',    desc: 'Bestellungen in Echtzeit im Küchen-Monitor anzeigen', group: 'Bestellungen' },
-    table_planner:      { label: 'Tischplaner',              icon: 'project-diagram',desc: 'Visueller Saalplan und Tischzuweisung', group: 'Reservierungen' },
-    daily_specials:     { label: 'Tagesspecials',            icon: 'star',           desc: 'Goldene Heute-Badges und Special-Filter auf der Speisekarte', group: 'Speisekarte' },
-    menu_translate:     { label: 'Menü-Übersetzung',         icon: 'language',       desc: 'Speisekarte automatisch übersetzen lassen', group: 'Speisekarte' },
-    menu_import_export: { label: 'Import / Export',          icon: 'file-export',    desc: 'Speisekarte als CSV/JSON importieren oder exportieren', group: 'Speisekarte' },
-    qrcodes:            { label: 'QR-Code Generator',        icon: 'qrcode',         desc: 'QR-Codes für Tische und Speisekarte generieren', group: 'Tools' },
-    shifts:             { label: 'Schichtplan',              icon: 'calendar-week',  desc: 'Mitarbeiter-Schichten planen', group: 'Tools' },
-    backup:             { label: 'Backup & Wiederherstellung',icon: 'database',      desc: 'Datenbank sichern und wiederherstellen', group: 'Tools' },
+    kitchen_display: {
+        label: 'Küchen-Display',
+        icon: 'fire-burner',
+        desc: 'Bestellungen in Echtzeit im Küchen-Monitor anzeigen',
+        group: 'Bestellungen',
+    },
+    table_planner: {
+        label: 'Tischplaner',
+        icon: 'project-diagram',
+        desc: 'Visueller Saalplan und Tischzuweisung',
+        group: 'Reservierungen',
+    },
+    daily_specials: {
+        label: 'Tagesspecials',
+        icon: 'star',
+        desc: 'Goldene Heute-Badges und Special-Filter auf der Speisekarte',
+        group: 'Speisekarte',
+    },
+    menu_translate: {
+        label: 'Menü-Übersetzung',
+        icon: 'language',
+        desc: 'Speisekarte automatisch übersetzen lassen',
+        group: 'Speisekarte',
+    },
+    menu_import_export: {
+        label: 'Import / Export',
+        icon: 'file-export',
+        desc: 'Speisekarte als CSV/JSON importieren oder exportieren',
+        group: 'Speisekarte',
+    },
+    qrcodes: {
+        label: 'QR-Code Generator',
+        icon: 'qrcode',
+        desc: 'QR-Codes für Tische und Speisekarte generieren',
+        group: 'Tools',
+    },
+    shifts: {
+        label: 'Schichtplan',
+        icon: 'calendar-week',
+        desc: 'Mitarbeiter-Schichten planen',
+        group: 'Tools',
+    },
+    backup: {
+        label: 'Backup & Wiederherstellung',
+        icon: 'database',
+        desc: 'Datenbank sichern und wiederherstellen',
+        group: 'Tools',
+    },
 };
 
 function isValidImageSrc(val) {
@@ -110,13 +180,25 @@ function renderSettingsTab(settings, branding, users, licInfo) {
         const isTrial = l.isTrial || l.status === 'trial';
         const isActive = l.status === 'active';
         const expiresAt = l.expiresAt ? new Date(l.expiresAt) : null;
-        const daysLeft = expiresAt ? Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24)) : null;
+        const daysLeft = expiresAt
+            ? Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))
+            : null;
         const expired = daysLeft !== null && daysLeft <= 0;
 
-        let badgeColor = '#6b7280', badgeText = 'Unbekannt';
-        if (isTrial && !expired)  { badgeColor = '#f59e0b'; badgeText = `Trial • noch ${daysLeft} Tage`; }
-        if (isTrial && expired)   { badgeColor = '#ef4444'; badgeText = 'Trial abgelaufen'; }
-        if (isActive)             { badgeColor = '#10b981'; badgeText = 'Aktiv'; }
+        let badgeColor = '#6b7280',
+            badgeText = 'Unbekannt';
+        if (isTrial && !expired) {
+            badgeColor = '#f59e0b';
+            badgeText = `Trial • noch ${daysLeft} Tage`;
+        }
+        if (isTrial && expired) {
+            badgeColor = '#ef4444';
+            badgeText = 'Trial abgelaufen';
+        }
+        if (isActive) {
+            badgeColor = '#10b981';
+            badgeText = 'Aktiv';
+        }
 
         const plans = licInfo.plans || {};
         const planKeys = Object.keys(plans);
@@ -139,14 +221,22 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                         </p>
                     </div>
                 </div>
-                ${isTrial && !expired ? `
+                ${
+                    isTrial && !expired
+                        ? `
                 <div style="margin-top:16px; padding:12px 16px; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.2); border-radius:8px; font-size:.85rem; color:#f59e0b;">
                     <i class="fas fa-clock"></i>&nbsp; Ihre Trial-Lizenz läuft in <strong>${daysLeft} Tagen</strong> ab.
-                </div>` : ''}
-                ${expired ? `
+                </div>`
+                        : ''
+                }
+                ${
+                    expired
+                        ? `
                 <div style="margin-top:16px; padding:12px 16px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.2); border-radius:8px; font-size:.85rem; color:#ef4444;">
                     <i class="fas fa-exclamation-triangle"></i>&nbsp; Ihre Lizenz ist abgelaufen.
-                </div>` : ''}
+                </div>`
+                        : ''
+                }
             </div>
 
             <div style="background:rgba(16,185,129,.05); border:1px solid rgba(16,185,129,.15); border-radius:12px; padding:24px; margin-bottom:28px;">
@@ -157,7 +247,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                 <div style="display:flex; gap:12px; flex-wrap:wrap;">
                     <input id="license-key-input" class="input-styled" style="flex:1; min-width:260px; font-family:monospace; letter-spacing:.05em;"
                         placeholder="z.B. MERAKI-XXXX-XXXX-XXXX-XXXX"
-                        value="${isActive ? (l.key || '') : ''}">
+                        value="${isActive ? l.key || '' : ''}">
                     <button id="btn-activate-license" class="btn-primary" style="white-space:nowrap;">
                         <i class="fas fa-check-circle"></i> Lizenz aktivieren
                     </button>
@@ -167,10 +257,11 @@ function renderSettingsTab(settings, branding, users, licInfo) {
 
             <h4 style="margin-bottom:16px;"><i class="fas fa-th-large"></i> Verfügbare Pläne</h4>
             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px;">
-                ${planKeys.map(key => {
-                    const p = plans[key];
-                    const isCurrent = (l.type || 'FREE') === key;
-                    return `
+                ${planKeys
+                    .map((key) => {
+                        const p = plans[key];
+                        const isCurrent = (l.type || 'FREE') === key;
+                        return `
                     <div style="border:1px solid ${isCurrent ? 'var(--primary)' : 'rgba(255,255,255,0.08)'};
                         border-radius:10px; padding:16px;
                         background:${isCurrent ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.02)'};
@@ -181,15 +272,19 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                         <div style="font-size:.8rem; display:flex; flex-direction:column; gap:3px;">
                             <span><i class="fas fa-utensils" style="width:14px;"></i> ${p.menu_items} Speisen</span>
                             <span><i class="fas fa-chair" style="width:14px;"></i> ${p.max_tables} Tische</span>
-                            ${Object.entries(p.modules || {}).map(([mod, on]) =>
-                                `<span style="color:${on ? '#10b981' : '#6b7280'}">
+                            ${Object.entries(p.modules || {})
+                                .map(
+                                    ([mod, on]) =>
+                                        `<span style="color:${on ? '#10b981' : '#6b7280'}">
                                     <i class="fas fa-${on ? 'check' : 'times'}" style="width:14px;"></i>
-                                    ${{ menu_edit:'Speisekarte', orders_kitchen:'Bestellungen', online_orders:'Online-Bestell.', reservations:'Reservierung', custom_design:'Design', analytics:'Statistiken', qr_pay:'QR-Pay' }[mod] || mod}
+                                    ${{ menu_edit: 'Speisekarte', orders_kitchen: 'Bestellungen', online_orders: 'Online-Bestell.', reservations: 'Reservierung', custom_design: 'Design', analytics: 'Statistiken', qr_pay: 'QR-Pay' }[mod] || mod}
                                 </span>`
-                            ).join('')}
+                                )
+                                .join('')}
                         </div>
                     </div>`;
-                }).join('')}
+                    })
+                    .join('')}
             </div>
         `;
     }
@@ -199,19 +294,20 @@ function renderSettingsTab(settings, branding, users, licInfo) {
         // licInfo.modules kommt aus getCurrentLicense() und ist korrekt aufgelöst (leere
         // allowed_modules im JWT werden dort durch plan.modules ersetzt). Das rohe
         // l.modules kann ein leeres Objekt sein, wenn der Lizenzserver {} zurückgab.
-        const activeModules = (licInfo && licInfo.modules && Object.keys(licInfo.modules).length > 0)
-            ? licInfo.modules
-            : (l.modules || {});
+        const activeModules =
+            licInfo && licInfo.modules && Object.keys(licInfo.modules).length > 0
+                ? licInfo.modules
+                : l.modules || {};
         const enabledModules = settings.enabledModules || {};
         const allModuleKeys = Object.keys(MODULE_LABELS);
-        
+
         const groups = [
             { name: 'Speisekarte', icon: 'utensils' },
             { name: 'Bestellungen', icon: 'shopping-bag' },
             { name: 'Reservierungen', icon: 'calendar-alt' },
             { name: 'Auftritt', icon: 'paint-brush' },
             { name: 'Dashboard', icon: 'chart-pie' },
-            { name: 'Tools', icon: 'wrench' }
+            { name: 'Tools', icon: 'wrench' },
         ];
 
         let html = `
@@ -223,8 +319,8 @@ function renderSettingsTab(settings, branding, users, licInfo) {
             </div>
         `;
 
-        groups.forEach(group => {
-            const keys = allModuleKeys.filter(k => MODULE_LABELS[k].group === group.name);
+        groups.forEach((group) => {
+            const keys = allModuleKeys.filter((k) => MODULE_LABELS[k].group === group.name);
             if (keys.length === 0) return;
 
             html += `
@@ -235,14 +331,14 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px;">
             `;
 
-            keys.forEach(key => {
+            keys.forEach((key) => {
                 const m = MODULE_LABELS[key];
                 const isLicensed = activeModules[key] === true;
                 const isOn = enabledModules[key] === true;
-                
+
                 const cardOpacity = isLicensed ? '1' : '0.55';
                 const cardEvents = isLicensed ? '' : 'pointer-events: none;';
-                
+
                 html += `
                     <div style="background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px; opacity:${cardOpacity}; ${cardEvents} position:relative;" ${!isLicensed ? 'title="Nicht in Ihrem aktuellen Plan enthalten – Upgrade erforderlich"' : ''}>
                         ${!isLicensed ? '<i class="fas fa-lock" style="position:absolute; top:8px; right:8px; color:var(--text-muted); font-size:.8rem;"></i>' : ''}
@@ -306,10 +402,14 @@ function renderSettingsTab(settings, branding, users, licInfo) {
         `;
     }
 
-
-
     if (settingsTab === 'reservations') {
-        const rc = settings.reservationConfig || { durationSmall: 90, durationMedium: 120, durationLarge: 150, buffer: 15, allowInquiry: true };
+        const rc = settings.reservationConfig || {
+            durationSmall: 90,
+            durationMedium: 120,
+            durationLarge: 150,
+            buffer: 15,
+            allowInquiry: true,
+        };
         return `
             <div class="form-grid">
                 <div class="form-group full"><h4 style="margin-bottom:10px;">Aufenthaltsdauer (Minuten)</h4></div>
@@ -337,9 +437,10 @@ function renderSettingsTab(settings, branding, users, licInfo) {
             <table class="premium-table">
                 <thead><tr><th>Benutzername</th><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Aktion</th></tr></thead>
                 <tbody>
-                    ${users.map(u => {
-                        const fullName = [u.name, u.last_name].filter(Boolean).join(' ') || '-';
-                        return `
+                    ${users
+                        .map((u) => {
+                            const fullName = [u.name, u.last_name].filter(Boolean).join(' ') || '-';
+                            return `
                         <tr>
                             <td><strong>${u.user}</strong></td>
                             <td>${fullName}</td>
@@ -351,7 +452,9 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                                 <button class="btn-delete" onclick="window.deleteUser('${u.user}')" title="Löschen"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
-                    `}).join('')}
+                    `;
+                        })
+                        .join('')}
                 </tbody>
             </table>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">Hinweis: Neue Nutzer erhalten ihr Passwort per E-Mail und müssen es beim ersten Login ändern.</p>
@@ -528,9 +631,10 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                     <div>
                         <h4 style="margin:0;">E-Mail / SMTP Konfiguration</h4>
                         <p style="color:var(--text-muted); font-size:.82rem; margin:2px 0 0;">
-                            ${isConfigured
-                                ? `<span style="color:#10b981;"><i class="fas fa-check-circle"></i> Konfiguriert &ndash; Host: <strong>${smtp.host}</strong></span>`
-                                : `<span style="color:#f59e0b;"><i class="fas fa-exclamation-triangle"></i> Noch nicht konfiguriert &ndash; E-Mail-Versand deaktiviert</span>`
+                            ${
+                                isConfigured
+                                    ? `<span style="color:#10b981;"><i class="fas fa-check-circle"></i> Konfiguriert &ndash; Host: <strong>${smtp.host}</strong></span>`
+                                    : `<span style="color:#f59e0b;"><i class="fas fa-exclamation-triangle"></i> Noch nicht konfiguriert &ndash; E-Mail-Versand deaktiviert</span>`
                             }
                         </p>
                     </div>
@@ -572,7 +676,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                     Passen Sie Betreff und Inhalt der automatischen E-Mails an. Klicken Sie auf die Platzhalter-Chips, um sie an der Schreibmarke einzufügen.
                 </p>
 
-                ${MAIL_TYPES.map(type => {
+                ${MAIL_TYPES.map((type) => {
                     const tpl = (settings.emailTemplates || {})[type.key] || {};
                     return `
                     <div class="template-box" style="background:rgba(255,255,255,0.4); border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:20px; margin-bottom:20px;" data-tpl-key="${type.key}">
@@ -589,7 +693,7 @@ function renderSettingsTab(settings, branding, users, licInfo) {
                             <div class="placeholder-chips">
                                 <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:6px;">Verfügbare Platzhalter:</span>
                                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                    ${type.placeholders.map(p => `<span class="placeholder-chip" style="cursor:pointer; background:rgba(0,0,0,0.05); padding:3px 8px; border-radius:12px; font-size:.72rem; border:1px solid rgba(0,0,0,0.1);" onclick="window.insertAtCursor(this, '{{${p}}}')">{{${p}}}</span>`).join('')}
+                                    ${type.placeholders.map((p) => `<span class="placeholder-chip" style="cursor:pointer; background:rgba(0,0,0,0.05); padding:3px 8px; border-radius:12px; font-size:.72rem; border:1px solid rgba(0,0,0,0.1);" onclick="window.insertAtCursor(this, '{{${p}}}')">{{${p}}}</span>`).join('')}
                                 </div>
                             </div>
                             <button class="btn-secondary btn-sm btn-reset-tpl" style="padding:4px 10px; font-size:.75rem;"><i class="fas fa-undo"></i> Zurücksetzen</button>
@@ -625,13 +729,12 @@ function renderSettingsTab(settings, branding, users, licInfo) {
 }
 
 function attachSettingsHandlers(container, settings, branding, users, licInfo, titleEl) {
-
     // --- Plan-Module speichern ---
     const btnSaveModules = container.querySelector('#btn-save-modules');
     if (btnSaveModules) {
         btnSaveModules.onclick = async () => {
             const enabledModules = {};
-            container.querySelectorAll('.module-toggle:not(:disabled)').forEach(cb => {
+            container.querySelectorAll('.module-toggle:not(:disabled)').forEach((cb) => {
                 enabledModules[cb.dataset.module] = cb.checked;
             });
 
@@ -652,7 +755,10 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
         btnActivate.onclick = async () => {
             const key = container.querySelector('#license-key-input').value.trim();
             const resultEl = container.querySelector('#license-activate-result');
-            if (!key) { showToast('Bitte Lizenz-Key eingeben.', 'error'); return; }
+            if (!key) {
+                showToast('Bitte Lizenz-Key eingeben.', 'error');
+                return;
+            }
             btnActivate.disabled = true;
             btnActivate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird geprüft...';
             resultEl.innerHTML = '';
@@ -674,12 +780,21 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 showToast(res?.reason || 'Aktivierung fehlgeschlagen.', 'error');
             }
         };
-        container.querySelector('#license-key-input').onkeydown = (e) => { if (e.key === 'Enter') btnActivate.click(); };
+        container.querySelector('#license-key-input').onkeydown = (e) => {
+            if (e.key === 'Enter') btnActivate.click();
+        };
     }
 
     // --- Branding Upload-Handler ---
     if (settingsTab === 'branding') {
-        const setupImageUpload = (btnId, fileInputId, previewId, hiddenId, previewWidth, previewHeight) => {
+        const setupImageUpload = (
+            btnId,
+            fileInputId,
+            previewId,
+            hiddenId,
+            previewWidth,
+            previewHeight
+        ) => {
             const btn = container.querySelector(`#${btnId}`);
             const fileInput = container.querySelector(`#${fileInputId}`);
             const hidden = container.querySelector(`#${hiddenId}`);
@@ -694,10 +809,13 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                     hidden.value = dataUrl;
                     const existing = container.querySelector(`#${previewId}`);
                     if (existing) {
-                        if (existing.tagName === 'IMG') { existing.src = dataUrl; }
-                        else {
+                        if (existing.tagName === 'IMG') {
+                            existing.src = dataUrl;
+                        } else {
                             const img = document.createElement('img');
-                            img.id = previewId; img.src = dataUrl; img.alt = 'Vorschau';
+                            img.id = previewId;
+                            img.src = dataUrl;
+                            img.alt = 'Vorschau';
                             img.style.cssText = `width:${previewWidth}; height:${previewHeight}; object-fit:contain; border-radius:8px; background:rgba(0,0,0,0.05); display:block;`;
                             existing.replaceWith(img);
                         }
@@ -707,8 +825,22 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 reader.readAsDataURL(file);
             };
         };
-        setupImageUpload('btn-upload-logo',    'br-logo-upload',    'br-logo-preview',    'br-logo-value',    'auto', '60px');
-        setupImageUpload('btn-upload-favicon', 'br-favicon-upload', 'br-favicon-preview', 'br-favicon-value', '32px', '32px');
+        setupImageUpload(
+            'btn-upload-logo',
+            'br-logo-upload',
+            'br-logo-preview',
+            'br-logo-value',
+            'auto',
+            '60px'
+        );
+        setupImageUpload(
+            'btn-upload-favicon',
+            'br-favicon-upload',
+            'br-favicon-preview',
+            'br-favicon-value',
+            '32px',
+            '32px'
+        );
 
         const btnRemoveLogo = container.querySelector('#btn-remove-logo');
         if (btnRemoveLogo) {
@@ -718,8 +850,10 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 if (el) {
                     const ph = document.createElement('div');
                     ph.id = 'br-logo-preview';
-                    ph.style.cssText = 'display:flex;align-items:center;justify-content:center;width:auto;height:60px;background:rgba(0,0,0,0.06);border-radius:8px;border:2px dashed rgba(0,0,0,0.15);color:rgba(0,0,0,0.3);font-size:.8rem;padding:8px;min-width:80px;';
-                    ph.innerHTML = '<span><i class="fas fa-image" style="display:block;font-size:1.2rem;margin-bottom:4px;"></i>Kein Logo</span>';
+                    ph.style.cssText =
+                        'display:flex;align-items:center;justify-content:center;width:auto;height:60px;background:rgba(0,0,0,0.06);border-radius:8px;border:2px dashed rgba(0,0,0,0.15);color:rgba(0,0,0,0.3);font-size:.8rem;padding:8px;min-width:80px;';
+                    ph.innerHTML =
+                        '<span><i class="fas fa-image" style="display:block;font-size:1.2rem;margin-bottom:4px;"></i>Kein Logo</span>';
                     el.replaceWith(ph);
                 }
                 btnRemoveLogo.remove();
@@ -733,7 +867,8 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 if (el) {
                     const ph = document.createElement('div');
                     ph.id = 'br-favicon-preview';
-                    ph.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(0,0,0,0.06);border-radius:8px;border:2px dashed rgba(0,0,0,0.15);color:rgba(0,0,0,0.3);font-size:.7rem;';
+                    ph.style.cssText =
+                        'display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(0,0,0,0.06);border-radius:8px;border:2px dashed rgba(0,0,0,0.15);color:rgba(0,0,0,0.3);font-size:.7rem;';
                     ph.innerHTML = '<i class="fas fa-image"></i>';
                     el.replaceWith(ph);
                 }
@@ -748,8 +883,11 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
         if (btnSmtpTest) {
             btnSmtpTest.onclick = async () => {
                 const testEmail = container.querySelector('#smtp-test-email').value.trim();
-                const resultEl  = container.querySelector('#smtp-test-result');
-                if (!testEmail) { showToast('Bitte eine Ziel-E-Mail-Adresse eingeben.', 'error'); return; }
+                const resultEl = container.querySelector('#smtp-test-result');
+                if (!testEmail) {
+                    showToast('Bitte eine Ziel-E-Mail-Adresse eingeben.', 'error');
+                    return;
+                }
                 btnSmtpTest.disabled = true;
                 btnSmtpTest.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sende...';
                 resultEl.innerHTML = '';
@@ -772,7 +910,9 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
 
         window.insertAtCursor = (chip, text) => {
             const box = chip.closest('.template-box');
-            const target = box.querySelector('.tpl-body:focus, .tpl-subject:focus') || box.querySelector('.tpl-body');
+            const target =
+                box.querySelector('.tpl-body:focus, .tpl-subject:focus') ||
+                box.querySelector('.tpl-body');
             const start = target.selectionStart;
             const end = target.selectionEnd;
             const val = target.value;
@@ -785,35 +925,38 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
     // --- Image AI Handlers ---
     if (settingsTab === 'image-ai') {
         const testConnection = async (provider) => {
-            const btn = container.querySelector(`#btn-test-${provider === 'google-ai' ? 'google-ai' : provider}`);
+            const btn = container.querySelector(
+                `#btn-test-${provider === 'google-ai' ? 'google-ai' : provider}`
+            );
             const orig = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            
+
             try {
                 const keys = settings.imageApiKeys || {};
                 let key = container.querySelector(`#img-${provider}-key`).value.trim();
-                
+
                 // If it's Google AI, we might want to save it first if changed
                 if (provider === 'google-ai' && key) {
-                    await apiPost('settings', { 
-                        imageApiKeys: { 
-                            ...(settings.imageApiKeys || {}), 
-                            googleAiKey: key 
-                        } 
+                    await apiPost('settings', {
+                        imageApiKeys: {
+                            ...(settings.imageApiKeys || {}),
+                            googleAiKey: key,
+                        },
                     });
                     // Update local state
                     if (!settings.imageApiKeys) settings.imageApiKeys = {};
                     settings.imageApiKeys.googleAiKey = key;
                 }
 
-                if (!key && keys[provider === 'google-ai' ? 'googleAiKey' : (provider + 'Key')]) {
-                    key = keys[provider === 'google-ai' ? 'googleAiKey' : (provider + 'Key')];
+                if (!key && keys[provider === 'google-ai' ? 'googleAiKey' : provider + 'Key']) {
+                    key = keys[provider === 'google-ai' ? 'googleAiKey' : provider + 'Key'];
                 }
 
                 if (!key) {
                     showToast('Kein Key zum Testen vorhanden.', 'error');
-                    btn.disabled = false; btn.innerHTML = orig;
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
                     return;
                 }
 
@@ -822,18 +965,26 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                     res = await apiPost('image-ai/search', { query: 'Grapes', provider });
                 } else if (provider === 'google-ai') {
                     // Real generation test
-                    res = await apiPost('image-ai/generate', { prompt: 'a single red tomato, food photography' });
+                    res = await apiPost('image-ai/generate', {
+                        prompt: 'a single red tomato, food photography',
+                    });
                 }
 
                 if (res && res.success) {
-                    showToast(`${provider.charAt(0).toUpperCase() + provider.slice(1)} Verbindung erfolgreich! ✅`);
+                    showToast(
+                        `${provider.charAt(0).toUpperCase() + provider.slice(1)} Verbindung erfolgreich! ✅`
+                    );
                 } else {
-                    showToast(`${provider.charAt(0).toUpperCase() + provider.slice(1)} Fehler: ${res?.reason || 'Unbekannt'}`, 'error');
+                    showToast(
+                        `${provider.charAt(0).toUpperCase() + provider.slice(1)} Fehler: ${res?.reason || 'Unbekannt'}`,
+                        'error'
+                    );
                 }
             } catch (e) {
                 showToast('Verbindungsfehler: ' + e.message, 'error');
             }
-            btn.disabled = false; btn.innerHTML = orig;
+            btn.disabled = false;
+            btn.innerHTML = orig;
         };
 
         container.querySelector('#btn-test-unsplash').onclick = () => testConnection('unsplash');
@@ -842,18 +993,19 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
 
         // Puter-Login (öffnet Puter-Popup; danach läuft txt2img im Browser)
         const puterLoginBtn = container.querySelector('#btn-puter-login');
-        if (puterLoginBtn) puterLoginBtn.onclick = async () => {
-            if (typeof puter === 'undefined' || !puter.auth) {
-                showToast('puter.js nicht geladen – Seite neu laden.', 'error');
-                return;
-            }
-            try {
-                await puter.auth.signIn();
-                showToast('Mit Puter angemeldet ✅');
-            } catch (e) {
-                showToast('Puter-Login abgebrochen.', 'error');
-            }
-        };
+        if (puterLoginBtn)
+            puterLoginBtn.onclick = async () => {
+                if (typeof puter === 'undefined' || !puter.auth) {
+                    showToast('puter.js nicht geladen – Seite neu laden.', 'error');
+                    return;
+                }
+                try {
+                    await puter.auth.signIn();
+                    showToast('Mit Puter angemeldet ✅');
+                } catch (e) {
+                    showToast('Puter-Login abgebrochen.', 'error');
+                }
+            };
 
         // Stapel-Generator verdrahten
         if (window.ImageBatch) window.ImageBatch.attach(container);
@@ -865,37 +1017,45 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
         saveBtn.onclick = async () => {
             if (settingsTab === 'branding') {
                 const b = { ...branding };
-                b.name   = container.querySelector('#br-name').value;
+                b.name = container.querySelector('#br-name').value;
                 b.slogan = container.querySelector('#br-slogan').value;
-                b.phone  = container.querySelector('#br-phone').value;
-                const logoVal    = container.querySelector('#br-logo-value').value;
+                b.phone = container.querySelector('#br-phone').value;
+                const logoVal = container.querySelector('#br-logo-value').value;
                 const faviconVal = container.querySelector('#br-favicon-value').value;
-                b.logo    = isValidImageSrc(logoVal)    ? logoVal    : '';
+                b.logo = isValidImageSrc(logoVal) ? logoVal : '';
                 b.favicon = isValidImageSrc(faviconVal) ? faviconVal : '';
                 const r = await apiPost('branding', b);
                 if (r?.success) {
                     showToast('Branding aktualisiert!');
-                    const nameEl   = document.getElementById('disp-res-name');
+                    const nameEl = document.getElementById('disp-res-name');
                     const sloganEl = document.getElementById('disp-res-slogan');
-                    if (nameEl)   nameEl.textContent   = b.name;
+                    if (nameEl) nameEl.textContent = b.name;
                     if (sloganEl) sloganEl.textContent = b.slogan;
-                    if (b.name)   document.title = b.name + ' CMS';
+                    if (b.name) document.title = b.name + ' CMS';
                     const cmsLogoEl = document.getElementById('cms-header-logo');
-                    if (cmsLogoEl) { if (b.logo) { cmsLogoEl.src = b.logo; cmsLogoEl.style.display = 'block'; } else cmsLogoEl.style.display = 'none'; }
+                    if (cmsLogoEl) {
+                        if (b.logo) {
+                            cmsLogoEl.src = b.logo;
+                            cmsLogoEl.style.display = 'block';
+                        } else cmsLogoEl.style.display = 'none';
+                    }
                     if (b.favicon) {
                         let link = document.querySelector("link[rel~='icon']");
-                        if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                        if (!link) {
+                            link = document.createElement('link');
+                            link.rel = 'icon';
+                            document.head.appendChild(link);
+                        }
                         link.href = b.favicon;
                     }
                 }
-
             } else if (settingsTab === 'reservations') {
                 const reservationConfig = {
-                    durationSmall:  parseInt(container.querySelector('#rc-small').value),
+                    durationSmall: parseInt(container.querySelector('#rc-small').value),
                     durationMedium: parseInt(container.querySelector('#rc-medium').value),
-                    durationLarge:  parseInt(container.querySelector('#rc-large').value),
-                    buffer:         parseInt(container.querySelector('#rc-buffer').value),
-                    allowInquiry:   container.querySelector('#rc-inquiry').checked
+                    durationLarge: parseInt(container.querySelector('#rc-large').value),
+                    buffer: parseInt(container.querySelector('#rc-buffer').value),
+                    allowInquiry: container.querySelector('#rc-inquiry').checked,
                 };
                 const r = await apiPost('settings', { reservationConfig });
                 if (r?.success) showToast('Reservierungs-Konfiguration gespeichert!');
@@ -903,19 +1063,25 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 const s = { ...settings };
                 const passInput = container.querySelector('#smtp-pass').value;
                 const smtpData = {
-                    host:   container.querySelector('#smtp-host').value.trim(),
-                    port:   parseInt(container.querySelector('#smtp-port').value) || 465,
-                    user:   container.querySelector('#smtp-user').value.trim(),
-                    from:   container.querySelector('#smtp-from').value.trim(),
-                    secure: container.querySelector('#smtp-secure').checked
+                    host: container.querySelector('#smtp-host').value.trim(),
+                    port: parseInt(container.querySelector('#smtp-port').value) || 465,
+                    user: container.querySelector('#smtp-user').value.trim(),
+                    from: container.querySelector('#smtp-from').value.trim(),
+                    secure: container.querySelector('#smtp-secure').checked,
                 };
-                if (passInput) { smtpData.pass = passInput; }
-                else if (s.smtp?.pass) { smtpData.pass = s.smtp.pass; }
-                if (!smtpData.host) { showToast('Bitte einen SMTP-Host eingeben.', 'error'); return; }
+                if (passInput) {
+                    smtpData.pass = passInput;
+                } else if (s.smtp?.pass) {
+                    smtpData.pass = s.smtp.pass;
+                }
+                if (!smtpData.host) {
+                    showToast('Bitte einen SMTP-Host eingeben.', 'error');
+                    return;
+                }
                 s.smtp = smtpData;
 
                 const emailTemplates = {};
-                container.querySelectorAll('.template-box').forEach(box => {
+                container.querySelectorAll('.template-box').forEach((box) => {
                     const key = box.dataset.tplKey;
                     const subject = box.querySelector('.tpl-subject').value.trim();
                     const body = box.querySelector('.tpl-body').value.trim();
@@ -933,22 +1099,22 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 }
             } else if (settingsTab === 'image-ai') {
                 // Fetch fresh settings first to avoid using stale keys when masking is active
-                const currentSettings = await apiGet('settings') || {};
+                const currentSettings = (await apiGet('settings')) || {};
                 const existingKeys = currentSettings.imageApiKeys || {};
-                
-                const unsplashInput  = container.querySelector('#img-unsplash-key').value.trim();
-                const pexelsInput    = container.querySelector('#img-pexels-key').value.trim();
-                const googleAiInput  = container.querySelector('#img-google-ai-key').value.trim();
-                const puterInput     = container.querySelector('#img-puter-key')?.value.trim() || '';
+
+                const unsplashInput = container.querySelector('#img-unsplash-key').value.trim();
+                const pexelsInput = container.querySelector('#img-pexels-key').value.trim();
+                const googleAiInput = container.querySelector('#img-google-ai-key').value.trim();
+                const puterInput = container.querySelector('#img-puter-key')?.value.trim() || '';
 
                 const newKeys = {
-                    unsplashKey:     unsplashInput  || existingKeys.unsplashKey  || '',
-                    pexelsKey:       pexelsInput    || existingKeys.pexelsKey    || '',
-                    googleAiKey:     googleAiInput  || existingKeys.googleAiKey  || '',
-                    puterToken:      puterInput     || existingKeys.puterToken   || '',
-                    defaultProvider: container.querySelector('#img-default-provider').value
+                    unsplashKey: unsplashInput || existingKeys.unsplashKey || '',
+                    pexelsKey: pexelsInput || existingKeys.pexelsKey || '',
+                    googleAiKey: googleAiInput || existingKeys.googleAiKey || '',
+                    puterToken: puterInput || existingKeys.puterToken || '',
+                    defaultProvider: container.querySelector('#img-default-provider').value,
                 };
-                
+
                 const r = await apiPost('settings', { imageApiKeys: newKeys });
                 if (r?.success) {
                     showToast('Bild-KI Einstellungen gespeichert! ✨');
@@ -961,20 +1127,39 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
     }
 
     window.deleteUser = async (user) => {
-        if (await showConfirm('Nutzer löschen?', `Möchten Sie den Zugang für ${user} wirklich entfernen?`)) {
-            const res = await fetch(`/api/users/${user}`, { method: 'DELETE', headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') }});
+        if (
+            await showConfirm(
+                'Nutzer löschen?',
+                `Möchten Sie den Zugang für ${user} wirklich entfernen?`
+            )
+        ) {
+            const res = await fetch(`/api/users/${user}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') },
+            });
             const data = await res.json();
-            if (data.success) { showToast('Nutzer gelöscht'); renderSettings(container, titleEl); }
-            else showToast(data.reason || 'Fehler beim Löschen', 'error');
+            if (data.success) {
+                showToast('Nutzer gelöscht');
+                renderSettings(container, titleEl);
+            } else showToast(data.reason || 'Fehler beim Löschen', 'error');
         }
     };
 
     window.resetUserPassword = async (user) => {
-        if (await showConfirm('Passwort zurücksetzen?', `Dem Nutzer ${user} wird ein neues Passwort generiert und an seine E-Mail-Adresse gesendet.`)) {
-            const res = await fetch(`/api/users/${user}/reset`, { method: 'POST', headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') }});
+        if (
+            await showConfirm(
+                'Passwort zurücksetzen?',
+                `Dem Nutzer ${user} wird ein neues Passwort generiert und an seine E-Mail-Adresse gesendet.`
+            )
+        ) {
+            const res = await fetch(`/api/users/${user}/reset`, {
+                method: 'POST',
+                headers: { 'x-admin-token': sessionStorage.getItem('meraki_admin_token') },
+            });
             const data = await res.json();
-            if (data.success) { showToast('Passwort zurückgesetzt & E-Mail gesendet!'); }
-            else showToast(data.reason || 'Senden fehlgeschlagen', 'error');
+            if (data.success) {
+                showToast('Passwort zurückgesetzt & E-Mail gesendet!');
+            } else showToast(data.reason || 'Senden fehlgeschlagen', 'error');
         }
     };
 
@@ -1009,12 +1194,26 @@ function attachSettingsHandlers(container, settings, branding, users, licInfo, t
                 name: modal.querySelector('#mu-name').value,
                 last_name: modal.querySelector('#mu-last').value,
                 email: modal.querySelector('#mu-email').value,
-                role: modal.querySelector('#mu-role').value
+                role: modal.querySelector('#mu-role').value,
             };
             let res, data;
-            const headers = { 'Content-Type': 'application/json', 'x-admin-token': sessionStorage.getItem('meraki_admin_token') };
-            if (isNew) { res = await fetch('/api/users', { method: 'POST', headers, body: JSON.stringify(payload) }); }
-            else { res = await fetch(`/api/users/${u.user}`, { method: 'PUT', headers, body: JSON.stringify(payload) }); }
+            const headers = {
+                'Content-Type': 'application/json',
+                'x-admin-token': sessionStorage.getItem('meraki_admin_token'),
+            };
+            if (isNew) {
+                res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload),
+                });
+            } else {
+                res = await fetch(`/api/users/${u.user}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(payload),
+                });
+            }
             data = await res.json();
             if (data.success) {
                 modal.remove();

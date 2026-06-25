@@ -1,320 +1,481 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bestellstatus</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f8f5f0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px 32px;
-            max-width: 480px;
-            width: 100%;
-            box-shadow: 0 4px 32px rgba(0,0,0,.1);
-            text-align: center;
-        }
-        .status-icon { font-size: 3.5rem; margin-bottom: 16px; animation: pop .4s ease; }
-        @keyframes pop { 0% { transform: scale(.5); opacity:0; } 100% { transform: scale(1); opacity:1; } }
-        h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; color: #1b3a5c; }
-        .subtitle { color: #6b7280; font-size: .9rem; margin-bottom: 28px; line-height: 1.6; }
-        
-        /* Fortschrittsbalken */
-        .progress-steps {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin: 28px 0;
-            position: relative;
-        }
-        .progress-steps::before {
-            content: '';
-            position: absolute;
-            top: 18px;
-            left: 10%;
-            right: 10%;
-            height: 3px;
-            background: #e5e7eb;
-            z-index: 0;
-        }
-        .progress-line {
-            position: absolute;
-            top: 18px;
-            left: 10%;
-            height: 3px;
-            background: linear-gradient(90deg, #C8A96E, #d4b87a);
-            z-index: 1;
-            transition: width .6s ease;
-            width: 0%;
-        }
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            z-index: 2;
-        }
-        .step-dot {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            border: 3px solid #e5e7eb;
-            transition: all .4s ease;
-        }
-        .step.done .step-dot  { background: #22c55e; border-color: #22c55e; color: #fff; }
-        .step.active .step-dot { background: #C8A96E; border-color: #C8A96E; color: #fff; animation: pulse 2s infinite; }
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(200,169,110,0); }
-            50%       { box-shadow: 0 0 0 8px rgba(200,169,110,.25); }
-        }
-        .step-label { font-size: .72rem; font-weight: 700; color: #9ca3af; text-align: center; }
-        .step.done .step-label, .step.active .step-label { color: #1b3a5c; }
-
-        /* Info-Boxen */
-        .info-box {
-            background: #f8f5f0;
-            border-radius: 14px;
-            padding: 18px 20px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .info-box-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            font-size: .88rem;
-        }
-        .info-box-row:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,.06); }
-        .info-label { color: #6b7280; font-weight: 600; }
-        .info-value { font-weight: 800; color: #1b3a5c; }
-        
-        /* ETA-Highlight */
-        .eta-banner {
-            background: linear-gradient(135deg, #fef9c3, #fef3c7);
-            border: 2px solid #fbbf24;
-            border-radius: 14px;
-            padding: 16px 20px;
-            margin: 16px 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .eta-banner-icon { font-size: 1.6rem; flex-shrink: 0; }
-        .eta-banner-text { text-align: left; }
-        .eta-banner-text strong { display: block; font-size: 1rem; color: #92400e; }
-        .eta-banner-text span { font-size: .82rem; color: #a16207; }
-
-        /* Cancelled */
-        .cancelled-box {
-            background: #fef2f2;
-            border: 2px solid #fca5a5;
-            border-radius: 14px;
-            padding: 20px;
-            margin: 16px 0;
-            color: #dc2626;
-        }
-
-        /* Artikel-Liste */
-        .items-list { text-align: left; margin: 16px 0; }
-        .items-list-title {
-            font-size: .7rem; font-weight: 800; text-transform: uppercase;
-            letter-spacing: 1px; color: #9ca3af; margin-bottom: 10px;
-        }
-        .order-item-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: .86rem;
-            padding: 5px 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-        .order-item-row:last-child { border: none; }
-
-        /* Reload-Hinweis */
-        .live-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: .72rem;
-            font-weight: 700;
-            color: #22c55e;
-            margin-top: 20px;
-        }
-        .live-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: livePulse 1.5s infinite;
-        }
-        @keyframes livePulse {
-            0%, 100% { opacity: 1; } 50% { opacity: .3; }
-        }
-        .btn-back {
-            display: inline-block;
-            margin-top: 24px;
-            padding: 12px 28px;
-            background: #1b3a5c;
-            color: #fff;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: .9rem;
-            text-decoration: none;
-            transition: opacity .2s;
-        }
-        .btn-back:hover { opacity: .85; }
-        .loading { opacity: .5; font-size: .9rem; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="card" id="status-card">
-        <div class="loading">⏳ Lade Bestellstatus…</div>
-    </div>
-
-    <script>
-    (function() {
-        const params = new URLSearchParams(window.location.search);
-        const token  = params.get('token');
-        const card   = document.getElementById('status-card');
-        let   pollInterval = null;
-        let   lastStatus   = null;
-
-        if (!token) {
-            card.innerHTML = '<div class="status-icon">❓</div><h1>Kein Token</h1><p class="subtitle">Dieser Link ist ungültig.</p><a class="btn-back" href="/">Zurück zur Speisekarte</a>';
-            return;
-        }
-
-        const STATUS_STEPS = {
-            pending:   { step: 0, icon: '⏳', title: 'Anfrage eingegangen',     sub: 'Deine Bestellung wartet auf Bestätigung durch das Restaurant.' },
-            confirmed: { step: 1, icon: '✅', title: 'Bestellung bestätigt!',   sub: 'Super! Das Restaurant hat deine Bestellung angenommen und bereitet sie vor.' },
-            preparing: { step: 2, icon: '🍳', title: 'Wird zubereitet…',        sub: 'Deine Bestellung ist gerade in der Küche. Gleich ist es soweit!' },
-            ready:     { step: 3, icon: '🎉', title: 'Fertig!',                 sub: 'Deine Bestellung ist bereit.' },
-            completed: { step: 3, icon: '✅', title: 'Abgeschlossen',           sub: 'Vielen Dank für deine Bestellung!' },
-            cancelled: { step: -1, icon: '❌', title: 'Bestellung abgelehnt',   sub: 'Das Restaurant konnte deine Bestellung leider nicht annehmen.' }
-        };
-
-        const STEP_LABELS = ['Eingegangen', 'Bestätigt', 'Zubereitung', 'Fertig'];
-        const STEP_ICONS  = ['📋', '✅', '🍳', '🎉'];
-        const PROGRESS_WIDTHS = ['0%', '33%', '66%', '100%'];
-
-        async function fetchStatus() {
-            try {
-                const res  = await fetch(`/api/orders/status/${token}`);
-                if (!res.ok) throw new Error('not found');
-                const data = await res.json();
-                if (!data.success) throw new Error(data.reason || 'Fehler');
-                render(data.order);
-            } catch(e) {
-                if (lastStatus === null) {
-                    card.innerHTML = '<div class="status-icon">❌</div><h1>Bestellung nicht gefunden</h1><p class="subtitle">Dieser Link ist abgelaufen oder ungültig.</p><a class="btn-back" href="/">Zurück</a>';
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bestellstatus</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: #f8f5f0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .card {
+                background: #fff;
+                border-radius: 20px;
+                padding: 40px 32px;
+                max-width: 480px;
+                width: 100%;
+                box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+                text-align: center;
+            }
+            .status-icon {
+                font-size: 3.5rem;
+                margin-bottom: 16px;
+                animation: pop 0.4s ease;
+            }
+            @keyframes pop {
+                0% {
+                    transform: scale(0.5);
+                    opacity: 0;
+                }
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
                 }
             }
-        }
+            h1 {
+                font-size: 1.4rem;
+                font-weight: 800;
+                margin-bottom: 8px;
+                color: #1b3a5c;
+            }
+            .subtitle {
+                color: #6b7280;
+                font-size: 0.9rem;
+                margin-bottom: 28px;
+                line-height: 1.6;
+            }
 
-        function fmt(price) {
-            return parseFloat(price).toFixed(2).replace('.', ',') + ' €';
-        }
+            /* Fortschrittsbalken */
+            .progress-steps {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin: 28px 0;
+                position: relative;
+            }
+            .progress-steps::before {
+                content: '';
+                position: absolute;
+                top: 18px;
+                left: 10%;
+                right: 10%;
+                height: 3px;
+                background: #e5e7eb;
+                z-index: 0;
+            }
+            .progress-line {
+                position: absolute;
+                top: 18px;
+                left: 10%;
+                height: 3px;
+                background: linear-gradient(90deg, #c8a96e, #d4b87a);
+                z-index: 1;
+                transition: width 0.6s ease;
+                width: 0%;
+            }
+            .step {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                flex: 1;
+                z-index: 2;
+            }
+            .step-dot {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1rem;
+                border: 3px solid #e5e7eb;
+                transition: all 0.4s ease;
+            }
+            .step.done .step-dot {
+                background: #22c55e;
+                border-color: #22c55e;
+                color: #fff;
+            }
+            .step.active .step-dot {
+                background: #c8a96e;
+                border-color: #c8a96e;
+                color: #fff;
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0%,
+                100% {
+                    box-shadow: 0 0 0 0 rgba(200, 169, 110, 0);
+                }
+                50% {
+                    box-shadow: 0 0 0 8px rgba(200, 169, 110, 0.25);
+                }
+            }
+            .step-label {
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #9ca3af;
+                text-align: center;
+            }
+            .step.done .step-label,
+            .step.active .step-label {
+                color: #1b3a5c;
+            }
 
-        function render(order) {
-            // Kein Neurendern wenn Status gleich geblieben
-            if (order.status === lastStatus && document.getElementById('eta-value')?.textContent === (order.estimatedTime || '')) return;
-            lastStatus = order.status;
+            /* Info-Boxen */
+            .info-box {
+                background: #f8f5f0;
+                border-radius: 14px;
+                padding: 18px 20px;
+                margin: 20px 0;
+                text-align: left;
+            }
+            .info-box-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 0;
+                font-size: 0.88rem;
+            }
+            .info-box-row:not(:last-child) {
+                border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            }
+            .info-label {
+                color: #6b7280;
+                font-weight: 600;
+            }
+            .info-value {
+                font-weight: 800;
+                color: #1b3a5c;
+            }
 
-            const s    = STATUS_STEPS[order.status] || STATUS_STEPS.pending;
-            const step = s.step;
+            /* ETA-Highlight */
+            .eta-banner {
+                background: linear-gradient(135deg, #fef9c3, #fef3c7);
+                border: 2px solid #fbbf24;
+                border-radius: 14px;
+                padding: 16px 20px;
+                margin: 16px 0;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .eta-banner-icon {
+                font-size: 1.6rem;
+                flex-shrink: 0;
+            }
+            .eta-banner-text {
+                text-align: left;
+            }
+            .eta-banner-text strong {
+                display: block;
+                font-size: 1rem;
+                color: #92400e;
+            }
+            .eta-banner-text span {
+                font-size: 0.82rem;
+                color: #a16207;
+            }
 
-            const isExternal   = order.type === 'pickup' || order.type === 'delivery';
-            const typeLabel    = order.type === 'pickup' ? '🚗 Abholung' : order.type === 'delivery' ? '🚚 Lieferung' : '🍽️ Am Tisch';
-            const isCancelled  = order.status === 'cancelled';
-            const isDone       = ['ready','completed'].includes(order.status);
+            /* Cancelled */
+            .cancelled-box {
+                background: #fef2f2;
+                border: 2px solid #fca5a5;
+                border-radius: 14px;
+                padding: 20px;
+                margin: 16px 0;
+                color: #dc2626;
+            }
 
-            // Artikel rendern
-            const itemsHtml = order.items ? `
+            /* Artikel-Liste */
+            .items-list {
+                text-align: left;
+                margin: 16px 0;
+            }
+            .items-list-title {
+                font-size: 0.7rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #9ca3af;
+                margin-bottom: 10px;
+            }
+            .order-item-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.86rem;
+                padding: 5px 0;
+                border-bottom: 1px solid #f3f4f6;
+            }
+            .order-item-row:last-child {
+                border: none;
+            }
+
+            /* Reload-Hinweis */
+            .live-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #22c55e;
+                margin-top: 20px;
+            }
+            .live-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #22c55e;
+                animation: livePulse 1.5s infinite;
+            }
+            @keyframes livePulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.3;
+                }
+            }
+            .btn-back {
+                display: inline-block;
+                margin-top: 24px;
+                padding: 12px 28px;
+                background: #1b3a5c;
+                color: #fff;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 0.9rem;
+                text-decoration: none;
+                transition: opacity 0.2s;
+            }
+            .btn-back:hover {
+                opacity: 0.85;
+            }
+            .loading {
+                opacity: 0.5;
+                font-size: 0.9rem;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card" id="status-card">
+            <div class="loading">⏳ Lade Bestellstatus…</div>
+        </div>
+
+        <script>
+            (function () {
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('token');
+                const card = document.getElementById('status-card');
+                let pollInterval = null;
+                let lastStatus = null;
+
+                if (!token) {
+                    card.innerHTML =
+                        '<div class="status-icon">❓</div><h1>Kein Token</h1><p class="subtitle">Dieser Link ist ungültig.</p><a class="btn-back" href="/">Zurück zur Speisekarte</a>';
+                    return;
+                }
+
+                const STATUS_STEPS = {
+                    pending: {
+                        step: 0,
+                        icon: '⏳',
+                        title: 'Anfrage eingegangen',
+                        sub: 'Deine Bestellung wartet auf Bestätigung durch das Restaurant.',
+                    },
+                    confirmed: {
+                        step: 1,
+                        icon: '✅',
+                        title: 'Bestellung bestätigt!',
+                        sub: 'Super! Das Restaurant hat deine Bestellung angenommen und bereitet sie vor.',
+                    },
+                    preparing: {
+                        step: 2,
+                        icon: '🍳',
+                        title: 'Wird zubereitet…',
+                        sub: 'Deine Bestellung ist gerade in der Küche. Gleich ist es soweit!',
+                    },
+                    ready: {
+                        step: 3,
+                        icon: '🎉',
+                        title: 'Fertig!',
+                        sub: 'Deine Bestellung ist bereit.',
+                    },
+                    completed: {
+                        step: 3,
+                        icon: '✅',
+                        title: 'Abgeschlossen',
+                        sub: 'Vielen Dank für deine Bestellung!',
+                    },
+                    cancelled: {
+                        step: -1,
+                        icon: '❌',
+                        title: 'Bestellung abgelehnt',
+                        sub: 'Das Restaurant konnte deine Bestellung leider nicht annehmen.',
+                    },
+                };
+
+                const STEP_LABELS = ['Eingegangen', 'Bestätigt', 'Zubereitung', 'Fertig'];
+                const STEP_ICONS = ['📋', '✅', '🍳', '🎉'];
+                const PROGRESS_WIDTHS = ['0%', '33%', '66%', '100%'];
+
+                async function fetchStatus() {
+                    try {
+                        const res = await fetch(`/api/orders/status/${token}`);
+                        if (!res.ok) throw new Error('not found');
+                        const data = await res.json();
+                        if (!data.success) throw new Error(data.reason || 'Fehler');
+                        render(data.order);
+                    } catch (e) {
+                        if (lastStatus === null) {
+                            card.innerHTML =
+                                '<div class="status-icon">❌</div><h1>Bestellung nicht gefunden</h1><p class="subtitle">Dieser Link ist abgelaufen oder ungültig.</p><a class="btn-back" href="/">Zurück</a>';
+                        }
+                    }
+                }
+
+                function fmt(price) {
+                    return parseFloat(price).toFixed(2).replace('.', ',') + ' €';
+                }
+
+                function render(order) {
+                    // Kein Neurendern wenn Status gleich geblieben
+                    if (
+                        order.status === lastStatus &&
+                        document.getElementById('eta-value')?.textContent ===
+                            (order.estimatedTime || '')
+                    )
+                        return;
+                    lastStatus = order.status;
+
+                    const s = STATUS_STEPS[order.status] || STATUS_STEPS.pending;
+                    const step = s.step;
+
+                    const isExternal = order.type === 'pickup' || order.type === 'delivery';
+                    const typeLabel =
+                        order.type === 'pickup'
+                            ? '🚗 Abholung'
+                            : order.type === 'delivery'
+                              ? '🚚 Lieferung'
+                              : '🍽️ Am Tisch';
+                    const isCancelled = order.status === 'cancelled';
+                    const isDone = ['ready', 'completed'].includes(order.status);
+
+                    // Artikel rendern
+                    const itemsHtml = order.items
+                        ? `
                 <div class="items-list">
                     <div class="items-list-title">Deine Bestellung</div>
-                    ${order.items.map(i => `
+                    ${order.items
+                        .map(
+                            (i) => `
                         <div class="order-item-row">
                             <span>${i.quantity}× ${i.name}</span>
-                            <span style="color:#6b7280;">${fmt((parseFloat(i.price)||0) * i.quantity)}</span>
-                        </div>`).join('')}
-                    ${order.total ? `<div class="order-item-row" style="font-weight:800; border-top:2px solid #e5e7eb; margin-top:6px; padding-top:10px;">
+                            <span style="color:#6b7280;">${fmt((parseFloat(i.price) || 0) * i.quantity)}</span>
+                        </div>`
+                        )
+                        .join('')}
+                    ${
+                        order.total
+                            ? `<div class="order-item-row" style="font-weight:800; border-top:2px solid #e5e7eb; margin-top:6px; padding-top:10px;">
                         <span>Gesamt</span><span style="color:#C8A96E;">${fmt(order.total)}</span>
-                    </div>` : ''}
-                </div>` : '';
+                    </div>`
+                            : ''
+                    }
+                </div>`
+                        : '';
 
-            // ETA-Banner
-            const etaHtml = order.estimatedTime && !isCancelled ? `
+                    // ETA-Banner
+                    const etaHtml =
+                        order.estimatedTime && !isCancelled
+                            ? `
                 <div class="eta-banner">
                     <div class="eta-banner-icon">⏰</div>
                     <div class="eta-banner-text">
                         <strong id="eta-value">${order.estimatedTime}</strong>
                         <span>${order.type === 'pickup' ? 'Voraussichtliche Abholzeit' : 'Voraussichtliche Lieferzeit'}</span>
                     </div>
-                </div>` : `<div id="eta-placeholder"></div>`;
+                </div>`
+                            : `<div id="eta-placeholder"></div>`;
 
-            // Progress Steps
-            const stepsHtml = !isCancelled ? `
+                    // Progress Steps
+                    const stepsHtml = !isCancelled
+                        ? `
                 <div class="progress-steps">
-                    <div class="progress-line" style="width:${PROGRESS_WIDTHS[Math.max(0,step)]};"></div>
-                    ${STEP_LABELS.map((label, i) => `
+                    <div class="progress-line" style="width:${PROGRESS_WIDTHS[Math.max(0, step)]};"></div>
+                    ${STEP_LABELS.map(
+                        (label, i) => `
                         <div class="step ${i < step ? 'done' : i === step ? 'active' : ''}">
                             <div class="step-dot">${i < step ? '✓' : STEP_ICONS[i]}</div>
                             <div class="step-label">${label}</div>
-                        </div>`).join('')}
-                </div>` : '';
+                        </div>`
+                    ).join('')}
+                </div>`
+                        : '';
 
-            // Info-Box
-            const infoHtml = `
+                    // Info-Box
+                    const infoHtml = `
                 <div class="info-box">
                     <div class="info-box-row">
                         <span class="info-label">Art</span>
                         <span class="info-value">${typeLabel}</span>
                     </div>
-                    ${order.pickupTime ? `<div class="info-box-row">
+                    ${
+                        order.pickupTime
+                            ? `<div class="info-box-row">
                         <span class="info-label">Gewünschte Zeit</span>
                         <span class="info-value">${order.pickupTime}</span>
-                    </div>` : ''}
+                    </div>`
+                            : ''
+                    }
                     <div class="info-box-row">
                         <span class="info-label">Bestell-Ref.</span>
-                        <span class="info-value" style="font-size:.75rem; letter-spacing:.5px;">#${token.slice(0,8).toUpperCase()}</span>
+                        <span class="info-value" style="font-size:.75rem; letter-spacing:.5px;">#${token.slice(0, 8).toUpperCase()}</span>
                     </div>
                 </div>`;
 
-            // Cancelled-Box
-            const cancelledHtml = isCancelled ? `
+                    // Cancelled-Box
+                    const cancelledHtml = isCancelled
+                        ? `
                 <div class="cancelled-box">
                     <strong>❌ Bestellung abgelehnt</strong><br>
                     <span style="font-size:.85rem; opacity:.8; margin-top:6px; display:block;">
                         Bitte ruf uns an oder bestelle zu einem anderen Zeitpunkt.
                     </span>
-                </div>` : '';
+                </div>`
+                        : '';
 
-            // Fertig-Text
-            const doneHtml = isDone && order.type === 'pickup' ? `
+                    // Fertig-Text
+                    const doneHtml =
+                        isDone && order.type === 'pickup'
+                            ? `
                 <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:14px; padding:16px 20px; margin:16px 0; color:#166534;">
                     <strong>🎉 Deine Bestellung ist abholbereit!</strong><br>
                     <span style="font-size:.85rem;">Bitte komm an unsere Abholtheke.</span>
-                </div>` : isDone && order.type === 'delivery' ? `
+                </div>`
+                            : isDone && order.type === 'delivery'
+                              ? `
                 <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:14px; padding:16px 20px; margin:16px 0; color:#166534;">
                     <strong>🚚 Deine Bestellung ist unterwegs!</strong>
-                </div>` : '';
+                </div>`
+                              : '';
 
-            card.innerHTML = `
+                    card.innerHTML = `
                 <div class="status-icon">${s.icon}</div>
                 <h1>${s.title}</h1>
                 <p class="subtitle">${s.sub}</p>
@@ -328,26 +489,34 @@
                 <a class="btn-back" href="/">Zurück zur Speisekarte</a>
             `;
 
-            // Polling stoppen wenn abgeschlossen
-            if (isDone || isCancelled) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        }
+                    // Polling stoppen wenn abgeschlossen
+                    if (isDone || isCancelled) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                }
 
-        // Sofort laden + dann alle 5 Sekunden
-        fetchStatus();
-        pollInterval = setInterval(fetchStatus, 5000);
+                // Sofort laden + dann alle 5 Sekunden
+                fetchStatus();
+                pollInterval = setInterval(fetchStatus, 5000);
 
-        // Socket.io falls vorhanden (optionale Echtzeit)
-        if (window.io) {
-            const socket = window.io();
-            socket.on('order-updated', (update) => {
-                if (update.orderToken === token) fetchStatus();
-            });
-        }
-    })();
-    </script>
-    <script src="/socket.io/socket.io.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.3/socket.io.min.js';document.head.appendChild(s);"></script>
-</body>
+                // Socket.io falls vorhanden (optionale Echtzeit)
+                if (window.io) {
+                    const socket = window.io();
+                    socket.on('order-updated', (update) => {
+                        if (update.orderToken === token) fetchStatus();
+                    });
+                }
+            })();
+        </script>
+        <script
+            src="/socket.io/socket.io.js"
+            onerror="
+                this.onerror = null;
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.3/socket.io.min.js';
+                document.head.appendChild(s);
+            "
+        ></script>
+    </body>
 </html>

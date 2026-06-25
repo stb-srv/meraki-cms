@@ -15,9 +15,15 @@ const logger = pino({
     timestamp: pino.stdTimeFunctions.isoTime,
     // Sensible Felder aus Logs herausfiltern
     redact: {
-        paths: ['req.headers["x-admin-token"]', 'body.pass', 'body.password', 'body.adminPass', 'body.smtp.pass'],
-        censor: '[REDACTED]'
-    }
+        paths: [
+            'req.headers["x-admin-token"]',
+            'body.pass',
+            'body.password',
+            'body.adminPass',
+            'body.smtp.pass',
+        ],
+        censor: '[REDACTED]',
+    },
 });
 
 module.exports = logger;
