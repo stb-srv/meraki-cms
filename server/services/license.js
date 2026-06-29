@@ -107,14 +107,16 @@ const initPlans = async (licenseServerUrl) => {
 };
 
 /**
- * Fuehrt Plan-Defaults und JWT-Module zusammen und synchronisiert
- * orders_kitchen ↔ online_orders als gegenseitige Aliases.
+ * Fuehrt Plan-Defaults und JWT-Module zusammen.
+ * JWT-Werte sind autoritativ; Plan dient als Fallback fuer fehlende Keys.
+ * orders_kitchen und online_orders werden als Aliases synchronisiert.
  */
 const mergeModules = (planModules, jwtModules) => {
     const plan = planModules || {};
-    const jwt = (jwtModules && Object.keys(jwtModules).length > 0) ? jwtModules : {};
-    const merged = { ...plan, ...jwt };
-    // Alias-Sync: einer von beiden reicht
+    const hasJwt = jwtModules && Object.keys(jwtModules).length > 0;
+    // JWT ist autoritativ: Plan nur als Fallback fuer im JWT fehlende Keys
+    const merged = hasJwt ? { ...plan, ...jwtModules } : { ...plan };
+    // Alias-Sync: orders_kitchen und online_orders sind dasselbe Feature
     const ordersOn = !!(merged.orders_kitchen || merged.online_orders);
     merged.orders_kitchen = ordersOn;
     merged.online_orders = ordersOn;
