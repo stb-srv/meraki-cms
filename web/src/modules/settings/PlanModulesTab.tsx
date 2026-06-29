@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Lock } from 'lucide-react';
+import { Lock, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiPost } from '@/lib/api';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -32,16 +32,18 @@ export function PlanModulesTab({
     const [enabled, setEnabled] = React.useState<Record<string, boolean>>(
         settings.enabledModules || {}
     );
-    const [saving, setSaving] = React.useState(false);
 
-    async function save() {
-        setSaving(true);
-        const res = await apiPost('settings/modules', { enabledModules: enabled });
-        setSaving(false);
+    async function toggle(key: string, val: boolean) {
+        const next = { ...enabled, [key]: val };
+        setEnabled(next);
+        const res = await apiPost('settings/modules', { enabledModules: next });
         if (res.success !== false) {
-            toast.success('Modul-Einstellungen gespeichert!');
             qc.invalidateQueries({ queryKey: SETTINGS_KEY });
-        } else toast.error(res.reason || 'Fehler beim Speichern.');
+            qc.invalidateQueries({ queryKey: ['license-info'] });
+        } else {
+            setEnabled(enabled);
+            toast.error(res.reason || 'Fehler beim Speichern.');
+        }
     }
 
     return (
@@ -50,7 +52,8 @@ export function PlanModulesTab({
                 <h4 className="font-semibold">Plan-Module verwalten</h4>
                 <p className="text-sm text-muted-foreground">
                     Zentrale Verwaltung aller CMS-Module. Aktivieren oder deaktivieren Sie
-                    verfügbare Features Ihres Plans.
+                    verfügbare Features Ihres Plans. Gesperrte Module erfordern einen
+                    höheren Plan.
                 </p>
             </div>
 
@@ -68,8 +71,9 @@ export function PlanModulesTab({
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3.5">
                             {keys.map((key) => {
                                 const m = MODULE_LABELS[key];
-                                const licensed = activeModules[key] === true;
-                                const on = licensed && enabled[key] === true;
+                                const licKey = m.licenseKey ?? key;
+                                const licensed = m.alwaysAvailable || activeModules[licKey] === true;
+                                const on = licensed && enabled[key] !== false;
                                 return (
                                     <Card
                                         key={key}
@@ -97,7 +101,18 @@ export function PlanModulesTab({
                                             <i className={`fas fa-${m.icon}`} />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <div className="text-sm font-bold">{m.label}</div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-sm font-bold">{m.label}</span>
+                                                {licensed && m.settingsPath && (
+                                                    <Link
+                                                        to={m.settingsPath}
+                                                        className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
+                                                        title="Zu den Einstellungen"
+                                                    >
+                                                        <ExternalLink className="size-3" />
+                                                    </Link>
+                                                )}
+                                            </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {m.desc}
                                             </div>
@@ -105,9 +120,7 @@ export function PlanModulesTab({
                                         <Switch
                                             checked={on}
                                             disabled={!licensed}
-                                            onCheckedChange={(c) =>
-                                                setEnabled((s) => ({ ...s, [key]: c }))
-                                            }
+                                            onCheckedChange={(c) => toggle(key, c)}
                                         />
                                     </Card>
                                 );
@@ -116,12 +129,6 @@ export function PlanModulesTab({
                     </div>
                 );
             })}
-
-            <div className="flex justify-end">
-                <Button onClick={save} disabled={saving}>
-                    {saving ? 'Speichern…' : 'Speichern'}
-                </Button>
-            </div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import { ArrowUp, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/lib/api';
 import { useViewTitle } from '@/hooks/useViewTitle';
@@ -61,7 +61,10 @@ export function OrderSettingsPage() {
         }
     }, [settings]);
 
-    if (!licLoading && !hasModule('online_orders')) {
+    const moduleLicensed = licLoading || hasModule('online_orders');
+    const moduleEnabled = settings?.enabledModules?.orders_kitchen !== false;
+
+    if (!licLoading && !moduleLicensed) {
         return (
             <Card>
                 <CardContent className="flex flex-col items-center gap-3 py-20 text-center">
@@ -174,6 +177,14 @@ export function OrderSettingsPage() {
 
     return (
         <div className="max-w-3xl space-y-5">
+            {moduleLicensed && !moduleEnabled && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+                    Online-Bestellungen sind derzeit deaktiviert.{' '}
+                    <Link to="/settings/modules" className="font-medium underline underline-offset-2">
+                        Module aktivieren →
+                    </Link>
+                </div>
+            )}
             <Card>
                 <CardContent className="pt-6">
                     <div className="mb-5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
