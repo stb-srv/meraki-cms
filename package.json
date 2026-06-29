@@ -6,8 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js | pino-pretty",
+    "dev:web": "npm --prefix web run dev",
+    "dev:all": "concurrently -n api,web -c blue,magenta \"npm run dev\" \"npm run dev:web\"",
+    "build:web": "npm --prefix web run build",
+    "install:web": "npm --prefix web install",
     "reset-admin": "node reset-admin.js",
-    "update": "git pull && npm install --silent",
+    "update": "git pull && npm install --silent && npm --prefix web install --silent",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

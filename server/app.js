@@ -401,12 +401,41 @@ module.exports = function (CONFIG, io) {
         express.static(UPLOADS_DIR)
     );
 
-    app.use('/admin', express.static(path.join(__dirname, '..', 'cms')));
-    app.use('/', express.static(path.join(__dirname, '..', 'menu-app')));
-    app.use('/', express.static(path.join(__dirname, '..', 'public')));
-    app.get('/status', (req, res) =>
-        res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
-    );
+    // ── Frontend: gebaute React-SPAs aus web/dist ausliefern ──────────────────
+    // (Cutover vom alten Vanilla-JS-Frontend cms/ + menu-app/ → web/dist)
+    // Build via `npm run build:web`. Admin nutzt HashRouting (/admin#/…),
+    // Gäste-Seite BrowserRouting (SPA-Fallback auf index.html).
+    const DIST = path.join(__dirname, '..', 'web', 'dist');
+    const DIST_READY = fs.existsSync(path.join(DIST, 'index.html'));
+
+    if (DIST_READY) {
+        // Statische Assets (gehashte JS/CSS/Fonts, favicon, logo …)
+        app.use(express.static(DIST));
+        // Öffentliche Statusseite (noch nicht in React portiert)
+        app.get('/status', (req, res) =>
+            res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
+        );
+        // Admin-SPA: alle /admin-Routen liefern admin.html
+        app.get(['/admin', '/admin/*'], (req, res) =>
+            res.sendFile(path.join(DIST, 'admin.html'))
+        );
+        // Gäste-SPA: Fallback für alle übrigen Nicht-API-Routen
+        app.get('*', (req, res, next) => {
+            if (req.path.startsWith('/api/') || req.path.startsWith('/uploads') || req.path.startsWith('/plugins')) {
+                return next();
+            }
+            res.sendFile(path.join(DIST, 'index.html'));
+        });
+    } else {
+        // Fallback auf das alte Frontend, falls web/dist noch nicht gebaut wurde
+        logger.warn('web/dist nicht gefunden – baue das Frontend mit `npm run build:web`. Nutze vorerst das Alt-Frontend.');
+        app.use('/admin', express.static(path.join(__dirname, '..', 'cms')));
+        app.use('/', express.static(path.join(__dirname, '..', 'menu-app')));
+        app.use('/', express.static(path.join(__dirname, '..', 'public')));
+        app.get('/status', (req, res) =>
+            res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
+        );
+    }
 
     app.use((err, req, res, next) => {
         logger.error({ err, url: req.originalUrl, method: req.method }, 'Unhandled Server Error');
