@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Tailwind v4: Dark-Mode per .dark-Klasse (ersetzt die alten
+   [data-theme='dark'] [style*='…']-Attribut-Hacks vollständig). */
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN-TOKENS – EINE Quelle für CMS + Gäste-Website.
+   Werte als HSL-Tripel, damit sie zur Laufzeit per
+   document.documentElement.style.setProperty('--primary', …)
+   für White-Labeling überschrieben werden können (kein Rebuild).
+   Marke: Blau #1b3a5c (primary) · Gold #c8a96e (secondary/accent)
+   ───────────────────────────────────────────────────────────── */
+:root {
+    --background: 210 33% 96%; /* war --bg-app  #f0f4f8 */
+    --foreground: 222 47% 11%; /* war --text    #1a202c */
+
+    --card: 0 0% 100%; /* war --bg-card #ffffff */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 209 54% 23%; /* war --primary / --blue #1b3a5c */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 38 44% 60%; /* war --accent / --gold  #c8a96e */
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 33% 96%;
+    --muted-foreground: 215 16% 47%; /* war --text-muted #64748b */
+    --accent: 210 40% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%; /* war --success #22c55e */
+    --warning: 38 92% 50%;
+
+    --border: 214 32% 91%; /* war --border #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 209 54% 23%;
+
+    --radius: 0.75rem; /* war --radius 12px */
+
+    /* Sidebar (shadcn sidebar-Primitive) */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 209 54% 23%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 94%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 209 54% 23%;
+}
+
+.dark {
+    --background: 222 47% 11%; /* war --bg-app #0f172a */
+    --foreground: 210 40% 93%; /* war --text   #e2e8f0 */
+
+    --card: 217 33% 17%; /* war --bg-card #1e293b */
+    --card-foreground: 210 40% 93%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 93%;
+
+    --primary: 209 54% 55%; /* heller im Dark-Mode */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 38 44% 60%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 24%;
+    --accent-foreground: 210 40% 93%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
+    --border: 215 28% 27%; /* war --border #334155 */
+    --input: 215 28% 27%;
+    --ring: 209 54% 55%;
+
+    --sidebar: 217 33% 15%;
+    --sidebar-foreground: 210 40% 93%;
+    --sidebar-primary: 209 54% 55%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 24%;
+    --sidebar-accent-foreground: 210 40% 93%;
+    --sidebar-border: 215 28% 27%;
+    --sidebar-ring: 209 54% 55%;
+
+    color-scheme: dark;
+}
+
+/* Tokens als Tailwind-Utilities verfügbar machen (bg-primary, text-muted-foreground …) */
+@theme inline {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-success: hsl(var(--success));
+    --color-warning: hsl(var(--warning));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+
+    --color-sidebar: hsl(var(--sidebar));
+    --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+    --color-sidebar-primary: hsl(var(--sidebar-primary));
+    --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+    --color-sidebar-accent: hsl(var(--sidebar-accent));
+    --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+    --color-sidebar-border: hsl(var(--sidebar-border));
+    --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    /* Marken-Schriften (lokal gebündelt, kein CDN) */
+    --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Roboto', sans-serif;
+    --font-guest-body: 'DM Sans', ui-sans-serif, sans-serif;
+    --font-guest-display: 'Cormorant Garamond', serif;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground font-sans antialiased;
+    }
+}

@@ -4,19 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projektübersicht
 
-Meraki CMS ist ein modulares Restaurant-CMS. Backend: Node.js/Express (CommonJS). Frontend: Vanilla JS (ES Modules, kein Framework). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
+Meraki CMS ist ein modulares Restaurant-CMS. Backend: Node.js/Express (CommonJS), dient als **reine JSON-API**. Frontend: **React + Vite + TypeScript** mit **Tailwind CSS v4** und **shadcn/ui** (im Ordner `web/`). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
+
+> **Migration im Gange** (siehe `.claude/plans/`): Das alte Vanilla-JS-Frontend (`cms/`, `menu-app/`) wird durch die React-SPA in `web/` ersetzt (Big-Bang-Rewrite). Bis zum Cutover existieren beide parallel; neue Frontend-Arbeit findet ausschließlich in `web/` statt.
 
 ## Befehle
 
 ```bash
+# Backend (Express-API)
 npm start            # Produktions-Start (node server.js)
-npm run dev          # Entwicklung mit pino-pretty Log-Formatierung
+npm run dev          # Backend mit pino-pretty Log-Formatierung
+
+# Frontend (React/Vite in web/)
+npm run install:web  # Frontend-Dependencies installieren
+npm run dev:web      # Vite-Dev-Server (Port 5173, proxyt /api & /socket.io → :5000)
+npm run dev:all      # Backend + Frontend parallel (concurrently)
+npm run build:web    # Produktions-Build → web/dist/
+
+# Sonstiges
 npm run reset-admin  # Admin-Passwort zurücksetzen (reset-admin.js)
-npm run update       # git pull + npm install
+npm run update       # git pull + npm install (root + web)
 node test-integration.js  # Datenvertrag-Test CMS↔Lizenzserver
 ```
 
-Es gibt keine automatisierten Unit-Tests und kein Build-System.
+Das Frontend nutzt Vite als Build-System. Es gibt weiterhin keine automatisierten Unit-Tests.
 
 ## Setup-Flow (Erstkonfiguration)
 
@@ -178,15 +189,23 @@ Plugins liegen in `plugins/<id>/` mit:
 
 ## Static Serving
 
-- `/admin` → `cms/` (Admin-Panel)
-- `/` → `menu-app/` dann `public/`
+Nach dem Cutover liefert `server/app.js` das gebaute React-Frontend aus `web/dist/` aus (Voraussetzung: `npm run build:web`). Fehlt `web/dist`, fällt der Server automatisch auf das Alt-Frontend (`cms/`, `menu-app/`) zurück.
+
+- `web/dist` → statische Assets (gehashte JS/CSS/Fonts, `logo.svg`, `favicon.svg`)
+- `/admin` und `/admin/*` → `web/dist/admin.html` (Admin-SPA, HashRouting)
+- `/` + SPA-Fallback (alle Nicht-API-Routen) → `web/dist/index.html` (Gäste-SPA)
 - `/uploads` → `uploads/` (mit strikten Security-Headern, kein inline CSP)
 - `/plugins` → `plugins/`
-- `/setup` → `cms/setup.html`
+- `/setup` → `cms/setup.html` (Setup-Wizard noch nicht nach React portiert)
+- `/status` → `public/status.html` (noch nicht portiert)
+
+**Migrationsstand:** Alle Admin-Module und das Gäste-Frontend sind nach `web/` (React) portiert. `cms/` und `menu-app/` bleiben vorerst als Referenz/Fallback erhalten und werden erst nach erfolgreicher Live-Verifikation entfernt. Offene Folge-TODOs: Setup-Wizard, Plugins-Manager-UI, Cookie-Banner/Consent-Log, 14-Sprachen-i18n, Menü-Drag&Drop/Bulk/Preisverlauf, KI-Bild-Stapelgenerator, Tischplaner-Deko/Kombinieren.
 
 ## Architektur-Regeln (WICHTIG)
 
-- **Kein Framework im Frontend** – nur Vanilla JS mit ES Modules (`import/export`). Kein React, Vue, Angular.
+- **Frontend = React + Vite + TypeScript** (in `web/`). Tailwind v4 (CSS-first via `web/src/styles/globals.css`) + shadcn/ui (`web/src/components/ui/`). **Keine Inline-Styles** – nur Tailwind-Utility-Klassen / shadcn-Komponenten. (Die alte Regel „Vanilla JS only" ist mit dem Redesign aufgehoben.)
+- **Zentralisierte Layouts**: Header/Sidebar/Footer/Nav existieren genau einmal unter `web/src/components/layout/` + `components/shared/`. Feature-Seiten werden via react-router `<Outlet/>` injiziert. Navigation ausschließlich aus `web/src/config/navigation.ts` (Single Source).
+- **Design-Tokens & White-Labeling**: EINE Token-Quelle in `globals.css` (`:root`/`.dark`, HSL-Tripel). Marken-Farben zur Laufzeit über `web/src/lib/branding.ts` (`applyBranding`) per CSS-Variable steuerbar – ohne Tailwind-Rebuild. Dark-Mode via Tailwind `class`-Strategie (`ThemeProvider`), nie über Attribut-Selektoren auf Inline-Styles.
 - **Shared Plans**: Plan-Definitionen IMMER im Upstream-Repo `github:stb-srv/meraki-plans` bearbeiten, dann per `npm install` ziehen. Nie in CMS oder Lizenzserver duplizieren.
 - **Datenbank-Adapter-Interface**: Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.
 - **Migrationen**: Neue Spalten in beiden Adaptern als Migration eintragen (siehe oben).
