@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +43,17 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                         <X />
                     </Button>
                 </header>
+
+                {config && modes.length === 0 && (
+                    <div className="m-4 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            Bestellungen über die Website (Lieferung, Abholung &amp; Bestellung am
+                            Tisch) sind derzeit deaktiviert. Bitte bestellen Sie direkt vor Ort oder
+                            telefonisch.
+                        </span>
+                    </div>
+                )}
 
                 {items.length === 0 ? (
                     <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">

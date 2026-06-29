@@ -39,6 +39,9 @@ export interface CartConfig {
     pickupEnabled?: boolean;
     deliveryEnabled?: boolean;
     ordersEnabled?: boolean;
+    onlineOrdersEnabled?: boolean;
+    isOpenNow?: boolean;
+    closedReason?: string | null;
     [k: string]: unknown;
 }
 

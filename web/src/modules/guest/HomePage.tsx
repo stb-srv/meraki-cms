@@ -1,13 +1,7 @@
-import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-import {
-    useGuestBranding,
-    useGuestCategories,
-    useGuestHome,
-    useGuestMenu,
-} from './guest-api';
-import { useCart } from './cart-store';
-import { getCatLabel, normalizeCatId, type Dish } from '@/modules/menu/menu-api';
+import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { UtensilsCrossed } from 'lucide-react';
+import { useGuestBranding, useGuestHome } from './guest-api';
 
 const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const DAY_LABELS: Record<string, string> = {
@@ -18,28 +12,15 @@ const DAY_LABELS: Record<string, string> = {
 export function HomePage() {
     const { data: home } = useGuestHome();
     const { data: branding } = useGuestBranding();
-    const { data: menu = [] } = useGuestMenu();
-    const { data: categories = [] } = useGuestCategories();
-    const add = useCart((s) => s.add);
 
-    function addToCart(d: Dish) {
-        add({ id: d.id, name: d.name, price: Number(d.price) || 0, number: d.number });
-        toast.success(`„${d.name}" hinzugefügt`);
-    }
-
-    const grouped = categories
-        .map((c) => ({
-            cat: c,
-            dishes: menu.filter(
-                (d) =>
-                    d.available !== false &&
-                    d.cat &&
-                    (d.cat === c.id ||
-                        normalizeCatId(d.cat) === c.id ||
-                        d.cat.trim().toLowerCase() === (c.label || '').trim().toLowerCase())
-            ),
-        }))
-        .filter((g) => g.dishes.length > 0);
+    // Beim Aufruf von /#location o.ä. zum Anker scrollen
+    React.useEffect(() => {
+        const id = window.location.hash.replace('#', '');
+        if (id) {
+            const el = document.getElementById(id);
+            if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+    }, [home]);
 
     return (
         <div id="top">
@@ -57,12 +38,12 @@ export function HomePage() {
                     <p className="mt-4 text-lg opacity-90 md:text-2xl">
                         {home?.heroSlogan || branding?.slogan || ''}
                     </p>
-                    <a
-                        href="#menu"
+                    <Link
+                        to="/speisekarte"
                         className="mt-8 inline-block rounded-full bg-secondary px-8 py-3 font-bold text-secondary-foreground"
                     >
                         Zur Speisekarte
-                    </a>
+                    </Link>
                 </div>
             </section>
 
@@ -90,63 +71,26 @@ export function HomePage() {
                 </section>
             )}
 
-            {/* Menu */}
-            <section id="menu" className="mx-auto max-w-5xl px-6 py-16">
-                <h2 className="mb-10 text-center font-guest-display text-4xl font-bold text-primary">
+            {/* Speisekarte-Teaser → eigene Seite */}
+            <section className="bg-muted/40 py-16 text-center">
+                <UtensilsCrossed className="mx-auto mb-4 size-10 text-secondary" />
+                <h2 className="font-guest-display text-3xl font-bold text-primary">
                     Unsere Speisekarte
                 </h2>
-                {grouped.length === 0 ? (
-                    <p className="text-center text-muted-foreground">Speisekarte folgt in Kürze.</p>
-                ) : (
-                    <div className="space-y-12">
-                        {grouped.map(({ cat, dishes }) => (
-                            <div key={cat.id}>
-                                <h3 className="mb-5 border-b pb-2 font-guest-display text-2xl font-bold text-secondary">
-                                    {getCatLabel(cat)}
-                                </h3>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {dishes.map((d) => (
-                                        <div key={d.id} className="flex gap-4 rounded-xl border bg-card p-4">
-                                            {d.image && (
-                                                <img
-                                                    src={d.image}
-                                                    alt={d.name}
-                                                    className="size-20 shrink-0 rounded-lg object-cover"
-                                                />
-                                            )}
-                                            <div className="flex-1">
-                                                <div className="flex items-baseline justify-between gap-2">
-                                                    <h4 className="font-bold">
-                                                        {d.is_daily_special && '⭐ '}
-                                                        {d.name}
-                                                    </h4>
-                                                    <span className="font-mono font-bold text-secondary">
-                                                        {(Number(d.price) || 0).toFixed(2)} €
-                                                    </span>
-                                                </div>
-                                                {d.desc && (
-                                                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                                                        {d.desc}
-                                                    </p>
-                                                )}
-                                                <button
-                                                    onClick={() => addToCart(d)}
-                                                    className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground"
-                                                >
-                                                    <Plus className="size-3.5" /> Hinzufügen
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <p className="mx-auto mt-3 max-w-xl px-6 text-muted-foreground">
+                    Entdecken Sie alle Gerichte – übersichtlich nach Kategorien sortiert und
+                    durchsuchbar.
+                </p>
+                <Link
+                    to="/speisekarte"
+                    className="mt-6 inline-block rounded-full bg-primary px-8 py-3 font-bold text-primary-foreground"
+                >
+                    Zur Speisekarte
+                </Link>
             </section>
 
             {/* Öffnungszeiten + Standort */}
-            <section id="location" className="bg-muted/40 py-16">
+            <section id="location" className="py-16">
                 <div className="mx-auto grid max-w-5xl gap-8 px-6 md:grid-cols-2">
                     {home?.openingHours && (
                         <div>
