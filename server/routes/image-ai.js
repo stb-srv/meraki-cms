@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-module.exports = (requireAuth, DB) => {
+const { PLAN_MODULES } = require('@meraki/plans');
+
+module.exports = (requireAuth, requireLicense, DB) => {
     /**
      * GET /api/image-ai/config
      * Returns configuration status of API keys
@@ -30,7 +32,7 @@ module.exports = (requireAuth, DB) => {
      * POST /api/image-ai/search
      * Proxies search requests to Unsplash or Pexels
      */
-    router.post('/search', async (req, res) => {
+    router.post('/search', requireLicense(PLAN_MODULES.IMAGE_AI), async (req, res) => {
         try {
             const { query, provider } = req.body;
             if (!query) return res.status(400).json({ success: false, reason: 'Query required' });
@@ -102,7 +104,7 @@ module.exports = (requireAuth, DB) => {
      * POST /api/image-ai/generate
      * Proxies generation requests to Google Gemini Imagen 3
      */
-    router.post('/generate', async (req, res) => {
+    router.post('/generate', requireLicense(PLAN_MODULES.IMAGE_AI), async (req, res) => {
         try {
             const { prompt } = req.body;
             if (!prompt)
@@ -270,7 +272,10 @@ module.exports = (requireAuth, DB) => {
                 try {
                     const r = await fetch(
                         'https://api.pexels.com/v1/search?query=food&per_page=1',
-                        { headers: { Authorization: keys.pexelsKey }, signal: AbortSignal.timeout(8000) }
+                        {
+                            headers: { Authorization: keys.pexelsKey },
+                            signal: AbortSignal.timeout(8000),
+                        }
                     );
                     results.pexels = r.ok ? 'ok' : `Fehler ${r.status}`;
                 } catch {

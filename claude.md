@@ -106,8 +106,12 @@ Pläne: `TRIAL` → `FREE` → `STARTER` → `PRO` → `PRO_PLUS` → `ENTERPRIS
 - Offline-Fallback: letzter bekannter Plan aus `settings.license.lastKnownType`
 - `requireLicense(moduleName)` prüft `modules[moduleName]` im aktuellen Plan
 
-**Modul-Namen** (exakte Strings für `requireLicense()`):
-`menu_edit`, `orders_kitchen`, `reservations`, `custom_design`, `analytics`, `qr_pay`, `online_orders`, `multilanguage`, `seasonal_menu`, `backup`, `image_ai`
+**Modul-Namen** — immer als `PLAN_MODULES`-Konstante verwenden, nie als String-Literal:
+```js
+const { PLAN_MODULES } = require('@meraki/plans');
+// z.B.: requireLicense(PLAN_MODULES.MENU_EDIT)
+```
+Verfügbare Konstanten: `MENU_EDIT`, `ORDERS_KITCHEN`, `RESERVATIONS`, `CUSTOM_DESIGN`, `ANALYTICS`, `QR_PAY`, `ONLINE_ORDERS`, `MULTILANGUAGE`, `SEASONAL_MENU`, `BACKUP`, `IMAGE_AI`
 
 ### LicenseChecker (`server/services/license-checker.js`)
 

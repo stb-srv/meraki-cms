@@ -8,8 +8,8 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const DB = require('../db');
 const Mailer = require('../services/mailer.js');
-const { getCurrentLicense } = require('../services/license.js');
-const { extractDomain, sanitizeText } = require('../helpers.js');
+const { PLAN_MODULES } = require('@meraki/plans');
+const { sanitizeText } = require('../helpers.js');
 
 const { reservationLimiter } = require('../core/middleware.js');
 const logger = require('../core/logger.js');
@@ -21,7 +21,7 @@ const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed
 
 const PDFDocument = require('pdfkit');
 
-module.exports = (requireAuth, io) => {
+module.exports = (requireAuth, requireLicense, io) => {
     // GET alle Bestellungen (Admin)
     router.get('/', requireAuth, requireRole('waiter', 'kitchen'), async (req, res) => {
         try {
@@ -154,62 +154,47 @@ module.exports = (requireAuth, io) => {
     // POST neue Bestellung (Gast)
     // Für pickup/delivery: Status startet als 'pending' (wartet auf Bestätigung)
     // Für dine_in: Status startet als 'pending' und geht direkt in Küche
-    router.post('/', reservationLimiter, validate(cartOrderSchema), async (req, res) => {
-        try {
-            const host = extractDomain(req);
-            let license = null;
+    router.post(
+        '/',
+        reservationLimiter,
+        requireLicense(PLAN_MODULES.ORDERS_KITCHEN),
+        validate(cartOrderSchema),
+        async (req, res) => {
             try {
-                license = await getCurrentLicense(DB, host);
-            } catch (_) {}
-            if (!license || !license.modules || license.modules.orders_kitchen !== true) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                });
+                const orderToken = crypto.randomBytes(16).toString('hex');
+                const newOrder = {
+                    ...req.body,
+                    id: Date.now().toString(),
+                    orderToken, // Für Kunden-Status-Polling
+                    timestamp: new Date().toISOString(),
+                    status: 'pending',
+                    // Kundendaten validieren
+                    customerName: sanitizeText(req.body.customerName || '').slice(0, 80),
+                    customerPhone: sanitizeText(req.body.customerPhone || '').slice(0, 30),
+                    customerEmail: sanitizeText(req.body.customerEmail || '').slice(0, 120),
+                    deliveryAddress:
+                        req.body.type === 'delivery' ? req.body.deliveryAddress || '' : undefined,
+                };
+                await DB.addOrder(newOrder);
+                io.emit('new_order', newOrder);
+                // Dem Gast nur den Token zurückgeben, keine interne ID
+                res.json({ success: true, orderToken, orderId: newOrder.id });
+            } catch (e) {
+                logger.error({ err: e }, 'Orders route Fehler');
+                res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
             }
-            const orderToken = crypto.randomBytes(16).toString('hex');
-            const newOrder = {
-                ...req.body,
-                id: Date.now().toString(),
-                orderToken, // Für Kunden-Status-Polling
-                timestamp: new Date().toISOString(),
-                status: 'pending',
-                // Kundendaten validieren
-                customerName: sanitizeText(req.body.customerName || '').slice(0, 80),
-                customerPhone: sanitizeText(req.body.customerPhone || '').slice(0, 30),
-                customerEmail: sanitizeText(req.body.customerEmail || '').slice(0, 120),
-                deliveryAddress:
-                    req.body.type === 'delivery' ? req.body.deliveryAddress || '' : undefined,
-            };
-            await DB.addOrder(newOrder);
-            io.emit('new_order', newOrder);
-            // Dem Gast nur den Token zurückgeben, keine interne ID
-            res.json({ success: true, orderToken, orderId: newOrder.id });
-        } catch (e) {
-            logger.error({ err: e }, 'Orders route Fehler');
-            res.status(500).json({ success: false, reason: 'Interner Serverfehler.' });
         }
-    });
+    );
 
     // PUT Status-Update (Admin)
     router.put(
         '/:id/status',
         requireAuth,
         requireRole('waiter', 'kitchen'),
+        requireLicense(PLAN_MODULES.ORDERS_KITCHEN),
         validate(orderStatusUpdateSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.orders_kitchen !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const { status, estimatedTime } = req.body;
                 if (!VALID_STATUSES.includes(status))
                     return res.status(400).json({

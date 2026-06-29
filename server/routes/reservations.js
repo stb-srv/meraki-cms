@@ -8,7 +8,7 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const DB = require('../db');
 const Mailer = require('../services/mailer.js');
-const { getCurrentLicense } = require('../services/license.js');
+const { PLAN_MODULES } = require('@meraki/plans');
 
 const { reservationLimiter } = require('../core/middleware.js');
 const logger = require('../core/logger.js');
@@ -18,7 +18,6 @@ const {
     buildEndTime,
     findAvailableTables,
     tokenResponsePage,
-    extractDomain,
 } = require('../helpers.js');
 const validate = require('../validation/validate.js');
 const {
@@ -85,20 +84,10 @@ module.exports = (requireAuth, requireLicense) => {
     router.post(
         '/check',
         reservationLimiter,
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(reservationCheckSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const settings = await DB.getKV('settings', {});
                 const { date, time, guests, areaId } = req.body;
                 const duration = calculateDuration(guests, settings.reservationConfig);
@@ -113,20 +102,10 @@ module.exports = (requireAuth, requireLicense) => {
     router.post(
         '/availability-grid',
         reservationLimiter,
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(reservationGridSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const settings = await DB.getKV('settings', {});
                 const { date, guests, areaId, times } = req.body;
                 const duration = calculateDuration(guests, settings.reservationConfig);
@@ -149,21 +128,10 @@ module.exports = (requireAuth, requireLicense) => {
     router.post(
         '/submit',
         reservationLimiter,
-        requireLicense('reservations'),
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(reservationSubmitSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const settings = await DB.getKV('settings', {});
                 const rc = settings.reservationConfig || { allowInquiry: true };
                 const name = sanitizeText(req.body.name),
@@ -249,20 +217,10 @@ module.exports = (requireAuth, requireLicense) => {
         '/:id',
         requireAuth,
         requireRole('admin', 'waiter'),
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(anyObjectSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const settings = await DB.getKV('settings', {});
                 const resId = req.params.id;
                 const dbRes = await DB.getReservations();
@@ -330,20 +288,10 @@ module.exports = (requireAuth, requireLicense) => {
         '/',
         requireAuth,
         requireRole('admin'),
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(anyArraySchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 if (!Array.isArray(req.body))
                     return res.status(400).json({ success: false, reason: 'Array erwartet.' });
                 if (req.body.length === 0)
@@ -452,20 +400,10 @@ module.exports = (requireAuth, requireLicense) => {
     router.post(
         '/cancel/:token',
         reservationLimiter,
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(anyObjectSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const reservations = await DB.getReservations();
                 const r = findReservationByToken(reservations, req.params.token);
                 if (!r)
@@ -488,20 +426,10 @@ module.exports = (requireAuth, requireLicense) => {
     router.post(
         '/confirm/:token',
         reservationLimiter,
+        requireLicense(PLAN_MODULES.RESERVATIONS),
         validate(anyObjectSchema),
         async (req, res) => {
             try {
-                const host = extractDomain(req);
-                let license = null;
-                try {
-                    license = await getCurrentLicense(DB, host);
-                } catch (_) {}
-                if (!license || !license.modules || license.modules.reservations !== true) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Ihr aktueller Plan unterstützt dieses Feature nicht.',
-                    });
-                }
                 const reservations = await DB.getReservations();
                 const r = findReservationByToken(reservations, req.params.token);
                 if (!r)

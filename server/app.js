@@ -177,15 +177,19 @@ module.exports = function (CONFIG, io) {
     app.use('/api/v1/setup', require('./routes/setup.js'));
     app.use('/api/users', require('./routes/users.js')(requireAuth));
     app.use('/api', require('./routes/menu.js')(requireAuth, requireLicense));
-    app.use('/api/orders', require('./routes/orders.js')(requireAuth, io));
+    app.use('/api/orders', require('./routes/orders.js')(requireAuth, requireLicense, io));
     app.use('/api/reservations', require('./routes/reservations.js')(requireAuth, requireLicense));
-    app.use('/api', require('./routes/tables.js')(requireAuth));
+    app.use('/api', require('./routes/tables.js')(requireAuth, requireLicense));
     app.use('/api', require('./routes/settings.js')(requireAuth, requireLicense, LICENSE_SERVER));
     app.use('/api/upload', require('./routes/upload.js')(requireAuth, UPLOADS_DIR));
     app.use('/api', require('./routes/cookie.js')(requireAuth));
     app.use('/api', require('./routes/feedback.js')(requireAuth));
     app.use('/api/cart', require('./routes/cart.js')(requireLicense, io));
-    app.use('/api/image-ai', requireAuth, require('./routes/image-ai.js')(requireAuth, DB));
+    app.use(
+        '/api/image-ai',
+        requireAuth,
+        require('./routes/image-ai.js')(requireAuth, requireLicense, DB)
+    );
     app.use('/api/backup', require('./routes/backup.js')(requireAuth));
 
     const getInstalledPlugins = () => {
@@ -387,7 +391,9 @@ module.exports = function (CONFIG, io) {
         }
     });
 
-    app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'web', 'public', 'setup.html')));
+    app.get('/setup', (req, res) =>
+        res.sendFile(path.join(__dirname, '..', 'web', 'public', 'setup.html'))
+    );
 
     app.use('/plugins', express.static(PLUGINS_DIR));
     app.use(
@@ -416,12 +422,14 @@ module.exports = function (CONFIG, io) {
             res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
         );
         // Admin-SPA: alle /admin-Routen liefern admin.html
-        app.get(['/admin', '/admin/*'], (req, res) =>
-            res.sendFile(path.join(DIST, 'admin.html'))
-        );
+        app.get(['/admin', '/admin/*'], (req, res) => res.sendFile(path.join(DIST, 'admin.html')));
         // Gäste-SPA: Fallback für alle übrigen Nicht-API-Routen
         app.get('*', (req, res, next) => {
-            if (req.path.startsWith('/api/') || req.path.startsWith('/uploads') || req.path.startsWith('/plugins')) {
+            if (
+                req.path.startsWith('/api/') ||
+                req.path.startsWith('/uploads') ||
+                req.path.startsWith('/plugins')
+            ) {
                 return next();
             }
             res.sendFile(path.join(DIST, 'index.html'));
@@ -432,12 +440,18 @@ module.exports = function (CONFIG, io) {
         logger.error('web/dist nicht gefunden – bitte `npm run build:web` ausführen.');
         app.use('/', express.static(path.join(__dirname, '..', 'public')));
         app.get('*', (req, res, next) => {
-            if (req.path.startsWith('/api/') || req.path.startsWith('/uploads') || req.path.startsWith('/plugins')) {
+            if (
+                req.path.startsWith('/api/') ||
+                req.path.startsWith('/uploads') ||
+                req.path.startsWith('/plugins')
+            ) {
                 return next();
             }
-            res.status(503).type('html').send(
-                '<h1>Frontend nicht gebaut</h1><p>Bitte <code>npm run build:web</code> ausführen.</p>'
-            );
+            res.status(503)
+                .type('html')
+                .send(
+                    '<h1>Frontend nicht gebaut</h1><p>Bitte <code>npm run build:web</code> ausführen.</p>'
+                );
         });
     }
 

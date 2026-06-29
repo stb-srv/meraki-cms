@@ -13,6 +13,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const DB = require('../db');
+const { PLAN_MODULES } = require('@meraki/plans');
 const { getCurrentLicense } = require('../services/license.js');
 const { sanitizeText, extractDomain } = require('../helpers.js');
 const logger = require('../core/logger.js');
@@ -263,7 +264,7 @@ module.exports = function cartRoutes(requireLicense, io) {
     // -------------------------------------------------------------------------
     router.post(
         '/order',
-        requireLicense('online_orders'),
+        requireLicense(PLAN_MODULES.ONLINE_ORDERS),
         validate(cartOrderSchema),
         async (req, res) => {
             try {

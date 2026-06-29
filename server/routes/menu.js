@@ -7,6 +7,7 @@ const router = require('express').Router();
 const DB = require('../db');
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 const PDFDocument = require('pdfkit');
+const { PLAN_MODULES } = require('@meraki/plans');
 const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain } = require('../helpers.js');
 const logger = require('../core/logger.js');
@@ -90,7 +91,7 @@ module.exports = (requireAuth, requireLicense) => {
         '/menu',
         requireAuth,
         requireRole('admin'),
-        requireLicense('menu_edit'),
+        requireLicense(PLAN_MODULES.MENU_EDIT),
         validate(menuItemSchema),
         async (req, res) => {
             try {
@@ -124,7 +125,7 @@ module.exports = (requireAuth, requireLicense) => {
         '/menu/:id',
         requireAuth,
         requireRole('admin'),
-        requireLicense('menu_edit'),
+        requireLicense(PLAN_MODULES.MENU_EDIT),
         validate(anyObjectSchema),
         async (req, res) => {
             try {
@@ -161,7 +162,7 @@ module.exports = (requireAuth, requireLicense) => {
         '/menu/:id',
         requireAuth,
         requireRole('admin'),
-        requireLicense('menu_edit'),
+        requireLicense(PLAN_MODULES.MENU_EDIT),
         async (req, res) => {
             try {
                 await DB.deleteMenu(req.params.id);
@@ -207,7 +208,7 @@ module.exports = (requireAuth, requireLicense) => {
         '/menu/bulk',
         requireAuth,
         requireRole('admin'),
-        requireLicense('menu_edit'),
+        requireLicense(PLAN_MODULES.MENU_EDIT),
         validate(menuBulkSchema),
         async (req, res) => {
             try {
@@ -446,7 +447,8 @@ module.exports = (requireAuth, requireLicense) => {
                     const fp = path.join(UPLOADS_DIR, path.basename(dish.image));
                     if (fs.existsSync(fp)) {
                         const ext = path.extname(fp).slice(1) || 'jpeg';
-                        imageData[dish.image] = `data:image/${ext};base64,${fs.readFileSync(fp).toString('base64')}`;
+                        imageData[dish.image] =
+                            `data:image/${ext};base64,${fs.readFileSync(fp).toString('base64')}`;
                     }
                 }
             }
@@ -602,7 +604,10 @@ module.exports = (requireAuth, requireLicense) => {
                             const filename = path.basename(urlPath);
                             // Nur erlaubte Dateinamen (alphanumeric, -, _, .)
                             if (/^[\w.\-]+$/.test(filename)) {
-                                fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(b64, 'base64'));
+                                fs.writeFileSync(
+                                    path.join(UPLOADS_DIR, filename),
+                                    Buffer.from(b64, 'base64')
+                                );
                             }
                         }
                     }
