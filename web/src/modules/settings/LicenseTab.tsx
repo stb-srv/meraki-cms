@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Check, KeyRound, ShieldCheck, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiPost } from '@/lib/api';
+import { Check, KeyRound, RefreshCw, ShieldCheck, Wifi, WifiOff, X } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiGet, apiPost } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,11 +12,20 @@ import { LICENSE_INFO_KEY, SETTINGS_KEY, type SettingsData } from './settings-ap
 import type { LicenseInfo } from '@/hooks/useLicense';
 
 interface PlanDef {
+    plan_id: string;
     label: string;
     note?: string;
     menu_items?: number;
     max_tables?: number;
+    price?: number;
+    currency?: string;
     modules?: Record<string, boolean>;
+}
+
+interface PlansResponse {
+    plans: PlanDef[];
+    source: 'live' | 'cache';
+    fetchedAt: string | null;
 }
 
 const MOD_SHORT: Record<string, string> = {
@@ -41,6 +50,13 @@ export function LicenseTab({
     const [key, setKey] = React.useState(l.status === 'active' ? (l.key as string) || '' : '');
     const [busy, setBusy] = React.useState(false);
 
+    const { data: plansData, isLoading: plansLoading, refetch: refetchPlans } = useQuery({
+        queryKey: ['license-plans'],
+        queryFn: () => apiGet<PlansResponse>('license/plans'),
+        staleTime: 5 * 60 * 1000,
+    });
+    const plans = plansData?.plans ?? [];
+
     const isTrial = l.isTrial || l.status === 'trial';
     const isActive = l.status === 'active';
     const expiresAt = l.expiresAt ? new Date(l.expiresAt as string) : null;
@@ -56,8 +72,6 @@ export function LicenseTab({
     if (isTrial && !expired) badge = { variant: 'default', text: `Trial • noch ${daysLeft} Tage` };
     if (isTrial && expired) badge = { variant: 'destructive', text: 'Trial abgelaufen' };
     if (isActive) badge = { variant: 'default', text: 'Aktiv' };
-
-    const plans = (licInfo.plans || {}) as Record<string, PlanDef>;
 
     async function activate() {
         if (!key.trim()) {
@@ -130,13 +144,50 @@ export function LicenseTab({
             </Card>
 
             <div>
-                <h4 className="mb-3 font-semibold">Verfügbare Pläne</h4>
+                <div className="mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold">Verfügbare Pläne</h4>
+                    {!plansLoading && plansData && (
+                        <span
+                            className={cn(
+                                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem]',
+                                plansData.source === 'live'
+                                    ? 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]'
+                                    : 'bg-muted text-muted-foreground'
+                            )}
+                            title={
+                                plansData.source === 'live'
+                                    ? `Direkt vom Lizenzserver (${plansData.fetchedAt ? new Date(plansData.fetchedAt).toLocaleString('de-DE') : ''})`
+                                    : 'Zwischengespeicherte Daten – Lizenzserver nicht erreichbar'
+                            }
+                        >
+                            {plansData.source === 'live' ? (
+                                <Wifi className="size-3" />
+                            ) : (
+                                <WifiOff className="size-3" />
+                            )}
+                            {plansData.source === 'live' ? 'Live' : 'Cache'}
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => refetchPlans()}
+                        className="ml-auto inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+                        title="Pläne neu laden"
+                    >
+                        <RefreshCw className="size-3" /> Aktualisieren
+                    </button>
+                </div>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-                    {Object.entries(plans).map(([key, p]) => {
-                        const isCurrent = (l.type || 'FREE') === key;
+                    {plansLoading && (
+                        <div className="col-span-full text-sm text-muted-foreground">
+                            Pläne werden geladen…
+                        </div>
+                    )}
+                    {plans.map((p) => {
+                        const isCurrent = (l.type || 'FREE') === p.plan_id;
                         return (
                             <Card
-                                key={key}
+                                key={p.plan_id}
                                 className={cn(
                                     'relative p-4',
                                     isCurrent && 'border-primary bg-primary/5'
@@ -148,12 +199,17 @@ export function LicenseTab({
                                     </span>
                                 )}
                                 <div className="font-bold">{p.label}</div>
+                                {p.price !== undefined && (
+                                    <div className="mb-1 text-xs font-medium text-primary">
+                                        {p.price === 0 ? 'Kostenlos' : `${p.price} ${p.currency ?? 'EUR'}/Monat`}
+                                    </div>
+                                )}
                                 <div className="mb-2.5 text-xs text-muted-foreground">
                                     {p.note || ''}
                                 </div>
                                 <div className="flex flex-col gap-1 text-xs">
-                                    <span>🍽 {p.menu_items} Speisen</span>
-                                    <span>🪑 {p.max_tables} Tische</span>
+                                    {p.menu_items !== undefined && <span>🍽 {p.menu_items} Speisen</span>}
+                                    {p.max_tables !== undefined && <span>🪑 {p.max_tables} Tische</span>}
                                     {Object.entries(p.modules || {}).map(([mod, on]) => (
                                         <span
                                             key={mod}

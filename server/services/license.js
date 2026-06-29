@@ -106,6 +106,23 @@ const initPlans = async (licenseServerUrl) => {
     }
 };
 
+/**
+ * Fuehrt Plan-Defaults und JWT-Module zusammen.
+ * JWT-Werte sind autoritativ; Plan dient als Fallback fuer fehlende Keys.
+ * orders_kitchen und online_orders werden als Aliases synchronisiert.
+ */
+const mergeModules = (planModules, jwtModules) => {
+    const plan = planModules || {};
+    const hasJwt = jwtModules && Object.keys(jwtModules).length > 0;
+    // JWT ist autoritativ: Plan nur als Fallback fuer im JWT fehlende Keys
+    const merged = hasJwt ? { ...plan, ...jwtModules } : { ...plan };
+    // Alias-Sync: orders_kitchen und online_orders sind dasselbe Feature
+    const ordersOn = !!(merged.orders_kitchen || merged.online_orders);
+    merged.orders_kitchen = ordersOn;
+    merged.online_orders = ordersOn;
+    return merged;
+};
+
 const getPlan = (type) => {
     if (!type) return PLAN_DEFINITIONS['FREE'];
     const normalizedType = type.toUpperCase().replace(/\+/g, '_PLUS').replace(/\s+/g, '_');
@@ -160,7 +177,7 @@ const getLastKnownLicense = (lic) => {
     if (!type || type === 'FREE') return null;
 
     const plan = getPlan(type);
-    const modules = lic.lastKnownModules || plan.modules;
+    const modules = mergeModules(plan.modules, lic.lastKnownModules);
     const limits = lic.lastKnownLimits || {
         max_dishes: plan.menu_items,
         max_tables: plan.max_tables,
@@ -220,7 +237,7 @@ const getCurrentLicense = async (DB, host = null) => {
             type: lic.type || 'FREE',
             label: plan.label,
             expiresAt: lic.expiresAt,
-            modules: plan.modules,
+            modules: mergeModules(plan.modules, {}),
             limits: { max_dishes: plan.menu_items, max_tables: plan.max_tables },
             isTrial: true,
             isExpired: false,
@@ -256,10 +273,7 @@ const getCurrentLicense = async (DB, host = null) => {
             type: payload.type || 'FREE',
             label: plan.label,
             expiresAt: expiresAt?.toISOString() || null,
-            modules:
-                payload.allowed_modules && Object.keys(payload.allowed_modules).length > 0
-                    ? payload.allowed_modules
-                    : plan.modules,
+            modules: mergeModules(plan.modules, payload.allowed_modules),
             limits: {
                 max_dishes: payload.limits?.max_dishes ?? plan.menu_items,
                 max_tables: payload.limits?.max_tables ?? plan.max_tables,
@@ -284,6 +298,7 @@ const getCurrentLicense = async (DB, host = null) => {
 module.exports = {
     PLAN_DEFINITIONS,
     getPlan,
+    mergeModules,
     getCurrentLicense,
     verifyLicenseToken,
     initPublicKey,

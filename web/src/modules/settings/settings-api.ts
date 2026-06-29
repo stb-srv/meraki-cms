@@ -114,23 +114,29 @@ export interface ModuleMeta {
     icon: string;
     desc: string;
     group: string;
+    /** Which JWT allowed_modules key gates this feature (defaults to the record key) */
+    licenseKey?: string;
+    /** No license gate — always admin-toggleable regardless of plan */
+    alwaysAvailable?: boolean;
+    /** Hash path to the module's settings page (e.g. '/order-settings') */
+    settingsPath?: string;
 }
 
 export const MODULE_LABELS: Record<string, ModuleMeta> = {
-    menu_edit: { label: 'Speisekarte bearbeiten', icon: 'utensils', desc: 'Gerichte hinzufügen, bearbeiten & löschen', group: 'Speisekarte' },
-    orders_kitchen: { label: 'Online-Bestellungen', icon: 'shopping-bag', desc: 'Kunden können online bestellen', group: 'Bestellungen' },
-    reservations: { label: 'Online-Reservierung', icon: 'calendar-check', desc: 'Gäste können online reservieren', group: 'Reservierungen' },
-    custom_design: { label: 'Design anpassen', icon: 'paint-brush', desc: 'Farben, Logo & Homepage bearbeiten', group: 'Auftritt' },
-    analytics: { label: 'Statistiken', icon: 'chart-bar', desc: 'Umsatz- und Bestellstatistiken', group: 'Dashboard' },
-    qr_pay: { label: 'QR-Pay am Tisch', icon: 'qrcode', desc: 'Bezahlung per QR-Code am Tisch (Premium)', group: 'Bestellungen' },
-    kitchen_display: { label: 'Küchen-Display', icon: 'fire-burner', desc: 'Bestellungen in Echtzeit im Küchen-Monitor anzeigen', group: 'Bestellungen' },
-    table_planner: { label: 'Tischplaner', icon: 'project-diagram', desc: 'Visueller Saalplan und Tischzuweisung', group: 'Reservierungen' },
-    daily_specials: { label: 'Tagesspecials', icon: 'star', desc: 'Goldene Heute-Badges und Special-Filter', group: 'Speisekarte' },
-    menu_translate: { label: 'Menü-Übersetzung', icon: 'language', desc: 'Speisekarte automatisch übersetzen lassen', group: 'Speisekarte' },
-    menu_import_export: { label: 'Import / Export', icon: 'file-export', desc: 'Speisekarte als CSV/JSON importieren/exportieren', group: 'Speisekarte' },
-    qrcodes: { label: 'QR-Code Generator', icon: 'qrcode', desc: 'QR-Codes für Tische und Speisekarte generieren', group: 'Tools' },
-    shifts: { label: 'Schichtplan', icon: 'calendar-week', desc: 'Mitarbeiter-Schichten planen', group: 'Tools' },
-    backup: { label: 'Backup & Wiederherstellung', icon: 'database', desc: 'Datenbank sichern und wiederherstellen', group: 'Tools' },
+    menu_edit:        { label: 'Speisekarte bearbeiten',     icon: 'utensils',         desc: 'Gerichte hinzufügen, bearbeiten & löschen',                group: 'Speisekarte',    alwaysAvailable: true,  settingsPath: '/menu' },
+    orders_kitchen:   { label: 'Online-Bestellungen',        icon: 'shopping-bag',     desc: 'Kunden können online bestellen',                           group: 'Bestellungen',   licenseKey: 'orders_kitchen', settingsPath: '/order-settings' },
+    reservations:     { label: 'Online-Reservierung',        icon: 'calendar-check',   desc: 'Gäste können online reservieren',                          group: 'Reservierungen', licenseKey: 'reservations',   settingsPath: '/reservations' },
+    custom_design:    { label: 'Design anpassen',            icon: 'paint-brush',      desc: 'Farben, Logo & Homepage bearbeiten',                       group: 'Auftritt',       licenseKey: 'custom_design',  settingsPath: '/designer' },
+    analytics:        { label: 'Statistiken',                icon: 'chart-bar',        desc: 'Umsatz- und Bestellstatistiken',                           group: 'Dashboard',      licenseKey: 'analytics',      settingsPath: '/analytics' },
+    qr_pay:           { label: 'QR-Pay am Tisch',            icon: 'qrcode',           desc: 'Bezahlung per QR-Code am Tisch (Premium)',                 group: 'Bestellungen',   licenseKey: 'qr_pay' },
+    kitchen_display:  { label: 'Küchen-Display',             icon: 'fire-burner',      desc: 'Bestellungen in Echtzeit im Küchen-Monitor anzeigen',      group: 'Bestellungen',   licenseKey: 'orders_kitchen', settingsPath: '/order-settings' },
+    table_planner:    { label: 'Tischplaner',                icon: 'project-diagram',  desc: 'Visueller Saalplan und Tischzuweisung',                    group: 'Reservierungen', licenseKey: 'reservations',   settingsPath: '/tables' },
+    daily_specials:   { label: 'Tagesspecials',              icon: 'star',             desc: 'Goldene Heute-Badges und Special-Filter',                  group: 'Speisekarte',    alwaysAvailable: true,  settingsPath: '/menu/daily' },
+    menu_translate:   { label: 'Menü-Übersetzung',           icon: 'language',         desc: 'Speisekarte automatisch übersetzen lassen',                group: 'Speisekarte',    licenseKey: 'multilanguage' },
+    menu_import_export: { label: 'Import / Export',          icon: 'file-export',      desc: 'Speisekarte als CSV/JSON importieren/exportieren',          group: 'Speisekarte',    alwaysAvailable: true,  settingsPath: '/menu' },
+    qrcodes:          { label: 'QR-Code Generator',          icon: 'qrcode',           desc: 'QR-Codes für Tische und Speisekarte generieren',           group: 'Tools',          alwaysAvailable: true },
+    shifts:           { label: 'Schichtplan',                icon: 'calendar-week',    desc: 'Mitarbeiter-Schichten planen',                             group: 'Tools',          alwaysAvailable: true },
+    backup:           { label: 'Backup & Wiederherstellung', icon: 'database',         desc: 'Datenbank sichern und wiederherstellen',                   group: 'Tools',          licenseKey: 'backup',   settingsPath: '/backup' },
 };
 
 export const MODULE_GROUPS = [

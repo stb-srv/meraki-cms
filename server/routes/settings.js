@@ -4,7 +4,13 @@
 const router = require('express').Router();
 const DB = require('../db');
 const Mailer = require('../services/mailer.js');
-const { getCurrentLicense, PLAN_DEFINITIONS, getPlan } = require('../services/license.js');
+const {
+    getCurrentLicense,
+    PLAN_DEFINITIONS,
+    getPlan,
+    mergeModules,
+} = require('../services/license.js');
+const { FEATURE_MAP } = require('@meraki/plans');
 const { sanitizeText, extractDomain } = require('../helpers.js');
 const logger = require('../core/logger.js');
 const validate = require('../validation/validate.js');
@@ -183,6 +189,36 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
         }
     );
 
+    router.get('/license/plans', requireAuth, requireRole('admin'), async (req, res) => {
+        const CONFIG = require('../../config.js');
+        const base = (CONFIG.LICENSE_SERVER_URL || 'https://licens-prod.stb-srv.de').replace(
+            /\/+$/,
+            ''
+        );
+        try {
+            const r = await fetch(`${base}/api/v1/plans`, { signal: AbortSignal.timeout(8000) });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const data = await r.json();
+            if (!Array.isArray(data.plans)) throw new Error('Ungueltige Antwort');
+            res.json({
+                success: true,
+                plans: data.plans,
+                source: 'live',
+                fetchedAt: new Date().toISOString(),
+            });
+        } catch (e) {
+            logger.warn(
+                { err: e },
+                'GET /license/plans: Lizenzserver nicht erreichbar – Fallback auf Cache'
+            );
+            const fallback = Object.entries(PLAN_DEFINITIONS).map(([plan_id, p]) => ({
+                plan_id,
+                ...p,
+            }));
+            res.json({ success: true, plans: fallback, source: 'cache', fetchedAt: null });
+        }
+    });
+
     router.get('/license/info', requireAuth, requireRole('admin'), async (req, res) => {
         try {
             const domain = extractDomain(req);
@@ -247,10 +283,7 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                     }
                     const settings = await DB.getKV('settings', {});
                     const plan = getPlan(r.type);
-                    const resolvedModules =
-                        r.allowed_modules && Object.keys(r.allowed_modules).length > 0
-                            ? r.allowed_modules
-                            : plan.modules;
+                    const resolvedModules = mergeModules(plan.modules, r.allowed_modules);
                     settings.license = {
                         key: req.body.key,
                         isTrial: false,
@@ -318,6 +351,25 @@ module.exports = (requireAuth, requireLicense, LICENSE_SERVER) => {
                     return res
                         .status(400)
                         .json({ success: false, reason: 'Ungültige Module-Daten.' });
+                }
+
+                // Lizenz prüfen: nur lizenzierte Module dürfen aktiviert werden
+                const domain = extractDomain(req);
+                const currentLic = await getCurrentLicense(DB, domain);
+                const licModules = currentLic.modules || {};
+                const blockedModules = Object.entries(enabledModules)
+                    .filter(([featureId, val]) => {
+                        if (val !== true) return false;
+                        const licenseKey = FEATURE_MAP[featureId];
+                        if (licenseKey === null || licenseKey === undefined) return false;
+                        return !licModules[licenseKey];
+                    })
+                    .map(([featureId]) => featureId);
+                if (blockedModules.length > 0) {
+                    return res.status(403).json({
+                        success: false,
+                        reason: `Folgende Features sind in Ihrem ${currentLic.label || currentLic.type}-Plan nicht enthalten: ${blockedModules.join(', ')}`,
+                    });
                 }
 
                 // orders_kitchen und online_orders sind immer synchron
