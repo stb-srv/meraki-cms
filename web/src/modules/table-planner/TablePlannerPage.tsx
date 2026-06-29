@@ -127,10 +127,12 @@ export function TablePlannerPage() {
     function generateQuick() {
         if (!addArea) return toast.error('Bitte Bereich wählen');
         const COLS = 6, CELL = 80, OFF = 20;
+        const existingNums = new Set(Object.values(tables).flat().map((t) => t.num));
         let counter = quickStart, pos = 0;
         const newTables: PlannerTable[] = [];
         for (const { count, seats } of quickRows) {
             for (let i = 0; i < count; i++) {
+                while (existingNums.has(String(counter))) counter++;
                 const col = pos % COLS;
                 const row = Math.floor(pos / COLS);
                 const shape: PlannerTable['shape'] = seats >= 6 ? 'rect-h' : seats === 2 ? 'round' : 'square';
@@ -145,6 +147,7 @@ export function TablePlannerPage() {
                     w,
                     h,
                 });
+                existingNums.add(String(counter));
                 counter++;
                 pos++;
             }

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ExternalLink, FlaskConical, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ export function ImageAiTab({ settings }: { settings: SettingsData }) {
     const [googleAi, setGoogleAi] = React.useState('');
     const [puter, setPuter] = React.useState('');
     const [saving, setSaving] = React.useState(false);
+    const [testing, setTesting] = React.useState(false);
 
     async function save() {
         setSaving(true);
@@ -43,6 +44,28 @@ export function ImageAiTab({ settings }: { settings: SettingsData }) {
             toast.success('Bild-KI Einstellungen gespeichert! ✨');
             qc.invalidateQueries({ queryKey: SETTINGS_KEY });
         } else toast.error(res.reason || 'Fehler beim Speichern.');
+    }
+
+    async function testConnection() {
+        setTesting(true);
+        const res = await apiPost<{ success?: boolean; results?: Record<string, string>; reason?: string }>(
+            'image-ai/test',
+            {}
+        );
+        setTesting(false);
+        if (res.success !== false && res.results) {
+            const r = res.results;
+            const lines = [
+                r.unsplash && `Unsplash: ${r.unsplash}`,
+                r.pexels && `Pexels: ${r.pexels}`,
+                r.googleAi && `Google AI: ${r.googleAi}`,
+            ].filter(Boolean);
+            const allOk = Object.values(r).every((v) => v === 'ok' || v.startsWith('Kein API'));
+            if (allOk) toast.success(lines.join(' · '));
+            else toast.error(lines.join('\n'));
+        } else {
+            toast.error(res.reason || 'Test fehlgeschlagen.');
+        }
     }
 
     const keyField = (
@@ -143,7 +166,10 @@ export function ImageAiTab({ settings }: { settings: SettingsData }) {
                 </CardContent>
             </Card>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={testConnection} disabled={testing}>
+                    <FlaskConical /> {testing ? 'Teste…' : 'Verbindung testen'}
+                </Button>
                 <Button onClick={save} disabled={saving}>
                     {saving ? 'Speichern…' : 'Einstellungen speichern'}
                 </Button>

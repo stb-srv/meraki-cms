@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
+import { SwitchRow } from '@/components/shared/SwitchRow';
 import {
     MAIL_TYPES,
     SETTINGS_KEY,
@@ -163,13 +163,14 @@ export function SmtpTab({ settings }: { settings: SettingsData }) {
                                 placeholder="noreply@example.com"
                             />
                         </Field>
-                        <div className="flex items-center gap-3 pt-7">
-                            <Switch
-                                checked={f.secure !== false}
-                                onCheckedChange={(c) => set('secure', c)}
-                            />
-                            <span className="text-sm">SSL/TLS aktivieren (empfohlen für Port 465)</span>
-                        </div>
+                    </div>
+                    <div className="mt-4">
+                        <SwitchRow
+                            label="SSL/TLS"
+                            description="Empfohlen für Port 465"
+                            checked={f.secure !== false}
+                            onChange={(c) => set('secure', c)}
+                        />
                     </div>
 
                     <div className="mt-6 border-t pt-5">

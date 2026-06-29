@@ -1,8 +1,11 @@
 /**
  * Routes – Menu, Categories, Allergens, Additives, Import
  */
+const fs = require('fs');
+const path = require('path');
 const router = require('express').Router();
 const DB = require('../db');
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 const PDFDocument = require('pdfkit');
 const { getCurrentLicense } = require('../services/license.js');
 const { extractDomain } = require('../helpers.js');
@@ -436,6 +439,19 @@ module.exports = (requireAuth, requireLicense) => {
                 additives: additives && typeof additives === 'object' ? additives : {},
             };
 
+            // Bilder als Base64 einbetten (optional via ?images=true oder immer)
+            const imageData = {};
+            for (const dish of backup.menu) {
+                if (dish.image && dish.image.startsWith('/uploads/')) {
+                    const fp = path.join(UPLOADS_DIR, path.basename(dish.image));
+                    if (fs.existsSync(fp)) {
+                        const ext = path.extname(fp).slice(1) || 'jpeg';
+                        imageData[dish.image] = `data:image/${ext};base64,${fs.readFileSync(fp).toString('base64')}`;
+                    }
+                }
+            }
+            if (Object.keys(imageData).length > 0) backup._images = imageData;
+
             const filename = `speisekarte-backup-${new Date().toISOString().slice(0, 10)}.json`;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -575,6 +591,21 @@ module.exports = (requireAuth, requireLicense) => {
                         limit: maxDishes,
                         current: menu.length,
                     });
+                }
+                // Bilder aus Base64-Block wiederherstellen
+                if (req.body._images && typeof req.body._images === 'object') {
+                    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+                    for (const [urlPath, dataUrl] of Object.entries(req.body._images)) {
+                        if (typeof dataUrl !== 'string') continue;
+                        const [, b64] = dataUrl.split(',');
+                        if (b64) {
+                            const filename = path.basename(urlPath);
+                            // Nur erlaubte Dateinamen (alphanumeric, -, _, .)
+                            if (/^[\w.\-]+$/.test(filename)) {
+                                fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(b64, 'base64'));
+                            }
+                        }
+                    }
                 }
                 if (menu && Array.isArray(menu)) await DB.saveMenu(menu);
                 if (categories && Array.isArray(categories)) await DB.saveCategories(categories);
