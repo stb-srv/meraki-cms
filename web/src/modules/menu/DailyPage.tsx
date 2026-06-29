@@ -1,9 +1,11 @@
+import * as React from 'react';
 import { toast } from 'sonner';
-import { Star } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiPut } from '@/lib/api';
 import { useViewTitle } from '@/hooks/useViewTitle';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -13,12 +15,14 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { MENU_QUERY_KEY, getCatLabel, useMenuData, type Dish } from './menu-api';
+import { MENU_QUERY_KEY, catMatchesFilter, getCatLabel, useMenuData, type Dish } from './menu-api';
 
 export function DailyPage() {
     useViewTitle('Tagesgerichte');
     const qc = useQueryClient();
     const { data, isLoading } = useMenuData();
+    const [q, setQ] = React.useState('');
+    const [cat, setCat] = React.useState('');
 
     async function toggle(d: Dish, on: boolean) {
         const res = await apiPut(`menu/${d.id}`, { is_daily_special: on });
@@ -34,6 +38,16 @@ export function DailyPage() {
 
     const specials = data.menu.filter((d) => d.is_daily_special);
 
+    const filtered = data.menu.filter((d) => {
+        const matchQ =
+            !q ||
+            d.name.toLowerCase().includes(q.toLowerCase()) ||
+            (d.description || '').toLowerCase().includes(q.toLowerCase());
+        const matchCat =
+            !cat || catMatchesFilter(typeof d.cat === 'object' ? d.cat?.id : d.cat, cat, data.categories);
+        return matchQ && matchCat;
+    });
+
     return (
         <div className="space-y-4">
             <div>
@@ -43,6 +57,31 @@ export function DailyPage() {
                     goldenes Badge. Aktuell markiert: <strong>{specials.length}</strong>
                 </p>
             </div>
+
+            <div className="flex flex-wrap gap-2">
+                <div className="relative flex-1 min-w-48">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                        className="pl-9"
+                        placeholder="Gericht suchen…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                    />
+                </div>
+                <select
+                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={cat}
+                    onChange={(e) => setCat(e.target.value)}
+                >
+                    <option value="">Alle Kategorien</option>
+                    {data.categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                            {c.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
             <Card className="overflow-hidden p-0">
                 <Table>
                     <TableHeader>
@@ -56,7 +95,7 @@ export function DailyPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.menu.map((d) => (
+                        {filtered.map((d) => (
                             <TableRow key={d.id}>
                                 <TableCell>
                                     {!!d.is_daily_special && (
@@ -64,7 +103,7 @@ export function DailyPage() {
                                     )}
                                 </TableCell>
                                 <TableCell className="font-bold text-muted-foreground">
-                                    {d.number || '-'}
+                                    {d.number && d.number !== '0' ? d.number : '-'}
                                 </TableCell>
                                 <TableCell className="font-bold text-primary">{d.name}</TableCell>
                                 <TableCell>{getCatLabel(d.cat)}</TableCell>
@@ -79,6 +118,13 @@ export function DailyPage() {
                                 </TableCell>
                             </TableRow>
                         ))}
+                        {filtered.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                                    Keine Gerichte gefunden.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </Card>

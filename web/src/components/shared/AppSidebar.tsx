@@ -55,6 +55,7 @@ export function AppSidebar({ collapsed }: AppSidebarProps) {
         const node = (
             <NavLink
                 to={locked ? '#' : item.path}
+                end
                 onClick={(e) => {
                     if (locked) {
                         e.preventDefault();

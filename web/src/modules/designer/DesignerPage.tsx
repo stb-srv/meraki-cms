@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
+import { SwitchRow } from '@/components/shared/SwitchRow';
 import {
     Dialog,
     DialogContent,
@@ -23,6 +23,8 @@ import { CookiesTab } from './CookiesTab';
 interface CustomPage {
     id: string;
     title: string;
+    slug?: string;
+    enabled?: boolean;
     image?: string;
     headline?: string;
     content?: string;
@@ -93,14 +95,18 @@ function DesignerPage({ initialTab }: { initialTab: Tab }) {
         } else toast.error(res.reason || 'Fehler');
     }
 
-    function savePage(p: CustomPage) {
-        setHome((h) => {
-            const pages = h.pages || [];
-            const exists = pages.some((x) => x.id === p.id);
-            return { ...h, pages: exists ? pages.map((x) => (x.id === p.id ? p : x)) : [...pages, p] };
-        });
+    async function savePage(p: CustomPage) {
+        const pages = home.pages || [];
+        const exists = pages.some((x) => x.id === p.id);
+        const updatedPages = exists ? pages.map((x) => (x.id === p.id ? p : x)) : [...pages, p];
+        const updatedHome = { ...home, pages: updatedPages };
+        setHome(updatedHome);
         setEditPage(null);
-        toast('Seite übernommen – bitte unten speichern.');
+        const res = await apiPost('homepage', updatedHome);
+        if (res.success !== false) {
+            qc.invalidateQueries({ queryKey: ['homepage'] });
+            toast.success('Seite gespeichert!');
+        } else toast.error(res.reason || 'Fehler beim Speichern');
     }
     function deletePage(id: string) {
         if (!window.confirm('Seite löschen?')) return;
@@ -191,9 +197,14 @@ function DesignerPage({ initialTab }: { initialTab: Tab }) {
                                 <div className="space-y-3">
                                     {(home.pages || []).map((p) => (
                                         <div key={p.id} className="flex items-center justify-between rounded-lg border bg-muted/30 p-4">
-                                            <div>
-                                                <strong>{p.title || '(ohne Titel)'}</strong>
-                                                <div className="text-xs opacity-60">URL: /#custom-{p.id}</div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <strong>{p.title || '(ohne Titel)'}</strong>
+                                                    <span className={cn('rounded-full px-2 py-0.5 text-[0.65rem] font-medium', p.enabled !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground')}>
+                                                        {p.enabled !== false ? 'Aktiv' : 'Inaktiv'}
+                                                    </span>
+                                                </div>
+                                                <div className="truncate text-xs opacity-60">URL: /p/{p.slug || p.id}</div>
                                             </div>
                                             <div className="flex gap-1.5">
                                                 <Button size="icon" variant="outline" onClick={() => setEditPage(p)}>
@@ -289,15 +300,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-function SwitchRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (c: boolean) => void }) {
-    return (
-        <div className="flex items-center gap-3">
-            <Switch checked={checked} onCheckedChange={onChange} />
-            <span className="text-sm">{label}</span>
-        </div>
-    );
-}
-
 function ImgField({ label, src, onPick }: { label: string; src?: string; onPick: () => void }) {
     return (
         <div className="space-y-1">
@@ -346,6 +348,14 @@ function PeriodForm({
     );
 }
 
+function toSlug(s: string) {
+    return s
+        .toLowerCase()
+        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
 function PageEditDialog({
     page,
     onClose,
@@ -356,9 +366,11 @@ function PageEditDialog({
     onSave: (p: CustomPage) => void;
 }) {
     const [title, setTitle] = React.useState(page.title);
+    const [slug, setSlug] = React.useState(page.slug || '');
+    const [enabled, setEnabled] = React.useState(page.enabled !== false);
     const [image, setImage] = React.useState(page.image || '');
     const [headline, setHeadline] = React.useState(page.headline || '');
-    // Bestehenden Block-Inhalt als Text extrahieren (vereinfachter Builder)
+    const [slugTouched, setSlugTouched] = React.useState(!!page.slug);
     const initialText = React.useMemo(() => {
         try {
             const p = JSON.parse(page.content || '');
@@ -374,6 +386,11 @@ function PageEditDialog({
     const [text, setText] = React.useState(initialText);
     const fileRef = React.useRef<HTMLInputElement>(null);
 
+    function handleTitleChange(val: string) {
+        setTitle(val);
+        if (!slugTouched) setSlug(toSlug(val));
+    }
+
     async function upload(file: File | undefined) {
         if (!file) return;
         const res = await apiUpload<{ success?: boolean; url?: string }>(file);
@@ -381,8 +398,9 @@ function PageEditDialog({
     }
 
     function save() {
+        const finalSlug = slug || toSlug(title) || page.id;
         const content = JSON.stringify({ version: 1, blocks: [{ type: 'text', heading: headline, text }] });
-        onSave({ ...page, title, image, headline, content });
+        onSave({ ...page, title, slug: finalSlug, enabled, image, headline, content });
     }
 
     return (
@@ -392,8 +410,19 @@ function PageEditDialog({
                     <DialogTitle>{page.id.startsWith('new-') ? 'Neue Seite' : 'Seite bearbeiten'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3">
+                    <SwitchRow label="Seite aktiv (öffentlich sichtbar)" checked={enabled} onChange={setEnabled} />
                     <Field label="Menü-Titel (Navigation)">
-                        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z.B. Über uns" />
+                        <Input value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="z.B. Über uns" />
+                    </Field>
+                    <Field label="URL-Pfad (Slug)">
+                        <div className="flex items-center gap-2">
+                            <span className="shrink-0 text-sm text-muted-foreground">/p/</span>
+                            <Input
+                                value={slug}
+                                onChange={(e) => { setSlugTouched(true); setSlug(e.target.value); }}
+                                placeholder="ueber-uns"
+                            />
+                        </div>
                     </Field>
                     <Field label="Header-Bild">
                         <div className="flex gap-2">
@@ -410,16 +439,12 @@ function PageEditDialog({
                     <Field label="Inhalt (Text)">
                         <Textarea className="h-48" value={text} onChange={(e) => setText(e.target.value)} />
                     </Field>
-                    <p className="text-xs text-muted-foreground">
-                        Hinweis: Der erweiterte Block-Builder (Slider/Infobox/Trenner) folgt –
-                        hier wird der Inhalt als Textblock gespeichert.
-                    </p>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
                         Abbrechen
                     </Button>
-                    <Button onClick={save}>Übernehmen</Button>
+                    <Button onClick={save}>Speichern</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

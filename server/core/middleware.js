@@ -66,6 +66,16 @@ const requireLicense = (module) => async (req, res, next) => {
             });
         }
 
+        // Admin-seitige Modul-Deaktivierung prüfen
+        const settings = await DB.getKV('settings', {});
+        const adminEnabled = settings.enabledModules || {};
+        if (adminEnabled[module] === false) {
+            return res.status(403).json({
+                success: false,
+                reason: `Feature '${module}' wurde vom Administrator deaktiviert.`,
+            });
+        }
+
         // Lizenz-Infos für nachfolgende Handler verfügbar machen
         req.license = lic;
         next();

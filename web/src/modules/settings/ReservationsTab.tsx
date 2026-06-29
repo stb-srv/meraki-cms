@@ -5,8 +5,8 @@ import { apiPost } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
+import { SwitchRow } from '@/components/shared/SwitchRow';
 import { SETTINGS_KEY, type ReservationConfig, type SettingsData } from './settings-api';
 
 const DEFAULTS: ReservationConfig = {
@@ -63,14 +63,13 @@ export function ReservationsTab({ settings }: { settings: SettingsData }) {
                     <h4 className="font-semibold">Sicherheits-Puffer</h4>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {num('buffer', 'Puffer zw. Belegung (Min)')}
-                        <div className="flex items-center gap-3 pt-7">
-                            <Switch
-                                checked={f.allowInquiry}
-                                onCheckedChange={(c) => set('allowInquiry', c)}
-                            />
-                            <span className="text-sm">Warteliste/Anfrage erlauben (wenn voll)</span>
-                        </div>
                     </div>
+                    <SwitchRow
+                        label="Warteliste / Anfrage erlauben"
+                        description="Gäste können eine Anfrage stellen, wenn keine freien Zeiten verfügbar sind"
+                        checked={f.allowInquiry}
+                        onChange={(c) => set('allowInquiry', c)}
+                    />
                 </CardContent>
             </Card>
             <div className="flex justify-end">

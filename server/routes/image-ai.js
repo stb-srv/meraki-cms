@@ -242,5 +242,63 @@ module.exports = (requireAuth, DB) => {
         }
     });
 
+    /**
+     * POST /api/image-ai/test
+     * Tests connectivity for all configured API keys.
+     */
+    router.post('/test', requireAuth, async (req, res) => {
+        try {
+            const settings = await DB.getKV('settings', {});
+            const keys = settings.imageApiKeys || {};
+            const results = {};
+
+            if (keys.unsplashKey) {
+                try {
+                    const r = await fetch(
+                        `https://api.unsplash.com/search/photos?query=food&per_page=1&client_id=${keys.unsplashKey}`,
+                        { signal: AbortSignal.timeout(8000) }
+                    );
+                    results.unsplash = r.ok ? 'ok' : `Fehler ${r.status}`;
+                } catch {
+                    results.unsplash = 'Keine Verbindung';
+                }
+            } else {
+                results.unsplash = 'Kein API-Key konfiguriert';
+            }
+
+            if (keys.pexelsKey) {
+                try {
+                    const r = await fetch(
+                        'https://api.pexels.com/v1/search?query=food&per_page=1',
+                        { headers: { Authorization: keys.pexelsKey }, signal: AbortSignal.timeout(8000) }
+                    );
+                    results.pexels = r.ok ? 'ok' : `Fehler ${r.status}`;
+                } catch {
+                    results.pexels = 'Keine Verbindung';
+                }
+            } else {
+                results.pexels = 'Kein API-Key konfiguriert';
+            }
+
+            if (keys.googleAiKey) {
+                try {
+                    const r = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models?key=${keys.googleAiKey}`,
+                        { signal: AbortSignal.timeout(8000) }
+                    );
+                    results.googleAi = r.ok ? 'ok' : `Fehler ${r.status}`;
+                } catch {
+                    results.googleAi = 'Keine Verbindung';
+                }
+            } else {
+                results.googleAi = 'Kein API-Key konfiguriert';
+            }
+
+            res.json({ success: true, results });
+        } catch (err) {
+            res.status(500).json({ success: false, reason: err.message });
+        }
+    });
+
     return router;
 };

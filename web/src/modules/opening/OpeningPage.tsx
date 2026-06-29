@@ -73,11 +73,16 @@ export function OpeningPage() {
                             <CardContent className="pt-6">
                                 <div className="mb-3 flex items-center justify-between">
                                     <span className="font-medium">{LABELS[d]}</span>
-                                    <Switch
-                                        checked={day.closed}
-                                        onCheckedChange={(c) => setDay(d, { closed: c })}
-                                        aria-label="Geschlossen"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground">
+                                            {day.closed ? 'Geschlossen' : 'Geöffnet'}
+                                        </span>
+                                        <Switch
+                                            checked={day.closed}
+                                            onCheckedChange={(c) => setDay(d, { closed: c })}
+                                            aria-label="Geschlossen"
+                                        />
+                                    </div>
                                 </div>
                                 <div
                                     className={cn(
