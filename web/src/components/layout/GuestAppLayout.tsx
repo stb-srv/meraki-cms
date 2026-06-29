@@ -4,6 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 import { useGuestBranding } from '@/modules/guest/guest-api';
 import { useCart } from '@/modules/guest/cart-store';
 import { CartDrawer } from '@/modules/guest/CartDrawer';
+import { CookieBanner } from '@/modules/guest/CookieBanner';
 
 /**
  * Layout der öffentlichen Gäste-Website. Navigation, Footer und Cart-Drawer
@@ -64,6 +65,7 @@ export function GuestAppLayout() {
             </footer>
 
             <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+            <CookieBanner />
         </div>
     );
 }

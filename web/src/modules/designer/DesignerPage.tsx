@@ -18,6 +18,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { CookiesTab } from './CookiesTab';
 
 interface CustomPage {
     id: string;
@@ -260,12 +261,7 @@ function DesignerPage({ initialTab }: { initialTab: Tab }) {
                         </>
                     )}
 
-                    {tab === 'cookies' && (
-                        <div className="py-10 text-center text-muted-foreground">
-                            Cookie-Banner & Consent-Log werden separat verwaltet
-                            (TODO: Portierung von /api/cookie-config & /api/cookie-consent).
-                        </div>
-                    )}
+                    {tab === 'cookies' && <CookiesTab />}
                 </CardContent>
             </Card>
 

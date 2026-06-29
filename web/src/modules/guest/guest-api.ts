@@ -75,6 +75,46 @@ export interface OrderPayload {
     guestNote?: string;
 }
 
+// ── Cookie Consent ──────────────────────────────────────────────────────────
+export interface CookieCookie {
+    name: string;
+    purpose: string;
+    duration: string;
+    provider: string;
+}
+export interface CookieCategory {
+    id: string;
+    label: string;
+    description: string;
+    required: boolean;
+    cookies: CookieCookie[];
+}
+export interface CookieConfig {
+    version: string;
+    banner_text: string;
+    privacy_url: string;
+    categories: Record<string, CookieCategory>;
+}
+
+export const useCookieConfig = () =>
+    useQuery({ queryKey: ['g-cookie-config'], queryFn: () => publicGet<CookieConfig>('cookie-config') });
+
+export async function submitConsent(payload: {
+    choices: Record<string, boolean>;
+    config_version: string;
+    source: string;
+}): Promise<void> {
+    try {
+        await fetch('/api/cookie-consent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+    } catch {
+        /* Nachweis-Log ist best-effort; UI nicht blockieren */
+    }
+}
+
 export async function submitOrder(
     payload: OrderPayload
 ): Promise<{ success?: boolean; reason?: string; orderToken?: string }> {
