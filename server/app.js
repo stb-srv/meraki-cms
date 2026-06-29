@@ -387,7 +387,7 @@ module.exports = function (CONFIG, io) {
         }
     });
 
-    app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'cms', 'setup.html')));
+    app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'web', 'public', 'setup.html')));
 
     app.use('/plugins', express.static(PLUGINS_DIR));
     app.use(
@@ -402,14 +402,14 @@ module.exports = function (CONFIG, io) {
     );
 
     // ── Frontend: gebaute React-SPAs aus web/dist ausliefern ──────────────────
-    // (Cutover vom alten Vanilla-JS-Frontend cms/ + menu-app/ → web/dist)
-    // Build via `npm run build:web`. Admin nutzt HashRouting (/admin#/…),
-    // Gäste-Seite BrowserRouting (SPA-Fallback auf index.html).
+    // Cutover abgeschlossen: das alte Vanilla-JS-Frontend (cms/ + menu-app/)
+    // wurde entfernt. Build via `npm run build:web`. Admin nutzt HashRouting
+    // (/admin#/…), Gäste-Seite BrowserRouting (SPA-Fallback auf index.html).
     const DIST = path.join(__dirname, '..', 'web', 'dist');
     const DIST_READY = fs.existsSync(path.join(DIST, 'index.html'));
 
     if (DIST_READY) {
-        // Statische Assets (gehashte JS/CSS/Fonts, favicon, logo …)
+        // Statische Assets (gehashte JS/CSS/Fonts, favicon, logo, Brand-Bilder …)
         app.use(express.static(DIST));
         // Öffentliche Statusseite (noch nicht in React portiert)
         app.get('/status', (req, res) =>
@@ -427,14 +427,18 @@ module.exports = function (CONFIG, io) {
             res.sendFile(path.join(DIST, 'index.html'));
         });
     } else {
-        // Fallback auf das alte Frontend, falls web/dist noch nicht gebaut wurde
-        logger.warn('web/dist nicht gefunden – baue das Frontend mit `npm run build:web`. Nutze vorerst das Alt-Frontend.');
-        app.use('/admin', express.static(path.join(__dirname, '..', 'cms')));
-        app.use('/', express.static(path.join(__dirname, '..', 'menu-app')));
+        // web/dist fehlt – das Frontend muss gebaut werden. Es gibt kein
+        // Alt-Frontend mehr als Fallback.
+        logger.error('web/dist nicht gefunden – bitte `npm run build:web` ausführen.');
         app.use('/', express.static(path.join(__dirname, '..', 'public')));
-        app.get('/status', (req, res) =>
-            res.sendFile(path.join(__dirname, '..', 'public', 'status.html'))
-        );
+        app.get('*', (req, res, next) => {
+            if (req.path.startsWith('/api/') || req.path.startsWith('/uploads') || req.path.startsWith('/plugins')) {
+                return next();
+            }
+            res.status(503).type('html').send(
+                '<h1>Frontend nicht gebaut</h1><p>Bitte <code>npm run build:web</code> ausführen.</p>'
+            );
+        });
     }
 
     app.use((err, req, res, next) => {

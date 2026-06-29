@@ -59,7 +59,7 @@ export function DailyPage() {
                         {data.menu.map((d) => (
                             <TableRow key={d.id}>
                                 <TableCell>
-                                    {d.is_daily_special && (
+                                    {!!d.is_daily_special && (
                                         <Star className="size-4 fill-yellow-400 text-yellow-400" />
                                     )}
                                 </TableCell>

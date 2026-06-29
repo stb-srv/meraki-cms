@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Outlet } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { Link, Outlet } from 'react-router-dom';
+import { Github, ShoppingCart } from 'lucide-react';
 import { useGuestBranding } from '@/modules/guest/guest-api';
 import { useCart } from '@/modules/guest/cart-store';
 import { CartDrawer } from '@/modules/guest/CartDrawer';
+import { CookieBanner } from '@/modules/guest/CookieBanner';
 
 /**
  * Layout der öffentlichen Gäste-Website. Navigation, Footer und Cart-Drawer
@@ -17,7 +18,7 @@ export function GuestAppLayout() {
     return (
         <div className="flex min-h-svh flex-col font-guest-body">
             <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background/90 px-6 backdrop-blur">
-                <a href="#top" className="flex items-center gap-2">
+                <Link to="/" className="flex items-center gap-2">
                     {branding?.logo ? (
                         <img src={branding.logo} alt={branding.name} className="h-9" />
                     ) : (
@@ -25,14 +26,14 @@ export function GuestAppLayout() {
                             {branding?.name || 'Meraki'}
                         </span>
                     )}
-                </a>
+                </Link>
                 <nav className="flex items-center gap-6 text-sm font-medium">
-                    <a href="#menu" className="hidden hover:text-primary sm:inline">
+                    <Link to="/speisekarte" className="hidden hover:text-primary sm:inline">
                         Speisekarte
-                    </a>
-                    <a href="#location" className="hidden hover:text-primary sm:inline">
+                    </Link>
+                    <Link to="/#location" className="hidden hover:text-primary sm:inline">
                         Standort
-                    </a>
+                    </Link>
                     <button
                         onClick={() => setCartOpen(true)}
                         className="relative rounded-full bg-primary p-2.5 text-primary-foreground"
@@ -60,10 +61,24 @@ export function GuestAppLayout() {
                         </a>
                     </p>
                 )}
-                © {new Date().getFullYear()} {branding?.name || 'Meraki'}
+                <p>
+                    © {new Date().getFullYear()} {branding?.name || 'Meraki'}
+                </p>
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs">
+                    Ein Projekt von
+                    <a
+                        href="https://github.com/stb-srv"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium hover:text-primary"
+                    >
+                        <Github className="size-3.5" /> stb-srv
+                    </a>
+                </p>
             </footer>
 
             <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+            <CookieBanner />
         </div>
     );
 }

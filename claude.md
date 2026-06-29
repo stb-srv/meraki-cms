@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Meraki CMS ist ein modulares Restaurant-CMS. Backend: Node.js/Express (CommonJS), dient als **reine JSON-API**. Frontend: **React + Vite + TypeScript** mit **Tailwind CSS v4** und **shadcn/ui** (im Ordner `web/`). Datenbank: SQLite (Standard) oder MySQL/MariaDB (via `DB_TYPE=mysql`).
 
-> **Migration im Gange** (siehe `.claude/plans/`): Das alte Vanilla-JS-Frontend (`cms/`, `menu-app/`) wird durch die React-SPA in `web/` ersetzt (Big-Bang-Rewrite). Bis zum Cutover existieren beide parallel; neue Frontend-Arbeit findet ausschließlich in `web/` statt.
+> **Migration abgeschlossen** (siehe `.claude/plans/`): Das alte Vanilla-JS-Frontend (`cms/`, `menu-app/`) wurde durch die React-SPA in `web/` ersetzt (Big-Bang-Rewrite) und gelöscht. Sämtliche Frontend-Arbeit findet ausschließlich in `web/` statt.
 
 ## Befehle
 
@@ -162,11 +162,11 @@ Plugins liegen in `plugins/<id>/` mit:
 | `server/validation/schemas.js`                | Zod-Schemas für alle Routen                                                         |
 | `@meraki/plans` (github:stb-srv/meraki-plans) | **Shared** PLAN_DEFINITIONS (CMS + Lizenzserver) – Upstream-Repo, nicht im CMS-Repo |
 | `test-integration.js`                         | Datenvertrag-Test CMS↔Lizenzserver                                                  |
-| `cms/app.js`                                  | Admin-Panel Haupt-JS (ES Modules)                                                   |
-| `cms/modules/api.js`                          | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`)              |
-| `menu-app/app.js`                             | Gäste-Frontend Haupt-JS                                                             |
-| `menu-app/cart.js`                            | Warenkorb-Logik (komplett clientseitig)                                             |
-| `menu-app/i18n/`                              | Übersetzungsdateien (14 Sprachen)                                                   |
+| `web/src/lib/api.ts`                          | Admin-Frontend API-Client (`apiGet`, `apiPost`, `apiPut`, `apiDelete`, `apiUpload`) |
+| `web/src/routes/admin-routes.tsx`             | Admin-SPA Routing (HashRouter, PAGES-Registry aus NAV_CONFIG)                        |
+| `web/src/modules/guest/`                      | Gäste-Frontend (HomePage, CartDrawer, CookieBanner, cart-store)                      |
+| `web/src/config/navigation.ts`               | Single-Source Navigation (NAV_CONFIG)                                               |
+| `web/public/setup.html`                       | Setup-Wizard (statisch, noch nicht nach React portiert)                              |
 
 ## Routen-Übersicht
 
@@ -189,17 +189,17 @@ Plugins liegen in `plugins/<id>/` mit:
 
 ## Static Serving
 
-Nach dem Cutover liefert `server/app.js` das gebaute React-Frontend aus `web/dist/` aus (Voraussetzung: `npm run build:web`). Fehlt `web/dist`, fällt der Server automatisch auf das Alt-Frontend (`cms/`, `menu-app/`) zurück.
+`server/app.js` liefert das gebaute React-Frontend aus `web/dist/` aus (Voraussetzung: `npm run build:web`). Fehlt `web/dist`, antwortet der Server mit HTTP 503 + Hinweis auf `npm run build:web` (es gibt **kein** Alt-Frontend mehr als Fallback – der Cutover ist abgeschlossen).
 
-- `web/dist` → statische Assets (gehashte JS/CSS/Fonts, `logo.svg`, `favicon.svg`)
+- `web/dist` → statische Assets (gehashte JS/CSS/Fonts, `logo.svg`, `favicon.svg`, Brand-Bilder aus `web/public/assets/`)
 - `/admin` und `/admin/*` → `web/dist/admin.html` (Admin-SPA, HashRouting)
 - `/` + SPA-Fallback (alle Nicht-API-Routen) → `web/dist/index.html` (Gäste-SPA)
 - `/uploads` → `uploads/` (mit strikten Security-Headern, kein inline CSP)
 - `/plugins` → `plugins/`
-- `/setup` → `cms/setup.html` (Setup-Wizard noch nicht nach React portiert)
+- `/setup` → `web/public/setup.html` (Setup-Wizard noch nicht nach React portiert, aber als statische Seite erhalten)
 - `/status` → `public/status.html` (noch nicht portiert)
 
-**Migrationsstand:** Alle Admin-Module und das Gäste-Frontend sind nach `web/` (React) portiert. `cms/` und `menu-app/` bleiben vorerst als Referenz/Fallback erhalten und werden erst nach erfolgreicher Live-Verifikation entfernt. Offene Folge-TODOs: Setup-Wizard, Plugins-Manager-UI, Cookie-Banner/Consent-Log, 14-Sprachen-i18n, Menü-Drag&Drop/Bulk/Preisverlauf, KI-Bild-Stapelgenerator, Tischplaner-Deko/Kombinieren.
+**Migrationsstand:** Cutover abgeschlossen – das alte Vanilla-JS-Frontend (`cms/`, `menu-app/`) wurde **gelöscht**. Alle Admin-Module, das Gäste-Frontend und der DSGVO-Cookie-Banner/Consent-Log laufen in `web/` (React). Brand-Assets (`santorini_bg.png` u.a.), Favicons und `setup.html` liegen jetzt unter `web/public/`. Offene Folge-TODOs: Setup-Wizard nach React portieren, Plugins-Manager-UI, Passwort-Wechsel-Seite, 14-Sprachen-i18n (nur DE aktiv), Menü-Drag&Drop/Bulk/Preisverlauf/Import-Export, KI-Bild-Stapelgenerator, Tischplaner-Deko/Kombinieren, erweiterter Seiten-Block-Builder, `window.confirm`→AlertDialog.
 
 ## Architektur-Regeln (WICHTIG)
 
@@ -209,7 +209,7 @@ Nach dem Cutover liefert `server/app.js` das gebaute React-Frontend aus `web/dis
 - **Shared Plans**: Plan-Definitionen IMMER im Upstream-Repo `github:stb-srv/meraki-plans` bearbeiten, dann per `npm install` ziehen. Nie in CMS oder Lizenzserver duplizieren.
 - **Datenbank-Adapter-Interface**: Neue DB-Funktionen immer in BEIDEN Adaptern implementieren.
 - **Migrationen**: Neue Spalten in beiden Adaptern als Migration eintragen (siehe oben).
-- **Auth**: Alle Admin-API-Routen brauchen `requireAuth`. Gäste-Routen (menu-app, cart) sind öffentlich.
+- **Auth**: Alle Admin-API-Routen brauchen `requireAuth`. Gäste-Routen (Gäste-Website, cart, cookie-consent) sind öffentlich.
 - **Lizenz-Check**: Feature-Routen nutzen `requireLicense(moduleName)`.
 - **`requireRole`**: Für admin-only Aktionen (Einstellungen schreiben, User verwalten) zusätzlich zu `requireAuth`.
 - **Settings deepMerge**: `/api/settings` und `/api/branding` nutzen `deepMerge` – Arrays werden **ersetzt**, nicht konkateniert.
